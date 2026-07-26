@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "release_track": "initial-public-release",
+  "access_model": "free",
+  "subscriptions_enabled": false,
+  "in_app_purchases_enabled": false,
+  "external_purchase_links_enabled": false,
+  "advertising_enabled": false,
+  "operational_rate_limits_allowed": true,
+  "future_monetization_requires_new_review": true
+}

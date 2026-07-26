@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Warm paper canvas behind the Compose content while the app starts. -->
+    <color name="thoughtpins_window_background">#F8F8F6</color>
+
+    <!-- Minimal framework Material theme; Compose owns all in-app theming. -->
+    <style name="Theme.ThoughtPins" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/thoughtpins_window_background</item>
+        <item name="android:statusBarColor">@color/thoughtpins_window_background</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

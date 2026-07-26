@@ -1,0 +1,368 @@
+/* ============================================================
+   Thought Pins — web app styles
+   One token-driven system per DESIGN_SYSTEM.md.
+   Quiet neutral surfaces, terracotta accent, Newsreader display,
+   Source Sans 3 body, and purposeful state motion.
+   ============================================================ */
+
+/* ---------- 1. Tokens ---------- */
+
+:root {
+  /* Type */
+  --font-body: "Source Sans 3 Variable", "Source Sans 3", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Newsreader Variable", Newsreader, Georgia, "Times New Roman", serif;
+
+  /* Warm paper palette */
+  --tp-canvas: #f8f8f6;
+  --tp-surface: #ffffff;
+  --tp-surface-warm: #fcfbf9;
+  --tp-ink: #221d16;
+  --tp-ink-soft: #6b6459;
+  --tp-ink-faint: #948c7f;
+  --tp-line: #e6e2dd;
+  --tp-line-strong: #d5cfc7;
+
+  /* Brand terracotta */
+  --tp-brand: #e8612b;
+  --tp-orange: #e8612b; /* alias kept for the product contract */
+  --tp-brand-deep: #bd451b;
+  --tp-action: #b33e16;
+  --tp-action-hover: #8f2e0e;
+  --tp-brand-soft: #fbe9dd;
+
+  /* Quiet semantic support */
+  --tp-sage: #587465;
+  --tp-sage-soft: #e6ede7;
+  --tp-blue: #44708a;
+  --tp-blue-soft: #e4edf2;
+  --tp-danger: #a83232;
+
+  /* Dark band / sidebar */
+  --tp-charcoal: #26211b;
+  --tp-charcoal-soft: #332c24;
+  --tp-charcoal-line: rgba(245, 241, 234, 0.14);
+  --tp-paper: #f5f1ea;
+  --tp-paper-soft: #b5ac9f;
+
+  /* Shape */
+  --radius-card: 8px;
+  --radius-button: 7px;
+  --radius-chip: 6px;
+  --radius-pill: 999px;
+
+  /* Depth */
+  --shadow-float: 0 12px 28px rgba(34, 29, 22, 0.11);
+  --shadow-hover: 0 4px 8px rgba(34, 29, 22, 0.08);
+
+  /* Space (4px grid) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+
+  /* Motion */
+  --motion-quick: 140ms;
+  --motion-standard: 220ms;
+  --motion-entrance: 380ms;
+  --ease-quiet: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Focus */
+  --tp-focus: rgba(232, 97, 43, 0.4);
+
+  font-family: var(--font-body);
+  color: var(--tp-ink);
+  background: var(--tp-canvas);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---------- 2. Base ---------- */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--tp-canvas);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  color: var(--tp-ink);
+  background: var(--tp-canvas);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+::selection {
+  color: #ffffff;
+  background: var(--tp-brand-deep);
+}
+
+h1,
+h2,
+h3,
+p,
+dl,
+dd,
+figure {
+  margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-weight: 580;
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: 28px;
+  line-height: 1.15;
+}
+
+h2 {
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+h3 {
+  font-size: 17px;
+  line-height: 1.3;
+}
+
+a {
+  color: var(--tp-action);
+}
+
+a:hover {
+  color: var(--tp-brand-deep);
+}
+
+code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  transition:
+    border-color var(--motion-quick) ease,
+    background-color var(--motion-quick) ease,
+    color var(--motion-quick) ease,
+    box-shadow var(--motion-quick) ease,
+    transform var(--motion-quick) ease,
+    opacity var(--motion-quick) ease;
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* ---------- 3. Focus & keyboard ---------- */
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--tp-focus);
+  outline-offset: 2px;
+}
+
+/* ---------- 4. Motion system ---------- */
+
+@keyframes tp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tp-settle {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes tp-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes tp-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes tp-rise-x {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes tp-thinking {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+
+@keyframes tp-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  animation: spin 900ms linear infinite;
+}
+
+.view-stage {
+  margin-top: 22px;
+}
+
+/* Per-view enter choreography: list views rise, focus views fade quietly,
+   detail views rise with a small lateral settle. */
+@media (prefers-reduced-motion: no-preference) {
+  .view-stage--list {
+    animation: tp-rise var(--motion-entrance) var(--ease-quiet) both;
+  }
+
+  .view-stage--focus {
+    animation: tp-fade 300ms var(--ease-quiet) both;
+  }
+
+  .view-stage--detail {
+    animation: tp-rise-x var(--motion-entrance) var(--ease-quiet) both;
+  }
+}
+
+.tp-settle {
+  animation: tp-settle var(--motion-standard) var(--ease-settle) both;
+}
+
+.skeleton {
+  min-height: 14px;
+  color: transparent;
+  border-radius: var(--radius-chip);
+  background: linear-gradient(100deg, var(--tp-line) 35%, var(--tp-surface-warm) 50%, var(--tp-line) 65%);
+  background-size: 200% 100%;
+  animation: tp-shimmer 1.6s linear infinite;
+  pointer-events: none;
+  user-select: none;
+}
+
+.stagger > * {
+  animation: tp-rise var(--motion-entrance) var(--ease-quiet) backwards;
+}
+
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 50ms; }
+.stagger > *:nth-child(3) { animation-delay: 100ms; }
+.stagger > *:nth-child(4) { animation-delay: 150ms; }
+.stagger > *:nth-child(5) { animation-delay: 200ms; }
+.stagger > *:nth-child(6) { animation-delay: 250ms; }
+
+.stagger > *:nth-child(n + 7) {
+  animation: none;
+}
+
+/* The three dots are the brand: thinking indicator everywhere a wait occurs. */
+.thinking-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.thinking-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: tp-thinking 1.2s ease-in-out infinite;
+}
+
+.thinking-dots i:nth-child(2) {
+  animation-delay: 160ms;
+}
+
+.thinking-dots i:nth-child(3) {
+  animation-delay: 320ms;
+}

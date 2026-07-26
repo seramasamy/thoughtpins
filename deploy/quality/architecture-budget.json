@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "source_roots": [
+    "src/thoughtpins",
+    "frontend/src",
+    "site",
+    "mobile/ios/ThoughtPinsApp/Sources",
+    "mobile/android/thoughtpins-app/src/main/kotlin"
+  ],
+  "default_line_limits": {
+    ".py": 700,
+    ".ts": 600,
+    ".tsx": 600,
+    ".css": 1000,
+    ".swift": 800,
+    ".kt": 800
+  },
+  "legacy_line_budgets": {
+    "src/thoughtpins/api.py": 519,
+    "src/thoughtpins/bot/commands.py": 542
+  },
+  "dependency_rules": [
+    {
+      "name": "core memory layers do not depend on transports",
+      "paths": [
+        "src/thoughtpins/memory",
+        "src/thoughtpins/ingestion",
+        "src/thoughtpins/vault",
+        "src/thoughtpins/llm",
+        "src/thoughtpins/reports"
+      ],
+      "forbidden_import_prefixes": [
+        "thoughtpins.api",
+        "thoughtpins.api_routes",
+        "thoughtpins.bot",
+        "thoughtpins.founder"
+      ],
+      "exceptions": []
+    }
+  ]
+}

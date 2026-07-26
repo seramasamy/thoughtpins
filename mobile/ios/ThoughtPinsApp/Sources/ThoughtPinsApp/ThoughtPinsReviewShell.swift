@@ -1,0 +1,253 @@
+import Foundation
+import AuthenticationServices
+import AVFoundation
+import SwiftUI
+import ThoughtPinsCore
+import UIKit
+import UniformTypeIdentifiers
+
+public struct ThoughtPinsRootView: View {
+    @StateObject private var model: ThoughtPinsAppModel
+    @StateObject private var uploadProvider: ThoughtPinsDocumentPickerUploadProvider
+    @StateObject private var voiceRecorder: ThoughtPinsVoiceRecorder
+
+    public init(
+        baseURL: URL,
+        oauthTokenProvider: any ThoughtPinsOAuthTokenProvider = UnconfiguredThoughtPinsOAuthTokenProvider()
+    ) {
+        let uploadProvider = ThoughtPinsDocumentPickerUploadProvider()
+        _uploadProvider = StateObject(wrappedValue: uploadProvider)
+        _model = StateObject(
+            wrappedValue: ThoughtPinsAppModel(
+                baseURL: baseURL,
+                oauthTokenProvider: oauthTokenProvider,
+                uploadProvider: uploadProvider
+            )
+        )
+        _voiceRecorder = StateObject(wrappedValue: ThoughtPinsVoiceRecorder())
+    }
+
+    public var body: some View {
+        Group {
+            if model.isAuthenticated {
+                if model.aiProcessingConsentAccepted {
+                    ThoughtPinsMainShell(model: model, voiceRecorder: voiceRecorder)
+                } else {
+                    ThoughtPinsAIConsentView(model: model)
+                }
+            } else {
+                ThoughtPinsAuthView(model: model)
+            }
+        }
+        .task { await model.bootstrap() }
+        .fileImporter(
+            isPresented: $uploadProvider.isImporterPresented,
+            allowedContentTypes: [.item, .text, .pdf, .image, .audio],
+            allowsMultipleSelection: false
+        ) { result in
+            Task { @MainActor in uploadProvider.completeFileImport(result) }
+        }
+        .overlay(alignment: .top) {
+            if let message = model.maintenanceMessage ?? model.banner {
+                Text(message)
+                    .font(.footnote)
+                    .padding(10)
+                    .frame(maxWidth: .infinity)
+                    .background(.thinMaterial)
+                    .accessibilityIdentifier("thoughtpins-status-banner")
+            }
+        }
+    }
+}
+
+struct ThoughtPinsAuthView: View {
+    @ObservedObject var model: ThoughtPinsAppModel
+    @State private var identifier = ""
+    @State private var password = ""
+    @State private var phone = ""
+    @State private var legalAccepted = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    VStack(spacing: 10) {
+                        ThoughtPinsBrandMark()
+                            .frame(width: 72, height: 72)
+                        Text("Thought Pins")
+                            .font(.system(.title, design: .serif).weight(.medium))
+                        Text("A private place to keep what matters.")
+                            .font(.system(.subheadline, design: .serif)).italic()
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                }
+                Section("Account") {
+                    TextField("Email", text: $identifier)
+                        .textContentType(.emailAddress)
+                        .keyboardType(.emailAddress)
+                        .textInputAutocapitalization(.never)
+                    TextField("Phone", text: $phone)
+                        .textContentType(.telephoneNumber)
+                        .keyboardType(.phonePad)
+                    SecureField("Password", text: $password)
+                }
+
+                if model.config?.oauthAppleEnabled == true || model.config?.oauthGoogleEnabled == true {
+                    Section("Other ways to sign in") {
+                        if model.config?.oauthAppleEnabled == true {
+                            SignInWithAppleButton(.signIn) { request in
+                                model.configureAppleSignInRequest(request)
+                            } onCompletion: { result in
+                                Task { await model.completeAppleSignIn(result) }
+                            }
+                            .signInWithAppleButtonStyle(.black)
+                            .frame(height: 44)
+                        }
+                        if model.config?.oauthGoogleEnabled == true && model.supportsOAuth(.google) {
+                            Button(ThoughtPinsOAuthProvider.google.label) {
+                                Task { await model.oauthLogin(provider: .google) }
+                            }
+                        }
+                    }
+                }
+
+                Section {
+                    Button("Sign in") {
+                        Task { await model.login(identifier: identifier.isEmpty ? phone : identifier, password: password) }
+                    }
+                    Button("Create account") {
+                        Task {
+                            await model.register(
+                                email: identifier.isEmpty ? nil : identifier,
+                                phone: phone.isEmpty ? nil : phone,
+                                password: password,
+                                consentToAIProcessing: legalAccepted
+                            )
+                        }
+                    }
+                    .disabled(!legalAccepted || password.count < 12 || (identifier.isEmpty && phone.isEmpty))
+                } footer: {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Toggle("I consent to private AI processing of content I choose to send.", isOn: $legalAccepted)
+                        HStack(spacing: 12) {
+                            Link("Privacy", destination: model.legalURL(configured: model.config?.privacyPolicyUrl, fallbackPath: "/privacy"))
+                            Link("Terms", destination: model.legalURL(configured: model.config?.termsUrl, fallbackPath: "/terms"))
+                            Link("AI Disclosure", destination: model.legalURL(configured: model.config?.aiDisclosureUrl, fallbackPath: "/ai-disclosure"))
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Thought Pins")
+        }
+    }
+
+}
+
+struct ThoughtPinsAIConsentView: View {
+    @ObservedObject var model: ThoughtPinsAppModel
+    @State private var confirmed = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    VStack(spacing: 12) {
+                        ThoughtPinsBrandMark()
+                            .frame(width: 72, height: 72)
+                        Text("Your memories stay under your control")
+                            .font(.system(.title2, design: .serif).weight(.semibold))
+                            .multilineTextAlignment(.center)
+                        Text("Thought Pins sends the content you choose to save or discuss to configured AI services so it can organize memories and answer with context. It does not use that content for advertising.")
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                }
+                Section("Review") {
+                    Link("Privacy Policy", destination: model.legalURL(configured: model.config?.privacyPolicyUrl, fallbackPath: "/privacy"))
+                    Link("AI Disclosure", destination: model.legalURL(configured: model.config?.aiDisclosureUrl, fallbackPath: "/ai-disclosure"))
+                    Toggle("I understand and allow this processing.", isOn: $confirmed)
+                    Button("Continue") {
+                        Task { await model.acceptLegal(document: "ai_disclosure") }
+                    }
+                    .disabled(!confirmed)
+                }
+            }
+            .navigationTitle("Before you continue")
+        }
+    }
+}
+
+@MainActor
+public final class ThoughtPinsVoiceRecorder: ObservableObject {
+    @Published public private(set) var isRecording = false
+    @Published public private(set) var errorMessage: String?
+    private var recorder: AVAudioRecorder?
+    private var recordingURL: URL?
+
+    public init() {}
+
+    public func start() async {
+        guard !isRecording else { return }
+        errorMessage = nil
+        let granted = await withCheckedContinuation { continuation in
+            AVAudioSession.sharedInstance().requestRecordPermission { allowed in
+                continuation.resume(returning: allowed)
+            }
+        }
+        guard granted else {
+            errorMessage = "Microphone access was not granted. You can attach an audio file instead."
+            return
+        }
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.record, mode: .spokenAudio, options: [.allowBluetooth])
+            try session.setActive(true)
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("thoughtpins-voice-\(UUID().uuidString).m4a")
+            let settings: [String: Any] = [
+                AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
+                AVSampleRateKey: 44_100,
+                AVNumberOfChannelsKey: 1,
+                AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
+            ]
+            let recorder = try AVAudioRecorder(url: url, settings: settings)
+            recorder.record()
+            self.recorder = recorder
+            recordingURL = url
+            isRecording = true
+        } catch {
+            errorMessage = "The microphone could not start. You can attach an audio file instead."
+            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        }
+    }
+
+    public func stop() -> Data? {
+        guard isRecording else { return nil }
+        recorder?.stop()
+        recorder = nil
+        isRecording = false
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        guard let recordingURL else { return nil }
+        defer {
+            try? FileManager.default.removeItem(at: recordingURL)
+            self.recordingURL = nil
+        }
+        return try? Data(contentsOf: recordingURL)
+    }
+
+    public func cancel() {
+        recorder?.stop()
+        recorder = nil
+        isRecording = false
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        if let recordingURL {
+            try? FileManager.default.removeItem(at: recordingURL)
+            self.recordingURL = nil
+        }
+    }
+}

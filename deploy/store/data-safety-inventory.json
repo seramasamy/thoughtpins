@@ -1,0 +1,213 @@
+﻿{
+    "app_name":  "Thought Pins",
+    "last_reviewed":  "2026-07-13",
+    "official_references":  {
+                                "apple_app_review_guidelines":  "https://developer.apple.com/app-store/review/guidelines/",
+                                "apple_app_privacy_details":  "https://developer.apple.com/app-store/app-privacy-details/",
+                                "apple_account_deletion":  "https://developer.apple.com/support/offering-account-deletion-in-your-app/",
+                                "apple_user_privacy_and_data_use":  "https://developer.apple.com/app-store/user-privacy-and-data-use/",
+                                "google_user_data_policy":  "https://support.google.com/googleplay/android-developer/answer/10144311",
+                                "google_account_deletion":  "https://support.google.com/googleplay/android-developer/answer/13327111",
+                                "google_data_safety_form":  "https://support.google.com/googleplay/android-developer/answer/10787469",
+                                "google_ai_generated_content_policy":  "https://support.google.com/googleplay/android-developer/answer/14094294"
+                            },
+    "tracking":  {
+                     "used_for_tracking":  false,
+                     "advertising_sdks":  [
+
+                                          ],
+                     "cross_app_tracking":  false
+                 },
+    "data_categories":  [
+                            {
+                                "store_category":  "Contact Info",
+                                "examples":  [
+                                                 "email address",
+                                                 "optional phone number",
+                                                 "display name"
+                                             ],
+                                "purpose":  [
+                                                "account creation",
+                                                "authentication",
+                                                "support",
+                                                "account recovery"
+                                            ],
+                                "linked_to_user":  true,
+                                "shared_with_third_parties":  false,
+                                "retention":  "Until account deletion, except limited security/audit records where legally necessary."
+                            },
+                            {
+                                "store_category":  "User Content",
+                                "examples":  [
+                                                 "journal entries",
+                                                 "chat messages",
+                                                 "uploaded documents",
+                                                 "article text",
+                                                 "Obsidian vault exports"
+                                             ],
+                                "purpose":  [
+                                                "memory extraction",
+                                                "semantic search",
+                                                "AI answers",
+                                                "export",
+                                                "backup/restore"
+                                            ],
+                                "linked_to_user":  true,
+                                "shared_with_third_parties":  true,
+                                "third_party_basis":  "Processed by the configured LLM, embedding, article-fetch, and crash-reporting providers only as needed to provide the service.",
+                                "retention":  "Until account deletion or user deletion of individual entries/documents."
+                            },
+                            {
+                                "store_category":  "Audio Data",
+                                "examples":  [
+                                                 "user-initiated voice-note recordings",
+                                                 "voice-note transcripts"
+                                             ],
+                                "purpose":  [
+                                                "voice transcription",
+                                                "journal capture"
+                                            ],
+                                "linked_to_user":  true,
+                                "shared_with_third_parties":  true,
+                                "third_party_basis":  "Audio may be sent to the deployment-configured transcription processor only after the user initiates recording and has accepted AI processing. Production disclosures must name the active processor.",
+                                "retention":  "The public store configuration discards audio after transcription. Transcripts follow journal-entry retention. A separately enabled private/self-hosted archive is outside the public store configuration and has its own consent and deletion controls."
+                            },
+                            {
+                                "store_category":  "Identifiers",
+                                "examples":  [
+                                                 "internal user ID",
+                                                 "session ID",
+                                                 "device installation ID",
+                                                 "OAuth subject identifier"
+                                             ],
+                                "purpose":  [
+                                                "authentication",
+                                                "session management",
+                                                "device management",
+                                                "tenant isolation"
+                                            ],
+                                "linked_to_user":  true,
+                                "shared_with_third_parties":  false,
+                                "retention":  "Until logout, device revocation, or account deletion depending on identifier type."
+                            },
+                            {
+                                "store_category":  "Diagnostics",
+                                "examples":  [
+                                                 "request ID",
+                                                 "error events",
+                                                 "worker/job status",
+                                                 "health metrics"
+                                             ],
+                                "purpose":  [
+                                                "security",
+                                                "fraud prevention",
+                                                "reliability",
+                                                "debugging"
+                                            ],
+                                "linked_to_user":  "limited",
+                                "shared_with_third_parties":  true,
+                                "third_party_basis":  "Shared with Sentry only when SENTRY_DSN is configured; request bodies and authorization headers must be scrubbed.",
+                                "retention":  "Operational retention window defined by production logging and telemetry settings."
+                            }
+                        ],
+    "ai_processing":  {
+                          "disclosure_required":  true,
+                          "user_content_sent_to_model_provider":  true,
+                          "explicit_user_permission_required":  true,
+                          "default_generation_provider":  "deployment-configured third-party AI processor; disclose the actual production processor before submission",
+                          "default_embedding_provider":  "deployment-configured embedding processor; disclose the actual production processor before submission",
+                          "default_transcription_provider":  "deployment-configured local or third-party transcription processor; disclose the actual production processor before submission",
+                          "model_training_commitment":  "Thought Pins does not sell journal content and does not intentionally use user content to train third-party foundation models. Provider terms must be verified before launch."
+                      },
+    "account_deletion":  {
+                             "in_app_path":  "Account screen -\u003e Delete account -\u003e DELETE /v1/me with confirmation",
+                             "web_resource":  "ACCOUNT_DELETION_URL, expected production value https://thoughtpins.com/account/delete",
+                             "api_endpoint":  "DELETE /v1/me",
+                             "export_endpoint":  "GET /v1/export",
+                             "deleted_scopes":  [
+                                                    "journal entries",
+                                                    "memories/entities/relationships/events",
+                                                    "document library sources/chunks",
+                                                    "chat conversations/messages/pending actions",
+                                                    "retained voice recordings and derived personal voice data",
+                                                    "jobs",
+                                                    "sessions/devices/preferences",
+                                                    "user account row"
+                                                ],
+                             "retained_scopes":  [
+                                                     "minimal security/audit records only if legally necessary and disclosed in the privacy policy"
+                                                 ]
+                         },
+    "permissions":  {
+                        "microphone":  {
+                                           "status":  "implemented_user_initiated",
+                                           "reason":  "Optional browser and native voice-note recording; requested only after a just-in-time in-product disclosure and explicit user action. The public store configuration discards audio after transcription."
+                                       },
+                        "camera_or_photos":  {
+                                                 "status":  "future_optional",
+                                                 "reason":  "User-selected image/document upload for journaling or reading library ingestion."
+                                             },
+                        "notifications":  {
+                                              "status":  "future_optional",
+                                              "reason":  "Reminder delivery and job completion notices."
+                                          },
+                        "location":  {
+                                         "status":  "not_used_in_v1",
+                                         "reason":  "Places are extracted from user text, not device location."
+                                     },
+                        "contacts":  {
+                                         "status":  "not_used_in_v1",
+                                         "reason":  "People are extracted from user text, not address book upload."
+                                     }
+                    },
+    "review_notes":  {
+                         "demo_account_required":  true,
+                         "backend_must_be_live":  true,
+                         "personal_voice_archive_enabled":  false,
+                         "founder_or_telegram_test_controls_exposed_in_public_build":  false,
+                         "thin_web_wrapper_risk":  "Native clients must provide app-grade chat, capture, document import, memory, export, and account flows rather than merely wrapping the web app."
+                     },
+    "ai_safety":  {
+                      "reporting_channel":  "support@thoughtpins.com",
+                      "in_app_or_support_path":  "Account/Support links plus https://thoughtpins.com/support",
+                      "unsafe_output_reporting":  true,
+                      "prohibited_generation_categories":  [
+                                                               "malicious code creation",
+                                                               "child sexual abuse material",
+                                                               "non-consensual sexual content",
+                                                               "deceptive election content",
+                                                               "scams or impersonation",
+                                                               "self-harm instructions",
+                                                               "harassment or bullying",
+                                                               "copyright infringement or access-control circumvention"
+                                                           ],
+                      "review_response_path":  "Use request IDs and minimal diagnostics to investigate reports without exposing private journal text unnecessarily.",
+                      "not_for_children":  true,
+                      "in_app_reporting":  true,
+                      "report_endpoint":  "POST /v1/safety/reports",
+                      "report_categories":  [
+                                                "unsafe_ai_output",
+                                                "harmful_or_illegal_content",
+                                                "copyright_concern",
+                                                "privacy_concern",
+                                                "harassment_or_abuse",
+                                                "self_harm_or_crisis",
+                                                "security_concern",
+                                                "other"
+                                            ]
+                  },
+    "copyright_and_sources":  {
+                                  "user_submitted_sources_only":  true,
+                                  "access_control_circumvention":  false,
+                                  "crawler_spoofing":  false,
+                                  "user_responsibility":  "Users should import only content they have the right to store and process.",
+                                  "product_behavior":  "Restricted sources are saved as metadata or authorized user-provided material rather than retrieved through defeated access controls."
+                              },
+    "user_generated_content":  {
+                                   "private_by_default":  true,
+                                   "public_posting":  false,
+                                   "user_to_user_blocking_not_applicable":  true,
+                                   "moderation_model":  "Private journal and reading-library content is not publicly posted; users can report unsafe AI output, harmful imported content, privacy concerns, and abuse through POST /v1/safety/reports or support.",
+                                   "report_endpoint":  "POST /v1/safety/reports"
+                               }
+}

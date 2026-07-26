@@ -1,0 +1,209 @@
+/* ---------- 11b. Reading library ---------- */
+
+.library-view {
+  display: grid;
+  gap: 20px;
+}
+
+.library-intro {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 2px;
+}
+
+.library-intro h2 {
+  margin-top: 5px;
+  font-size: 26px;
+}
+
+.library-intro p {
+  max-width: 720px;
+  margin-top: 7px;
+  color: var(--tp-ink-soft);
+  font-size: 14px;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+.library-add,
+.library-browser {
+  min-width: 0;
+}
+
+.library-mode {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  width: 100%;
+  margin-bottom: 18px;
+}
+
+.library-mode button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.library-fields {
+  min-height: 260px;
+  align-content: start;
+}
+
+.library-add.mode-link textarea {
+  min-height: 112px;
+}
+
+.library-add.mode-file textarea {
+  min-height: 96px;
+}
+
+.library-add.mode-text textarea {
+  min-height: 240px;
+}
+
+.optional-label {
+  color: var(--tp-ink-faint);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.file-picker > input {
+  margin-top: 7px;
+}
+
+.file-picker > span {
+  display: block;
+  margin-top: 7px;
+  color: var(--tp-ink-soft);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.library-result {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  margin-top: 16px;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--tp-line);
+  color: var(--tp-sage);
+}
+
+.library-result strong,
+.library-result span {
+  display: block;
+}
+
+.library-result strong {
+  color: var(--tp-ink);
+  font-size: 13px;
+}
+
+.library-result span {
+  margin-top: 2px;
+  color: var(--tp-ink-soft);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.library-search {
+  margin-bottom: 14px;
+}
+
+.library-search > button {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: var(--tp-ink-soft);
+  background: transparent;
+}
+
+.source-row.selected {
+  border-color: color-mix(in srgb, var(--tp-brand) 55%, var(--tp-line));
+  background: color-mix(in srgb, var(--tp-brand-soft) 26%, var(--tp-surface));
+}
+
+.source-row-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.source-row-copy > span {
+  color: var(--tp-brand-deep);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.source-row-copy > strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-row-copy > small {
+  color: var(--tp-ink-soft);
+  font-size: 12px;
+}
+
+.library-detail {
+  display: grid;
+  gap: 16px;
+}
+
+.library-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.library-detail-header h2 {
+  margin-top: 4px;
+  font-size: 24px;
+}
+
+.library-detail-header p {
+  margin-top: 5px;
+  color: var(--tp-ink-soft);
+  font-size: 13px;
+}
+
+.library-summary {
+  max-width: 78ch;
+  color: var(--tp-ink-soft);
+  font-size: 14px;
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+
+.library-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border-block: 1px solid var(--tp-line);
+}
+
+.library-detail-meta div {
+  min-width: 150px;
+  padding: 12px 20px 12px 0;
+}
+
+.library-detail-meta dt {
+  color: var(--tp-ink-soft);
+  font-size: 11px;
+}
+
+.library-detail-meta dd {
+  margin-top: 3px;
+  font-size: 13px;
+  font-weight: 650;
+}

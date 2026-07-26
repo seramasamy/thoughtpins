@@ -1,0 +1,3 @@
+-keepattributes Signature,*Annotation*
+-keep class com.thoughtpins.core.** { *; }
+-dontwarn org.conscrypt.**

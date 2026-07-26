@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thought Pins — Logo Review</title>
+<meta name="robots" content="noindex">
+<style>
+@font-face{font-family:"Newsreader Variable";src:url("assets/fonts/newsreader-latin-wght-normal.woff2") format("woff2");font-weight:200 800;font-style:normal;font-display:swap}
+@font-face{font-family:"Source Sans 3 Variable";src:url("assets/fonts/source-sans-3-latin-wght-normal.woff2") format("woff2");font-weight:200 900;font-style:normal;font-display:swap}
+:root{
+  --canvas:#f8f8f6;--surface:#fff;--warm:#fcfbf9;--ink:#221d16;--soft:#6b6459;--faint:#948c7f;
+  --line:#e6e2dd;--strong:#d5cfc7;--brand:#e8612b;--action:#b33e16;--brand-soft:#fbe9dd;
+  --charcoal:#26211b;--on-dark:#f5f1ea;--on-dark-soft:#b5ac9f;--dark-canvas:#1c1916;
+  --serif:"Newsreader Variable","Iowan Old Style",Georgia,serif;
+  --sans:"Source Sans 3 Variable",system-ui,sans-serif;
+}
+html.dark{
+  --canvas:#1c1916;--surface:#26211b;--warm:#221d18;--ink:#f5f1ea;--soft:#b5ac9f;--faint:#8b8272;
+  --line:rgba(245,241,234,.14);--strong:rgba(245,241,234,.22);--brand-soft:#3a2a1f;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--canvas);color:var(--ink);font:460 16px/1.6 var(--sans);padding:48px 24px 96px;transition:background .3s,color .3s}
+.wrap{max-width:1080px;margin:0 auto}
+header.top{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-bottom:28px;border-bottom:1px solid var(--line);margin-bottom:40px;flex-wrap:wrap}
+.brandline{display:flex;align-items:center;gap:14px}
+.brandline img{width:40px;height:40px}
+.brandline .name{font:italic 560 24px/1.1 var(--serif)}
+.brandline .sub{font-size:13px;color:var(--soft)}
+#themeBtn{font:620 13px/1 var(--sans);color:var(--ink);background:var(--surface);border:1px solid var(--strong);border-radius:999px;padding:9px 16px;cursor:pointer}
+#themeBtn:hover{border-color:var(--brand)}
+h1{font:560 clamp(30px,4.5vw,44px)/1.15 var(--serif);letter-spacing:0;margin:0 0 12px}
+.lede{max-width:70ch;color:var(--soft);font-size:17px;margin-bottom:8px}
+.howto{font-size:14px;color:var(--faint);margin-bottom:56px}
+.howto b{color:var(--action);font-weight:640}
+.candidate{border:1px solid var(--line);border-radius:14px;background:var(--surface);margin-bottom:40px;overflow:hidden}
+.cand-head{display:flex;align-items:baseline;gap:14px;padding:24px 28px 0;flex-wrap:wrap}
+.cand-code{font:700 12px/1 var(--sans);letter-spacing:.08em;color:var(--action);background:var(--brand-soft);border-radius:6px;padding:6px 9px}
+html.dark .cand-code{color:#f0906a}
+.cand-head h2{font:560 26px/1.2 var(--serif)}
+.cand-tag{font-size:13.5px;color:var(--faint)}
+.stage{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:20px}
+.stage>div{display:flex;align-items:center;justify-content:center;gap:28px;padding:44px 24px;flex-wrap:wrap}
+.stage .on-light{background:#f8f8f6}
+.stage .on-dark{background:#1c1916}
+.stage img.big{width:96px;height:96px}
+.lockup{display:flex;align-items:center;gap:12px}
+.lockup img{width:44px;height:44px}
+.lockup .wm{font:560 30px/1 var(--serif);color:#221d16}
+.on-dark .lockup .wm{color:#f5f1ea}
+.lockup .tg{font-size:12.5px;color:#948c7f;margin-top:2px}
+.ladder{display:flex;align-items:flex-end;gap:20px}
+.ladder figure{text-align:center}
+.ladder figcaption{font-size:10.5px;color:#948c7f;margin-top:6px}
+.mocks{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:28px}
+.mock-box{border:1px solid var(--line);border-radius:10px;background:var(--warm);padding:24px;display:flex;flex-direction:column;align-items:center;gap:16px}
+.mock-label{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.appicon img{width:150px;height:150px;border-radius:34px;box-shadow:0 14px 30px rgba(34,29,22,.16)}
+html.dark .appicon img{box-shadow:0 14px 30px rgba(0,0,0,.5)}
+.tabs{display:flex;flex-direction:column;gap:10px;width:100%;align-items:center}
+.tab{display:flex;align-items:center;gap:8px;width:230px;padding:8px 12px;border-radius:9px 9px 0 0;font-size:12.5px}
+.tab img{width:16px;height:16px}
+.tab.light{background:#fff;color:#221d16;box-shadow:0 -1px 4px rgba(0,0,0,.08)}
+.tab.darktab{background:#2b241d;color:#f5f1ea}
+.tab .x{margin-left:auto;opacity:.45;font-size:11px}
+.notes{padding:0 28px 8px;display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.notes h3{font:640 12px/1 var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--faint);margin-bottom:8px}
+.notes p,.notes li{font-size:14.5px;color:var(--soft)}
+.notes ul{padding-left:18px}
+.scores{display:flex;gap:8px;flex-wrap:wrap;padding:18px 28px 26px}
+.chip{font:620 12px/1 var(--sans);border:1px solid var(--strong);border-radius:999px;padding:7px 11px;color:var(--soft)}
+.chip b{color:var(--ink);font-weight:700}
+.chip.total{background:var(--charcoal);color:var(--on-dark);border-color:var(--charcoal)}
+.chip.total b{color:#f4b493}
+.winner{box-shadow:0 0 0 2px var(--brand)}
+.rec-badge{font:700 11px/1 var(--sans);letter-spacing:.08em;color:#fff;background:var(--action);border-radius:6px;padding:6px 9px}
+table.grades{width:100%;border-collapse:collapse;margin:8px 0 12px;font-size:14.5px}
+.grades th,.grades td{padding:11px 12px;border-bottom:1px solid var(--line);text-align:center}
+.grades th:first-child,.grades td:first-child{text-align:left}
+.grades thead th{font:640 12px/1.3 var(--sans);letter-spacing:.05em;text-transform:uppercase;color:var(--faint)}
+.grades td.name{font-weight:620}
+.grades tr.best td{background:var(--brand-soft)}
+html.dark .grades tr.best td{background:#3a2a1f}
+.grades .tot{font-weight:700}
+section.verdict{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:32px;margin:8px 0 40px}
+section.verdict h2{font:560 28px/1.2 var(--serif);margin-bottom:14px}
+section.verdict p{color:var(--soft);max-width:75ch;margin-bottom:10px;font-size:15.5px}
+section.verdict b{color:var(--ink)}
+.reply{background:var(--charcoal);color:var(--on-dark);border-radius:14px;padding:30px 32px;text-align:center}
+.reply p{font-size:16px;color:var(--on-dark-soft)}
+.reply code{font:700 15px/1 ui-monospace,monospace;color:#f4b493;background:rgba(245,241,234,.08);padding:3px 8px;border-radius:6px}
+footer{margin-top:32px;text-align:center;font-size:12.5px;color:var(--faint)}
+@media(max-width:760px){.stage,.mocks,.notes{grid-template-columns:1fr}.scores{padding-bottom:20px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="brandline">
+    <img src="assets/thought-pins-mark.svg" alt="Thought Pins mark">
+    <div>
+      <div class="name">Thought Pins</div>
+      <div class="sub">Logo candidate review · July 2026</div>
+    </div>
+  </div>
+  <button id="themeBtn" type="button">Switch to dark</button>
+</header>
+
+<h1>Five marks, one decision.</h1>
+<p class="lede">Each candidate is shown at app-icon size, in a wordmark lockup, on the size ladder down to favicon (16px), and in both light and dark contexts. A logo earns its place at 16px first — check the ladder before the big tiles.</p>
+<p class="howto">To decide, reply with a code: <b>L0</b> keep current · <b>L1</b> refined brain-pin · <b>L2</b> pinned thought · <b>L3</b> constellation · <b>L4</b> serif monogram. Nothing ships until you pick.</p>
+
+<!-- L1 -->
+<section class="candidate winner" id="l1">
+  <div class="cand-head">
+    <span class="cand-code">L1</span>
+    <h2>Refined Brain-Pin</h2>
+    <span class="rec-badge">RECOMMENDED</span>
+    <span class="cand-tag">The current mark, executed better</span>
+  </div>
+  <div class="stage">
+    <div class="on-light">
+      <img class="big" src="assets/logo-candidates/l1-refined-brain-pin.svg" alt="L1 refined brain-pin, large, on light">
+      <div class="lockup">
+        <img src="assets/logo-candidates/l1-refined-brain-pin.svg" alt="">
+        <div><div class="wm">Thought Pins</div><div class="tg">private memory layer</div></div>
+      </div>
+    </div>
+    <div class="on-dark">
+      <img class="big" src="assets/logo-candidates/l1-refined-brain-pin.svg" alt="L1, large, on dark">
+      <div class="ladder">
+        <figure><img width="48" height="48" src="assets/logo-candidates/l1-refined-brain-pin.svg" alt="L1 at 48px"><figcaption>48</figcaption></figure>
+        <figure><img width="32" height="32" src="assets/logo-candidates/l1-refined-brain-pin.svg" alt="L1 at 32px"><figcaption>32</figcaption></figure>
+        <figure><img width="16" height="16" src="assets/logo-candidates/l1-refined-brain-pin.svg" alt="L1 at 16px"><figcaption>16</figcaption></figure>
+      </div>
+    </div>
+  </div>
+  <div class="mocks">
+    <div class="mock-box appicon"><span class="mock-label">Home-screen icon</span><img src="assets/logo-candidates/l1-refined-brain-pin.svg" alt="L1 as app icon"></div>
+    <div class="mock-box"><span class="mock-label">Browser tab</span>
+      <div class="tabs">
+        <div class="tab light"><img src="assets/logo-candidates/l1-refined-brain-pin.svg" alt="">Thought Pins<span class="x">✕</span></div>
+        <div class="tab darktab"><img src="assets/logo-candidates/l1-refined-brain-pin.svg" alt="">Thought Pins<span class="x">✕</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="notes">
+    <div><h3>Concept</h3><p>Same brain-inside-a-pin idea as today — memory + place — with heavier 6.2px strokes, smoother symmetric sulci, and a stem that stops short of the point so the silhouette reads cleanly at small sizes.</p></div>
+    <div><h3>Trade-offs</h3><ul><li>Keeps all existing brand equity and meaning.</li><li>Clearly more legible at 16–32px than L0.</li><li>Evolution, not revolution — nobody will notice a "new logo", only that it looks sharper.</li></ul></div>
+  </div>
+  <div class="scores">
+    <span class="chip">Memorability <b>8</b></span><span class="chip">16px legibility <b>8</b></span><span class="chip">Brand fit <b>9</b></span><span class="chip">Distinctiveness <b>8</b></span><span class="chip">Store strength <b>9</b></span><span class="chip total">Total <b>42</b></span>
+  </div>
+</section>
+
+<!-- L2 -->
+<section class="candidate" id="l2">
+  <div class="cand-head">
+    <span class="cand-code">L2</span>
+    <h2>Pinned Thought</h2>
+    <span class="cand-tag">Strongest minimalist alternative</span>
+  </div>
+  <div class="stage">
+    <div class="on-light">
+      <img class="big" src="assets/logo-candidates/l2-pinned-thought.svg" alt="L2 pinned thought, large, on light">
+      <div class="lockup">
+        <img src="assets/logo-candidates/l2-pinned-thought.svg" alt="">
+        <div><div class="wm">Thought Pins</div><div class="tg">private memory layer</div></div>
+      </div>
+    </div>
+    <div class="on-dark">
+      <img class="big" src="assets/logo-candidates/l2-pinned-thought.svg" alt="L2, large, on dark">
+      <div class="ladder">
+        <figure><img width="48" height="48" src="assets/logo-candidates/l2-pinned-thought.svg" alt="L2 at 48px"><figcaption>48</figcaption></figure>
+        <figure><img width="32" height="32" src="assets/logo-candidates/l2-pinned-thought.svg" alt="L2 at 32px"><figcaption>32</figcaption></figure>
+        <figure><img width="16" height="16" src="assets/logo-candidates/l2-pinned-thought.svg" alt="L2 at 16px"><figcaption>16</figcaption></figure>
+      </div>
+    </div>
+  </div>
+  <div class="mocks">
+    <div class="mock-box appicon"><span class="mock-label">Home-screen icon</span><img src="assets/logo-candidates/l2-pinned-thought.svg" alt="L2 as app icon"></div>
+    <div class="mock-box"><span class="mock-label">Browser tab</span>
+      <div class="tabs">
+        <div class="tab light"><img src="assets/logo-candidates/l2-pinned-thought.svg" alt="">Thought Pins<span class="x">✕</span></div>
+        <div class="tab darktab"><img src="assets/logo-candidates/l2-pinned-thought.svg" alt="">Thought Pins<span class="x">✕</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="notes">
+    <div><h3>Concept</h3><p>The name, literally: one thought, pinned. A clean map pin holding a single orange dot — the most reducible possible version of the idea, and flawless at favicon size.</p></div>
+    <div><h3>Trade-offs</h3><ul><li>Perfect 16px legibility; strongest silhouette of the set.</li><li>Drops the explicit "brain/memory" cue — the dot must carry the whole "thought" story.</li><li>Plain map pins are common; the dot is the only ownable twist.</li></ul></div>
+  </div>
+  <div class="scores">
+    <span class="chip">Memorability <b>9</b></span><span class="chip">16px legibility <b>10</b></span><span class="chip">Brand fit <b>7</b></span><span class="chip">Distinctiveness <b>7</b></span><span class="chip">Store strength <b>9</b></span><span class="chip total">Total <b>42</b></span>
+  </div>
+</section>
+
+<!-- L0 -->
+<section class="candidate" id="l0">
+  <div class="cand-head">
+    <span class="cand-code">L0</span>
+    <h2>Current Brain-Pin</h2>
+    <span class="cand-tag">Control — the shipping mark today</span>
+  </div>
+  <div class="stage">
+    <div class="on-light">
+      <img class="big" src="assets/thought-pins-mark.svg" alt="L0 current brain-pin, large, on light">
+      <div class="lockup">
+        <img src="assets/thought-pins-mark.svg" alt="">
+        <div><div class="wm">Thought Pins</div><div class="tg">private memory layer</div></div>
+      </div>
+    </div>
+    <div class="on-dark">
+      <img class="big" src="assets/thought-pins-mark.svg" alt="L0, large, on dark">
+      <div class="ladder">
+        <figure><img width="48" height="48" src="assets/thought-pins-mark.svg" alt="L0 at 48px"><figcaption>48</figcaption></figure>
+        <figure><img width="32" height="32" src="assets/thought-pins-mark.svg" alt="L0 at 32px"><figcaption>32</figcaption></figure>
+        <figure><img width="16" height="16" src="assets/thought-pins-mark.svg" alt="L0 at 16px"><figcaption>16</figcaption></figure>
+      </div>
+    </div>
+  </div>
+  <div class="mocks">
+    <div class="mock-box appicon"><span class="mock-label">Home-screen icon</span><img src="assets/thought-pins-mark.svg" alt="L0 as app icon"></div>
+    <div class="mock-box"><span class="mock-label">Browser tab</span>
+      <div class="tabs">
+        <div class="tab light"><img src="assets/thought-pins-mark.svg" alt="">Thought Pins<span class="x">✕</span></div>
+        <div class="tab darktab"><img src="assets/thought-pins-mark.svg" alt="">Thought Pins<span class="x">✕</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="notes">
+    <div><h3>Concept</h3><p>The existing mark: brain carved into a map pin — memory + place. Meaningful, distinctive, already everywhere in the product.</p></div>
+    <div><h3>Trade-offs</h3><ul><li>Real meaning and established equity.</li><li>The 5.5px sulci and long center stem blur together at 16px — the favicon reads as texture, not a brain.</li><li>Keeping it is defensible; it is not the best-executed option here.</li></ul></div>
+  </div>
+  <div class="scores">
+    <span class="chip">Memorability <b>8</b></span><span class="chip">16px legibility <b>6</b></span><span class="chip">Brand fit <b>9</b></span><span class="chip">Distinctiveness <b>8</b></span><span class="chip">Store strength <b>8</b></span><span class="chip total">Total <b>39</b></span>
+  </div>
+</section>
+
+<!-- L3 -->
+<section class="candidate" id="l3">
+  <div class="cand-head">
+    <span class="cand-code">L3</span>
+    <h2>Constellation Pin</h2>
+    <span class="cand-tag">Most distinctive, weakest small</span>
+  </div>
+  <div class="stage">
+    <div class="on-light">
+      <img class="big" src="assets/logo-candidates/l3-constellation-pin.svg" alt="L3 constellation pin, large, on light">
+      <div class="lockup">
+        <img src="assets/logo-candidates/l3-constellation-pin.svg" alt="">
+        <div><div class="wm">Thought Pins</div><div class="tg">private memory layer</div></div>
+      </div>
+    </div>
+    <div class="on-dark">
+      <img class="big" src="assets/logo-candidates/l3-constellation-pin.svg" alt="L3, large, on dark">
+      <div class="ladder">
+        <figure><img width="48" height="48" src="assets/logo-candidates/l3-constellation-pin.svg" alt="L3 at 48px"><figcaption>48</figcaption></figure>
+        <figure><img width="32" height="32" src="assets/logo-candidates/l3-constellation-pin.svg" alt="L3 at 32px"><figcaption>32</figcaption></figure>
+        <figure><img width="16" height="16" src="assets/logo-candidates/l3-constellation-pin.svg" alt="L3 at 16px"><figcaption>16</figcaption></figure>
+      </div>
+    </div>
+  </div>
+  <div class="mocks">
+    <div class="mock-box appicon"><span class="mock-label">Home-screen icon</span><img src="assets/logo-candidates/l3-constellation-pin.svg" alt="L3 as app icon"></div>
+    <div class="mock-box"><span class="mock-label">Browser tab</span>
+      <div class="tabs">
+        <div class="tab light"><img src="assets/logo-candidates/l3-constellation-pin.svg" alt="">Thought Pins<span class="x">✕</span></div>
+        <div class="tab darktab"><img src="assets/logo-candidates/l3-constellation-pin.svg" alt="">Thought Pins<span class="x">✕</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="notes">
+    <div><h3>Concept</h3><p>Memory motes connected into a pin — the same constellation language as the homepage hero. One orange mote sits captured inside: a thought held in place.</p></div>
+    <div><h3>Trade-offs</h3><ul><li>Most ownable and most tied to the product's motion language.</li><li>Nodes and thin strokes collapse to noise at 16–32px — fails the favicon test.</li><li>Beautiful at hero sizes; would need a simplified small-size variant to ship.</li></ul></div>
+  </div>
+  <div class="scores">
+    <span class="chip">Memorability <b>7</b></span><span class="chip">16px legibility <b>5</b></span><span class="chip">Brand fit <b>9</b></span><span class="chip">Distinctiveness <b>9</b></span><span class="chip">Store strength <b>6</b></span><span class="chip total">Total <b>36</b></span>
+  </div>
+</section>
+
+<!-- L4 -->
+<section class="candidate" id="l4">
+  <div class="cand-head">
+    <span class="cand-code">L4</span>
+    <h2>Serif Monogram</h2>
+    <span class="cand-tag">Editorial, but generic</span>
+  </div>
+  <div class="stage">
+    <div class="on-light">
+      <img class="big" src="assets/logo-candidates/l4-monogram.svg" alt="L4 serif tp monogram, large, on light">
+      <div class="lockup">
+        <img src="assets/logo-candidates/l4-monogram.svg" alt="">
+        <div><div class="wm">Thought Pins</div><div class="tg">private memory layer</div></div>
+      </div>
+    </div>
+    <div class="on-dark">
+      <img class="big" src="assets/logo-candidates/l4-monogram.svg" alt="L4, large, on dark">
+      <div class="ladder">
+        <figure><img width="48" height="48" src="assets/logo-candidates/l4-monogram.svg" alt="L4 at 48px"><figcaption>48</figcaption></figure>
+        <figure><img width="32" height="32" src="assets/logo-candidates/l4-monogram.svg" alt="L4 at 32px"><figcaption>32</figcaption></figure>
+        <figure><img width="16" height="16" src="assets/logo-candidates/l4-monogram.svg" alt="L4 at 16px"><figcaption>16</figcaption></figure>
+      </div>
+    </div>
+  </div>
+  <div class="mocks">
+    <div class="mock-box appicon"><span class="mock-label">Home-screen icon</span><img src="assets/logo-candidates/l4-monogram.svg" alt="L4 as app icon"></div>
+    <div class="mock-box"><span class="mock-label">Browser tab</span>
+      <div class="tabs">
+        <div class="tab light"><img src="assets/logo-candidates/l4-monogram.svg" alt="">Thought Pins<span class="x">✕</span></div>
+        <div class="tab darktab"><img src="assets/logo-candidates/l4-monogram.svg" alt="">Thought Pins<span class="x">✕</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="notes">
+    <div><h3>Concept</h3><p>A lowercase "tp" drawn from the actual Newsreader outlines at weight 560 — the product's own display face, turned into the mark. Quiet, literary, journal-like.</p></div>
+    <div><h3>Trade-offs</h3><ul><li>Effortlessly matches the typography everywhere.</li><li>Any journal, notes, or publishing app could own this — nothing says memory or pins.</li><li>Letterform tiles are the most crowded category in the App Store.</li></ul></div>
+  </div>
+  <div class="scores">
+    <span class="chip">Memorability <b>6</b></span><span class="chip">16px legibility <b>8</b></span><span class="chip">Brand fit <b>7</b></span><span class="chip">Distinctiveness <b>5</b></span><span class="chip">Store strength <b>7</b></span><span class="chip total">Total <b>33</b></span>
+  </div>
+</section>
+
+<!-- Matrix -->
+<section class="verdict">
+  <h2>Grading matrix</h2>
+  <table class="grades">
+    <thead><tr><th>Candidate</th><th>Memorability</th><th>16px legibility</th><th>Brand fit</th><th>Distinctiveness</th><th>Store strength</th><th>Total</th></tr></thead>
+    <tbody>
+      <tr class="best"><td class="name">L1 · Refined Brain-Pin</td><td>8</td><td>8</td><td>9</td><td>8</td><td>9</td><td class="tot">42</td></tr>
+      <tr class="best"><td class="name">L2 · Pinned Thought</td><td>9</td><td>10</td><td>7</td><td>7</td><td>9</td><td class="tot">42</td></tr>
+      <tr><td class="name">L0 · Current Brain-Pin</td><td>8</td><td>6</td><td>9</td><td>8</td><td>8</td><td class="tot">39</td></tr>
+      <tr><td class="name">L3 · Constellation Pin</td><td>7</td><td>5</td><td>9</td><td>9</td><td>6</td><td class="tot">36</td></tr>
+      <tr><td class="name">L4 · Serif Monogram</td><td>6</td><td>8</td><td>7</td><td>5</td><td>7</td><td class="tot">33</td></tr>
+    </tbody>
+  </table>
+  <p><b>The honest verdict:</b> the current mark's <i>idea</i> was never the problem — its small-size execution is. <b>L1</b> keeps the brain-pin meaning (memory + place, the actual product concept) and fixes legibility, so it is the recommendation. <b>L2</b> ties it on points: if you want the boldest, simplest possible mark and are willing to let the brain go, it is the strongest minimalist identity of the set — but a plain pin is easier to confuse with every other location icon. L3 is the most beautiful at large sizes and the least usable at small ones. L4 is elegant and utterly interchangeable.</p>
+  <p>Scores are judgment, not measurement — the size ladders above are the real evidence. Trust your eye at 16px.</p>
+</section>
+
+<div class="reply">
+  <p>Reply with <code>L0</code>, <code>L1</code>, <code>L2</code>, <code>L3</code>, or <code>L4</code> — or "L1 but…" / "L2 but…" and I'll iterate on that mark before any icons ship.</p>
+</div>
+
+<footer>Thought Pins · internal design review · not linked from the public site</footer>
+
+</div>
+<script>
+(function(){
+  var b=document.getElementById("themeBtn"),h=document.documentElement;
+  function set(d){h.classList.toggle("dark",d);b.textContent=d?"Switch to light":"Switch to dark";}
+  set(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+  b.addEventListener("click",function(){set(!h.classList.contains("dark"));});
+})();
+</script>
+</body>
+</html>

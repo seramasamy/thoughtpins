@@ -1,0 +1,147 @@
+/* ---------- 6. Core components ---------- */
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--tp-brand-deep);
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: none;
+}
+
+.section-label {
+  display: block;
+  color: var(--tp-brand-deep);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.muted {
+  color: var(--tp-ink-soft);
+}
+
+.panel,
+.metric,
+.auth-panel,
+.entry-card,
+.memory-card {
+  border: 1px solid var(--tp-line);
+  border-radius: var(--radius-card);
+  background: var(--tp-surface);
+}
+
+.panel,
+.auth-panel {
+  padding: 20px;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.panel-title > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.panel-title h2 {
+  font-size: 18px;
+}
+
+.panel-title svg {
+  color: var(--tp-brand-deep);
+}
+
+.content-grid,
+.stack,
+.source-list,
+.device-list,
+.entry-list,
+.health-list,
+.legal-list,
+.form-stack,
+.compose,
+.compact-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.compact-stack,
+.health-list,
+.legal-list,
+.source-list,
+.device-list,
+.entry-list {
+  gap: 10px;
+}
+
+.narrow-workflow {
+  max-width: 900px;
+}
+
+.module-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.two-pane {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.two-col,
+.store-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.metric {
+  min-height: 88px;
+  padding: 14px 16px;
+}
+
+.metric span,
+.key-value span {
+  color: var(--tp-ink-soft);
+  font-size: 12px;
+}
+
+.metric span {
+  font-size: 13px;
+  font-variant-caps: all-small-caps;
+  font-weight: 600;
+}
+
+.metric strong {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-size: 29px;
+  font-weight: 560;
+  line-height: 1.1;
+}
+
+.metric small {
+  display: block;
+  margin-top: 5px;
+  color: var(--tp-ink-soft);
+  font-size: 12px;
+}
+

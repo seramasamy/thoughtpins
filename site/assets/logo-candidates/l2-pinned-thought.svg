@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title description">
+  <title id="title">Thought Pins</title>
+  <desc id="description">A white map pin holding a single orange thought dot, on an orange field.</desc>
+  <rect width="128" height="128" rx="28" fill="#e8612b"/>
+  <path fill="#fff" d="M64 24c-18.8 0-34 15.2-34 34 0 25.5 34 60 34 60s34-34.5 34-60c0-18.8-15.2-34-34-34Z"/>
+  <circle cx="64" cy="58" r="12.5" fill="#e8612b"/>
+</svg>

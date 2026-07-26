@@ -1,0 +1,38 @@
+{
+    email ops@thoughtpins.com
+}
+
+thoughtpins.com {
+    root * /srv/thoughtpins/site
+    encode zstd gzip
+    try_files {path} {path}.html {path}/index.html
+    file_server
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(self), geolocation=(), payment=()"
+    }
+}
+
+www.thoughtpins.com {
+    redir https://thoughtpins.com{uri} permanent
+}
+
+app.thoughtpins.com {
+    redir / /app 302
+    reverse_proxy 127.0.0.1:8420
+}
+
+api.thoughtpins.com {
+    reverse_proxy 127.0.0.1:8420
+}
+
+staging.thoughtpins.com {
+    redir / /app 302
+    reverse_proxy 127.0.0.1:8421
+}
+
+api-staging.thoughtpins.com {
+    reverse_proxy 127.0.0.1:8421
+}

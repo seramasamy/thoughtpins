@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark charcoal canvas matching the Compose dark color scheme. -->
+    <color name="thoughtpins_window_background">#1A1714</color>
+
+    <style name="Theme.ThoughtPins" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/thoughtpins_window_background</item>
+        <item name="android:statusBarColor">@color/thoughtpins_window_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

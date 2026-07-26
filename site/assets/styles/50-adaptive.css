@@ -1,0 +1,750 @@
+/* ------------------------------------------------------------------
+   Motion
+   ------------------------------------------------------------------ */
+@keyframes tp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes tp-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.012);
+  }
+}
+
+@keyframes tp-preview-enter {
+  from {
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes tp-mark-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Hero entrance: quiet rise with a capped stagger */
+  .hero-inner > * {
+    animation: tp-rise var(--motion-entrance) var(--ease-quiet) both;
+  }
+
+  .hero-inner > *:nth-child(2) {
+    animation-delay: 45ms;
+  }
+
+  .hero-inner > *:nth-child(3) {
+    animation-delay: 90ms;
+  }
+
+  .hero-inner > *:nth-child(4) {
+    animation-delay: 135ms;
+  }
+
+  .hero-inner > *:nth-child(5) {
+    animation-delay: 180ms;
+  }
+
+  .hero-inner > *:nth-child(n + 6) {
+    animation-delay: 225ms;
+  }
+
+  /* Authored entrance, then ambient breathe, on the hero mark only */
+  .hero-mark {
+    animation: tp-mark-enter var(--motion-entrance) var(--ease-settle) both,
+      tp-breathe 4.5s ease-in-out 900ms infinite;
+  }
+
+  .preview-panel.is-active {
+    animation: tp-preview-enter 360ms var(--ease-quiet) both;
+  }
+
+  /* Scroll reveal: elements stay visible unless JS opts in (html.js-reveal) */
+  html.js-reveal .reveal {
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity var(--motion-entrance) var(--ease-quiet),
+      transform var(--motion-entrance) var(--ease-quiet);
+  }
+
+  html.js-reveal .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  html.js-reveal .feature-grid .reveal:nth-child(2),
+  html.js-reveal .principles-inner .reveal:nth-child(2),
+  html.js-reveal .workflow-list .reveal:nth-child(2) {
+    transition-delay: 55ms;
+  }
+
+  html.js-reveal .feature-grid .reveal:nth-child(3),
+  html.js-reveal .principles-inner .reveal:nth-child(3),
+  html.js-reveal .workflow-list .reveal:nth-child(3) {
+    transition-delay: 110ms;
+  }
+
+  html.js-reveal .feature-grid .reveal:nth-child(4) {
+    transition-delay: 165ms;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Responsive
+   ------------------------------------------------------------------ */
+@media (max-width: 900px) {
+  .site-nav {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .header-links {
+    display: none;
+  }
+
+  .hero h1 {
+    font-size: 62px;
+  }
+
+  .workflow-layout,
+  .privacy-layout {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+
+  .footer-main {
+    grid-template-columns: minmax(180px, 1fr) repeat(3, minmax(100px, 0.55fr));
+    gap: 30px;
+  }
+
+  .page-layout {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .page-toc {
+    position: static;
+    padding: 28px 0 0;
+  }
+
+  .page-toc ol {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    border-left: 0;
+  }
+
+  .page-toc a {
+    padding: 6px 12px;
+    margin-left: 0;
+    border: 1px solid var(--tp-line);
+    border-radius: 6px;
+    background: var(--tp-surface);
+  }
+
+  .page-toc a:hover {
+    border-color: var(--tp-line-strong);
+  }
+}
+
+@media (max-width: 680px) {
+  .content-width,
+  .site-nav,
+  .principles-inner,
+  .footer-main,
+  .footer-bottom,
+  .topbar,
+  .footer {
+    width: min(100% - 32px, var(--content));
+  }
+
+  .site-header,
+  .site-nav {
+    min-height: 64px;
+  }
+
+  .site-brand {
+    gap: 9px;
+  }
+
+  .site-brand span {
+    font-size: 17px;
+  }
+
+  .site-brand img {
+    width: 36px;
+    height: 36px;
+  }
+
+  .header-actions {
+    gap: 10px;
+  }
+
+  .header-actions .text-action {
+    display: none;
+  }
+
+  .button-small {
+    min-height: 38px;
+    padding-inline: 14px;
+  }
+
+  .hero-inner {
+    width: calc(100% - 32px);
+    padding: 52px 0 56px;
+  }
+
+  .hero-mark {
+    width: 64px;
+    height: 64px;
+  }
+
+  .hero .eyebrow {
+    margin-top: 0;
+  }
+
+  .hero h1 {
+    font-size: 52px;
+  }
+
+  .hero-tagline {
+    font-size: 20px;
+  }
+
+  .hero-lede {
+    margin-top: 18px;
+    font-size: 17px;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    margin-top: 28px;
+  }
+
+  .hero-actions .button {
+    width: 100%;
+  }
+
+  .hero-trust {
+    margin-top: 20px;
+  }
+
+  .principles-inner,
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .principles p,
+  .principles p:first-child,
+  .principles p:last-child {
+    padding: 22px 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--tp-line);
+  }
+
+  .principles p:last-child {
+    border-bottom: 0;
+  }
+
+  .feature-band,
+  .product-section,
+  .workflow-band,
+  .privacy-band,
+  .closing-cta {
+    padding: 76px 0;
+  }
+
+  .section-heading h2,
+  .product-copy h2,
+  .workflow-intro h2,
+  .privacy-layout h2,
+  .closing-cta h2 {
+    font-size: 34px;
+  }
+
+  .feature-card {
+    padding: 22px 0 26px;
+  }
+
+  .feature-card:nth-child(even) {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .feature-card h3 {
+    margin-top: 16px;
+    font-size: 22px;
+  }
+
+  .product-shot {
+    width: calc(100% - 32px);
+    margin-top: 40px;
+  }
+
+  .product-demo {
+    padding: 20px;
+  }
+
+  .product-demo-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .preview-tabs {
+    width: 100%;
+  }
+
+  .preview-tab {
+    flex: 1;
+  }
+
+  .product-demo-stage {
+    min-height: 560px;
+  }
+
+  .browser-frame-bar {
+    min-height: 32px;
+    padding: 0 12px;
+  }
+
+  .footer-main {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 36px 24px;
+    padding-top: 48px;
+  }
+
+  .footer-brand-block {
+    grid-column: 1 / -1;
+  }
+
+  .footer-bottom,
+  .footer {
+    flex-direction: column;
+  }
+
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    padding: 18px 0;
+  }
+
+  .nav {
+    flex-wrap: wrap;
+    gap: 10px 16px;
+  }
+
+  .page {
+    width: calc(100% - 32px);
+    padding: 52px 0 76px;
+  }
+
+  .page-with-toc {
+    width: calc(100% - 32px);
+  }
+
+  .page h1 {
+    font-size: 38px;
+  }
+
+  .page h2 {
+    font-size: 23px;
+  }
+
+  .legal-glance {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 390px) {
+  .site-brand span {
+    font-size: 16px;
+  }
+
+  .button-small {
+    padding-inline: 11px;
+    font-size: 13px;
+  }
+
+  .header-back {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+}
+
+/* Narrowest phones (e.g. iPhone SE, 320px): brand icon + wordmark, the
+   Modern pill, theme toggle, and Sign up no longer all fit on one row.
+   Drop the wordmark and keep the mark — it's still fully legible. */
+@media (max-width: 360px) {
+  .site-brand span {
+    display: none;
+  }
+
+  .header-actions {
+    gap: 8px;
+  }
+
+  .hero h1 {
+    font-size: 44px;
+  }
+
+  .workflow-list li {
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .workflow-list li > div {
+    gap: 8px;
+  }
+
+  .workflow-list > li > span {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+
+  .workflow-list strong {
+    font-size: 17px;
+  }
+
+  .workflow-list p {
+    font-size: 13px;
+  }
+
+  .product-demo {
+    padding: 14px;
+  }
+
+  .product-demo-title {
+    font-size: 20px;
+  }
+
+  .product-demo-stage {
+    min-height: 540px;
+    margin-top: 18px;
+  }
+
+  .footer-main {
+    grid-template-columns: 1fr;
+  }
+
+  .footer-brand-block {
+    grid-column: 1;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Dark scheme: warm charcoal paper, same brand voice
+
+   The same token remap is applied three ways:
+   - system dark, when the visitor has not chosen a theme (no data-theme)
+   - explicit :root[data-theme="dark"] from the header theme toggle
+   The two rule bodies must stay identical.
+   ------------------------------------------------------------------ */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+  }
+}
+
+/* Token remap — this block and the one inside the media query below must
+   stay identical. */
+:root[data-theme="dark"] {
+  --tp-canvas: #1c1916;
+  --tp-surface: #26211b;
+  --tp-surface-warm: #2b251e;
+  --tp-ink: #f5f1ea;
+  --tp-ink-soft: #b5ac9f;
+  --tp-ink-faint: #8d8478;
+  --tp-line: #383128;
+  --tp-line-strong: #4a4136;
+  --tp-brand-soft: #402518;
+  --tp-sage-soft: #26332b;
+  --tp-blue-soft: #223038;
+  --tp-charcoal: #211d18;
+  --tp-charcoal-soft: #332c24;
+
+  --tp-eyebrow: #f0906a;
+  --tp-link: #f0906a;
+  --tp-action-hover: #cd4d20;
+  --tp-band: #211d18;
+  --tp-header-bg: rgba(28, 25, 22, 0.92);
+  --tp-chip-orange-ink: #ffb48f;
+  --tp-chip-orange-bg: #402518;
+  --tp-chip-sage-ink: #a9c4b4;
+  --tp-chip-sage-bg: #26332b;
+  --tp-chip-blue-ink: #a3c3d4;
+  --tp-chip-blue-bg: #223038;
+  --tp-summary-ink: #f2cdb8;
+  --tp-shadow-card: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --tp-shadow-shot: 0 24px 64px rgba(0, 0, 0, 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --tp-canvas: #1c1916;
+    --tp-surface: #26211b;
+    --tp-surface-warm: #2b251e;
+    --tp-ink: #f5f1ea;
+    --tp-ink-soft: #b5ac9f;
+    --tp-ink-faint: #8d8478;
+    --tp-line: #383128;
+    --tp-line-strong: #4a4136;
+    --tp-brand-soft: #402518;
+    --tp-sage-soft: #26332b;
+    --tp-blue-soft: #223038;
+    --tp-charcoal: #211d18;
+    --tp-charcoal-soft: #332c24;
+
+    --tp-eyebrow: #f0906a;
+    --tp-link: #f0906a;
+    --tp-action-hover: #cd4d20;
+    --tp-band: #211d18;
+    --tp-header-bg: rgba(28, 25, 22, 0.92);
+    --tp-chip-orange-ink: #ffb48f;
+    --tp-chip-orange-bg: #402518;
+    --tp-chip-sage-ink: #a9c4b4;
+    --tp-chip-sage-bg: #26332b;
+    --tp-chip-blue-ink: #a3c3d4;
+    --tp-chip-blue-bg: #223038;
+    --tp-summary-ink: #f2cdb8;
+    --tp-shadow-card: 0 10px 30px rgba(0, 0, 0, 0.35);
+    --tp-shadow-shot: 0 24px 64px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Component-level dark adjustments, explicit theme choice… */
+[data-theme="dark"] ::selection {
+  color: var(--tp-ink);
+  background: #4a2c1c;
+}
+
+[data-theme="dark"] .site-brand img,
+[data-theme="dark"] .closing-cta img {
+  box-shadow: none;
+}
+
+[data-theme="dark"] .test-session-note span {
+  background: #7fae95;
+}
+
+[data-theme="dark"] .test-session-note {
+  color: var(--tp-chip-sage-ink);
+}
+
+[data-theme="dark"] .hero-mark {
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.4));
+}
+
+[data-theme="dark"] .privacy-band {
+  border-block: 1px solid var(--tp-line);
+}
+
+[data-theme="dark"] .site-footer {
+  border-top: 1px solid var(--tp-line);
+  background: #191613;
+}
+
+[data-theme="dark"] .footer-bottom {
+  border-top-color: #332d25;
+}
+
+[data-theme="dark"] .skip-link {
+  color: var(--tp-ink);
+  background: var(--tp-charcoal-soft);
+}
+
+[data-theme="dark"] .feature-label {
+  color: var(--tp-eyebrow);
+}
+
+[data-theme="dark"] .feature-sage .feature-label {
+  color: var(--tp-chip-sage-ink);
+}
+
+[data-theme="dark"] .feature-blue .feature-label {
+  color: var(--tp-chip-blue-ink);
+}
+
+[data-theme="dark"] .feature-charcoal .feature-label {
+  color: var(--tp-ink-soft);
+}
+
+/* …and the same under system dark with no explicit choice. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) ::selection {
+    color: var(--tp-ink);
+    background: #4a2c1c;
+  }
+
+  :root:not([data-theme="light"]) .site-brand img,
+  :root:not([data-theme="light"]) .closing-cta img {
+    box-shadow: none;
+  }
+
+  :root:not([data-theme="light"]) .test-session-note span {
+    background: #7fae95;
+  }
+
+  :root:not([data-theme="light"]) .test-session-note {
+    color: var(--tp-chip-sage-ink);
+  }
+
+  :root:not([data-theme="light"]) .hero-mark {
+    filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.4));
+  }
+
+  :root:not([data-theme="light"]) .privacy-band {
+    border-block: 1px solid var(--tp-line);
+  }
+
+  :root:not([data-theme="light"]) .site-footer {
+    border-top: 1px solid var(--tp-line);
+    background: #191613;
+  }
+
+  :root:not([data-theme="light"]) .footer-bottom {
+    border-top-color: #332d25;
+  }
+
+  :root:not([data-theme="light"]) .skip-link {
+    color: var(--tp-ink);
+    background: var(--tp-charcoal-soft);
+  }
+
+  :root:not([data-theme="light"]) .feature-label {
+    color: var(--tp-eyebrow);
+  }
+
+  :root:not([data-theme="light"]) .feature-sage .feature-label {
+    color: var(--tp-chip-sage-ink);
+  }
+
+  :root:not([data-theme="light"]) .feature-blue .feature-label {
+    color: var(--tp-chip-blue-ink);
+  }
+
+  :root:not([data-theme="light"]) .feature-charcoal .feature-label {
+    color: var(--tp-ink-soft);
+  }
+}
+
+/* ------------------------------------------------------------------
+   Reduced motion: everything collapses to plain state changes
+   ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Print: clean document, no chrome
+   ------------------------------------------------------------------ */
+@media print {
+  .skip-link,
+  .site-header,
+  .topbar .nav,
+  .header-actions,
+  .page-toc,
+  .legal-links,
+  .anchor-link,
+  .site-footer,
+  .footer nav,
+  .hero-actions,
+  .test-session-note {
+    display: none;
+  }
+
+  :root,
+  body {
+    color: #000;
+    background: #fff;
+  }
+
+  .page,
+  .page-with-toc {
+    width: auto;
+    padding: 0;
+  }
+
+  .page-layout {
+    display: block;
+  }
+
+  .page p,
+  .page li,
+  .legal-meta,
+  .legal-glance dd,
+  .legal-summary p {
+    color: #000;
+  }
+
+  .page a {
+    color: #000;
+    text-decoration: underline;
+  }
+
+  .legal-summary {
+    border: 1px solid #000;
+    border-radius: 0;
+    background: none;
+  }
+
+  .legal-glance,
+  .legal-glance > div {
+    border-color: #000;
+    background: none;
+  }
+
+  .page section {
+    break-inside: avoid;
+  }
+
+  .page h1,
+  .page h2,
+  .page h3 {
+    break-after: avoid;
+  }
+
+  .footer {
+    border-top: 1px solid #000;
+    color: #000;
+  }
+}

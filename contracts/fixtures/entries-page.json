@@ -1,0 +1,27 @@
+{
+  "items": [
+    {
+      "id": "entry_fixture_01",
+      "created_at_utc": "2026-07-13T14:30:00",
+      "local_date": "2026-07-13",
+      "local_time": "10:30",
+      "source": "app",
+      "raw_text": "A fictional contract fixture for client decoding.",
+      "sensitivity": "personal",
+      "processed_status": "completed",
+      "processing_error": null,
+      "user_importance": 4,
+      "importance_source": "user",
+      "importance_updated_at": "2026-07-13T14:31:00",
+      "contextual_salience": 0.74,
+      "salience_uncertainty": 0.12,
+      "salience_tier": "notable",
+      "salience_model_version": "salience-v1"
+    }
+  ],
+  "page": 1,
+  "limit": 20,
+  "total": 1,
+  "has_next": false,
+  "next_cursor": null
+}

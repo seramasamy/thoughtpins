@@ -1,0 +1,282 @@
+﻿{
+    "app_name":  "Thought Pins",
+    "last_reviewed":  "2026-07-13",
+    "status":  {
+                   "closed_beta_web_handoff_ready":  true,
+                   "native_core_ready":  true,
+                   "native_store_submission_ready":  false,
+                   "native_store_submission_reason":  "Buildable iOS and Android source projects, final icons, privacy declarations, and review flows exist. Submission still requires a signed Xcode archive on macOS, store credentials and provisioning, final native screenshots, a live review backend and demo account, and simulator/device smoke evidence.",
+                   "native_ui_shells_ready":  true
+               },
+    "official_policy_map":  "deploy/store/store-policy-requirements.json",
+    "mobile_contract":  "docs/architecture/MOBILE_API_CONTRACT.md",
+    "web_reference_client":  "frontend/src/App.tsx",
+    "native_core_modules":  {
+                                "ios":  "mobile/ios/ThoughtPinsCore",
+                                "android":  "mobile/android/thoughtpins-core"
+                            },
+    "required_review_flows":  [
+                                  {
+                                      "id":  "email_phone_signup_login",
+                                      "store_relevance":  [
+                                                              "apple_review_access",
+                                                              "google_privacy_policy"
+                                                          ],
+                                      "web_reference":  "frontend/src/app/AuthScreen.tsx",
+                                      "ios_core_evidence":  [
+                                                                "login(identifier:",
+                                                                "login(email:",
+                                                                "login(phone:"
+                                                            ],
+                                      "android_core_evidence":  [
+                                                                    "login(identifier:",
+                                                                    "loginWithEmail",
+                                                                    "loginWithPhone"
+                                                                ],
+                                      "backend_evidence":  [
+                                                               "POST /v1/auth/register",
+                                                               "POST /v1/auth/login"
+                                                           ],
+                                      "native_ui_status":  "shell_ready_needs_device_smoke"
+                                  },
+                                  {
+                                      "id":  "apple_google_oauth_parity",
+                                      "store_relevance":  [
+                                                              "apple_sign_in_with_apple_parity"
+                                                          ],
+                                      "web_reference":  "frontend/src/app/AuthScreen.tsx",
+                                      "ios_core_evidence":  [
+                                                                "public func oauthLogin(",
+                                                                "/v1/auth/oauth"
+                                                            ],
+                                      "android_core_evidence":  [
+                                                                    "suspend fun oauthLogin(",
+                                                                    "/v1/auth/oauth"
+                                                                ],
+                                      "backend_evidence":  [
+                                                               "src/thoughtpins/oauth.py",
+                                                               "/v1/auth/oauth"
+                                                           ],
+                                      "native_ui_status":  "shell_ready_needs_oauth_client_ids_and_device_smoke"
+                                  },
+                                  {
+                                      "id":  "chat_first_memory_surface",
+                                      "store_relevance":  [
+                                                              "apple_live_backend"
+                                                          ],
+                                      "web_reference":  "frontend/src/features/chat/ChatView.tsx",
+                                      "ios_core_evidence":  [
+                                                                "surface",
+                                                                "conversationId"
+                                                            ],
+                                      "android_core_evidence":  [
+                                                                    "surface",
+                                                                    "conversationId"
+                                                                ],
+                                      "backend_evidence":  [
+                                                               "POST /v1/chat",
+                                                               "GET /v1/chat/conversations"
+                                                           ],
+                                      "native_ui_status":  "shell_ready_needs_device_smoke"
+                                  },
+                                  {
+                                      "id":  "journal_capture_and_processing",
+                                      "store_relevance":  [
+                                                              "apple_live_backend"
+                                                          ],
+                                      "web_reference":  "frontend/src/features/capture/CaptureView.tsx",
+                                      "ios_core_evidence":  [
+                                                                "public func ingest(",
+                                                                "/v1/entries",
+                                                                "DraftStore"
+                                                            ],
+                                      "android_core_evidence":  [
+                                                                    "suspend fun ingest(",
+                                                                    "/v1/entries",
+                                                                    "DraftQueue"
+                                                                ],
+                                      "backend_evidence":  [
+                                                               "POST /v1/entries",
+                                                               "GET /v1/jobs/{job_id}"
+                                                           ],
+                                      "native_ui_status":  "shell_ready_needs_device_smoke"
+                                  },
+                                  {
+                                      "id":  "article_document_ingestion",
+                                      "store_relevance":  [
+                                                              "apple_privacy_policy_and_retention",
+                                                              "google_data_safety"
+                                                          ],
+                                      "web_reference":  "frontend/src/features/library/LibraryView.tsx",
+                                      "ios_core_evidence":  [
+                                                                "uploadFile(",
+                                                                "/v1/uploads"
+                                                            ],
+                                      "android_core_evidence":  [
+                                                                    "uploadFile(",
+                                                                    "/v1/uploads"
+                                                                ],
+                                      "backend_evidence":  [
+                                                               "POST /v1/library",
+                                                               "POST /v1/uploads"
+                                                           ],
+                                      "native_ui_status":  "shell_ready_needs_ios_share_extension_and_device_smoke"
+                                  },
+                                  {
+                                      "id":  "memory_cards_and_provenance",
+                                      "store_relevance":  [
+                                                              "apple_live_backend"
+                                                          ],
+                                      "web_reference":  "frontend/src/features/memory/MemoryView.tsx",
+                                      "ios_core_evidence":  [
+                                                                "memoryCards",
+                                                                "MemoryCardResponse",
+                                                                "obsidianPath"
+                                                            ],
+                                      "android_core_evidence":  [
+                                                                    "memoryCards",
+                                                                    "MemoryCardResponse",
+                                                                    "obsidianPath"
+                                                                ],
+                                      "backend_evidence":  [
+                                                               "GET /v1/memory/cards"
+                                                           ],
+                                      "native_ui_status":  "shell_ready_needs_device_smoke"
+                                  },
+                                  {
+                                      "id":  "vault_export",
+                                      "store_relevance":  [
+                                                              "apple_privacy_policy_and_retention",
+                                                              "google_privacy_policy"
+                                                          ],
+                                      "web_reference":  "frontend/src/features/account/AccountView.tsx",
+                                      "ios_core_evidence":  [
+                                                                "ClientConfig"
+                                                            ],
+                                      "android_core_evidence":  [
+                                                                    "ClientConfig"
+                                                                ],
+                                      "backend_evidence":  [
+                                                               "GET /v1/export",
+                                                               "POST /v1/export/obsidian"
+                                                           ],
+                                      "native_ui_status":  "shell_ready_needs_device_smoke"
+                                  },
+                                  {
+                                      "id":  "account_deletion_in_app_and_web",
+                                      "store_relevance":  [
+                                                              "apple_in_app_account_deletion",
+                                                              "google_in_app_account_deletion",
+                                                              "google_web_account_deletion"
+                                                          ],
+                                      "web_reference":  "frontend/src/features/account/AccountView.tsx",
+                                      "ios_core_evidence":  [
+                                                                "ClientConfig"
+                                                            ],
+                                      "android_core_evidence":  [
+                                                                    "ClientConfig"
+                                                                ],
+                                      "backend_evidence":  [
+                                                               "DELETE /v1/me",
+                                                               "site/account/delete/index.html"
+                                                           ],
+                                      "native_ui_status":  "shell_ready_needs_device_smoke"
+                                  },
+                                  {
+                                      "id":  "legal_support_ai_disclosure",
+                                      "store_relevance":  [
+                                                              "apple_privacy_policy_and_retention",
+                                                              "google_privacy_policy"
+                                                          ],
+                                      "web_reference":  "frontend/src/features/legal/LegalView.tsx",
+                                      "ios_core_evidence":  [
+                                                                "clientConfig()",
+                                                                "privacyPolicyUrl",
+                                                                "termsUrl",
+                                                                "supportUrl",
+                                                                "accountDeletionUrl",
+                                                                "aiDisclosureUrl",
+                                                                "acceptLegalDocument"
+                                                            ],
+                                      "android_core_evidence":  [
+                                                                    "clientConfig()",
+                                                                    "privacyPolicyUrl",
+                                                                    "termsUrl",
+                                                                    "supportUrl",
+                                                                    "accountDeletionUrl",
+                                                                    "aiDisclosureUrl",
+                                                                    "acceptLegalDocument"
+                                                                ],
+                                      "backend_evidence":  [
+                                                               "GET /v1/client-config",
+                                                               "site/privacy.html",
+                                                               "site/ai-disclosure.html",
+                                                               "site/support.html"
+                                                           ],
+                                      "native_ui_status":  "shell_ready_needs_device_smoke"
+                                  },
+                                  {
+                                      "id":  "maintenance_offline_and_retry",
+                                      "store_relevance":  [
+                                                              "apple_live_backend"
+                                                          ],
+                                      "web_reference":  "frontend/src/App.tsx",
+                                      "ios_core_evidence":  [
+                                                                "ClientConfig",
+                                                                "evaluateClientVersion",
+                                                                "DraftStore"
+                                                            ],
+                                      "android_core_evidence":  [
+                                                                    "ClientConfig",
+                                                                    "evaluateClientVersion",
+                                                                    "DraftQueue"
+                                                                ],
+                                      "backend_evidence":  [
+                                                               "GET /v1/client-config",
+                                                               "maintenance_mode"
+                                                           ],
+                                      "native_ui_status":  "shell_ready_needs_device_smoke"
+                                  },
+                                  {
+                                      "id":  "device_registration_and_notifications_later",
+                                      "store_relevance":  [
+                                                              "google_data_safety"
+                                                          ],
+                                      "web_reference":  "frontend/src/App.tsx",
+                                      "ios_core_evidence":  [
+                                                                "registerDevice",
+                                                                "/v1/devices"
+                                                            ],
+                                      "android_core_evidence":  [
+                                                                    "registerDevice",
+                                                                    "/v1/devices"
+                                                                ],
+                                      "backend_evidence":  [
+                                                               "POST /v1/devices"
+                                                           ],
+                                      "native_ui_status":  "core_ready_notifications_deferred_from_initial_review_target"
+                                  }
+                              ],
+    "native_submission_blockers":  [
+                                       "Produce and validate a signed Xcode archive on current macOS/Xcode; generate the project from mobile/ios/ThoughtPinsNative/project.yml first.",
+                                       "Configure private Apple and Google signing/provisioning records, release build numbers, and store application records.",
+                                       "Capture final App Store and Play Store screenshots from real native app shells across phone and tablet sizes.",
+                                       "Run native device/simulator smoke tests for auth, chat, capture, library upload/share, memory cards, export, account deletion, legal links, maintenance mode, and offline draft retry.",
+                                       "Publish the HTTPS live review backend and public legal pages, then provide a stable review demo account and review notes."
+                                   ],
+    "evidence_commands":  [
+                              "python scripts/check_mobile_core.py",
+                              "python scripts/check_ios_submission_source.py",
+                              "python scripts/check_native_review_handoff.py",
+                              "python scripts/check_store_submission_packet.py",
+                              "python scripts/release_check.py --skip-quality"
+                          ],
+    "native_app_shell_modules":  {
+                                      "ios":  "mobile/ios/ThoughtPinsApp",
+                                      "android":  "mobile/android/thoughtpins-app"
+                                  },
+    "native_app_targets":  {
+                                "ios":  "mobile/ios/ThoughtPinsNative/project.yml",
+                                "android":  "mobile/android/settings.gradle.kts"
+                            }
+}

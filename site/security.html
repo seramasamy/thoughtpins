@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#e8612b">
+    <meta name="description" content="Thought Pins security architecture and responsible disclosure guidance.">
+    <meta property="og:title" content="Security - Thought Pins">
+    <meta property="og:description" content="Thought Pins security architecture and responsible disclosure guidance.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://thoughtpins.com/security">
+    <meta property="og:image" content="https://thoughtpins.com/assets/product-chat-desktop.png">
+    <meta property="og:image:width" content="1440">
+    <meta property="og:image:height" content="1000">
+    <meta property="og:site_name" content="Thought Pins">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Security - Thought Pins">
+    <meta name="twitter:description" content="Thought Pins security architecture and responsible disclosure guidance.">
+    <meta name="twitter:image" content="https://thoughtpins.com/assets/product-chat-desktop.png">
+    <title>Security - Thought Pins</title>
+    <link rel="canonical" href="https://thoughtpins.com/security">
+    <link rel="icon" href="/assets/thought-pins-mark.svg?v=20260725-footer-fix-1" type="image/svg+xml">
+    <link rel="icon" href="/assets/favicon.ico?v=20260725-footer-fix-1" sizes="any">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=20260725-footer-fix-1">
+    <script>try{var t=localStorage.getItem("tp-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t;}catch(e){}</script>
+    <link rel="stylesheet" href="/assets/styles.css?v=20260725-footer-fix-1">
+  </head>
+  <body>
+    <a class="skip-link" href="#security">Skip to security information</a>
+    <div class="shell">
+      <header class="topbar">
+        <a class="site-brand" href="/" aria-label="Thought Pins home"><img src="/assets/thought-pins-mark.svg?v=20260725-footer-fix-1" alt="" width="40" height="40"><span>Thought Pins</span></a>
+        <nav class="nav" aria-label="Main"><a href="/app/">App</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/support">Support</a><button class="theme-toggle" type="button" data-theme-toggle aria-label="Change theme"></button></nav>
+      </header>
+      <main class="page" id="security">
+        <header class="page-header reveal">
+          <p class="eyebrow">Trust architecture</p>
+          <h1>Security</h1>
+          <p class="legal-meta">Last reviewed: July 10, 2026</p>
+          <div class="legal-summary"><p>Thought Pins treats personal memory as sensitive data. Security is implemented across authentication, tenant isolation, transport, storage, provider boundaries, auditability, and deletion.</p></div>
+        </header>
+        <section class="reveal">
+          <h2>Account and session security</h2>
+          <p>Production deployments require authenticated accounts, rate-limit sensitive endpoints, hash passwords using a memory-hard password algorithm, rotate refresh sessions, and support revocation and device management. Local no-auth sessions are restricted to development and are not part of submitted public builds.</p>
+        </section>
+        <section class="reveal">
+          <h2>Tenant isolation</h2>
+          <p>Application queries are scoped to the authenticated user. The production database path includes tenant-aware schema design and database-level row security as defense in depth. Authorization checks are tested at API and data-access boundaries.</p>
+        </section>
+        <section class="reveal">
+          <h2>Transport, storage, and secrets</h2>
+          <p>Production traffic is designed to use TLS. Credentials and provider keys are server-side configuration and are excluded from public clients and API responses. Protected content can use encryption at rest, and exported data is delivered only through an authenticated account workflow.</p>
+        </section>
+        <section class="reveal">
+          <h2>Operational safeguards</h2>
+          <p>Request IDs, structured logs, health checks, processing queues, audit events, backups, restore procedures, dependency scanning, and release gates support incident investigation and reliable recovery. Sensitive request bodies and authorization values should be scrubbed from diagnostics.</p>
+        </section>
+        <section class="reveal">
+          <h2>Data lifecycle</h2>
+          <p>Users can remove individual entries, export account data, revoke devices, and permanently delete the account and associated memory data. Lifecycle operations are tenant-scoped and are covered by automated tests.</p>
+        </section>
+        <section class="reveal">
+          <h2>Responsible disclosure</h2>
+          <p>Report suspected vulnerabilities privately to <a href="mailto:security@thoughtpins.com">security@thoughtpins.com</a> with a concise description, affected surface, reproducible steps, and impact. Do not access other users' data, perform denial-of-service testing, use social engineering, publish sensitive findings before remediation, or test production without authorization. Thought Pins does not currently operate a paid bug-bounty program.</p>
+        </section>
+      </main>
+      <footer class="site-footer">
+        <div class="footer-main">
+          <div class="footer-brand-block">
+            <a class="site-brand footer-brand" href="/">
+              <img src="/assets/thought-pins-mark.svg?v=20260725-footer-fix-1" alt="" width="36" height="36">
+              <span>Thought Pins</span>
+            </a>
+            <p class="footer-tagline">A private memory layer for the life you are already living.</p>
+          </div>
+          <div class="footer-column">
+            <strong>Product</strong>
+            <a data-app-link="login" href="/app/?auth=login">Log in</a>
+            <a data-app-link="register" href="/app/?auth=register">Create account</a>
+            <a href="/#features">Features</a>
+            <a href="/support">Support</a>
+          </div>
+          <div class="footer-column">
+            <strong>Trust</strong>
+            <a href="/privacy">Privacy</a>
+            <a href="/security">Security</a>
+            <a href="/ai-disclosure">AI disclosure</a>
+            <a href="/account/delete">Delete account</a>
+          </div>
+          <div class="footer-column">
+            <strong>Legal</strong>
+            <a href="/terms">Terms</a>
+            <a href="/ai-disclosure">AI disclosure</a>
+            <a href="mailto:support@thoughtpins.com">Contact</a>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <span>&copy; 2026 Thought Pins. All rights reserved.</span>
+          <span>Made for memory, not for feeds.</span>
+        </div>
+      </footer>
+    </div>
+    <script src="/assets/site.js?v=20260725-footer-fix-1" defer></script>
+  </body>
+</html>

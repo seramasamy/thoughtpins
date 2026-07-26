@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "validation_error",
+    "message": "Request validation failed",
+    "request_id": "fixture-request-01",
+    "details": null
+  }
+}

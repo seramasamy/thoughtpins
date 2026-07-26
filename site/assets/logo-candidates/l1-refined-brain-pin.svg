@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title description">
+  <title id="title">Thought Pins</title>
+  <desc id="description">A refined white brain-shaped pin, shaped like a map marker, on an orange field.</desc>
+  <rect width="128" height="128" rx="28" fill="#e8612b"/>
+  <g transform="translate(8.96 4.88) scale(.86)">
+  <path fill="#fff" d="M64 17C39.7 17 22 34.4 22 57.5c0 20.8 15.7 37.4 42 63.5 26.3-26.1 42-42.7 42-63.5C106 34.4 88.3 17 64 17Z"/>
+  <g fill="none" stroke="#e8612b" stroke-width="6.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M64 30v56"/>
+    <path d="M54 30c-7-2.6-12 1.8-12 8.4 0 5.6 3.8 8.6 9.6 9.6"/>
+    <path d="M41 42.4c-6.6 3.8-7.6 12.4-3.8 18.2 3.8 4.8 8.6 4.8 14.4 1.9"/>
+    <path d="M37.4 64.4c-1.9 8.6 1.9 16.2 9.6 18.2 6.7 1.9 9.6 5.7 9.6 11.4"/>
+    <path d="M74 30c7-2.6 12 1.8 12 8.4 0 5.6-3.8 8.6-9.6 9.6"/>
+    <path d="M87 42.4c6.6 3.8 7.6 12.4 3.8 18.2-3.8 4.8-8.6 4.8-14.4 1.9"/>
+    <path d="M90.6 64.4c1.9 8.6-1.9 16.2-9.6 18.2-6.7 1.9-9.6 5.7-9.6 11.4"/>
+  </g>
+  </g>
+</svg>

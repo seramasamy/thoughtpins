@@ -1,0 +1,23 @@
+{
+  "name": "Thought Pins",
+  "short_name": "Thought Pins",
+  "description": "A private memory layer for journaling, reflection, sources, and recall.",
+  "start_url": "/app/",
+  "display": "standalone",
+  "background_color": "#f8f8f6",
+  "theme_color": "#e8612b",
+  "icons": [
+    {
+      "src": "/assets/thought-pins-app-icon.svg?v=20260712-memory-pin-v4",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/apple-touch-icon.png?v=20260712-memory-pin-v4",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

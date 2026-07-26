@@ -1,0 +1,162 @@
+{
+    "app_name":  "Thought Pins",
+    "last_reviewed":  "2026-07-01",
+    "readiness_state":  "code_ready_pending_infrastructure_proof",
+    "deployment_intent":  "Closed-beta web/API deployment with separate API, web, worker, migration, PostgreSQL, Redis, an authenticated shared Qdrant service, backend-served fallback web app, and public legal/support pages.",
+    "source_of_truth":  {
+                            "production_env_template":  ".env.production.example",
+                            "compose_rehearsal":  "docker-compose.yml",
+                            "production_runbook":  "docs/operations/PRODUCTION_RUNBOOK.md",
+                            "domain_plan":  "deploy/DOMAIN_AND_DNS.md",
+                            "store_packet":  "deploy/store/submission-packet.json",
+                            "review_notes":  "deploy/store/review-notes-template.md"
+                        },
+    "public_hosts":  {
+                         "marketing_site":  "https://thoughtpins.com",
+                         "privacy_policy":  "https://thoughtpins.com/privacy",
+                         "terms":  "https://thoughtpins.com/terms",
+                         "support":  "https://thoughtpins.com/support",
+                         "account_deletion":  "https://thoughtpins.com/account/delete",
+                         "ai_disclosure":  "https://thoughtpins.com/ai-disclosure",
+                         "web_app":  "https://app.thoughtpins.com/app",
+                         "api":  "https://api.thoughtpins.com/v1"
+                     },
+    "staging_hosts":  {
+                          "web_app":  "https://staging.thoughtpins.com",
+                          "api":  "https://api-staging.thoughtpins.com"
+                      },
+    "runtime_processes":  [
+                              {
+                                  "name":  "migrate",
+                                  "command":  "alembic upgrade head",
+                                  "database_role":  "schema_owner",
+                                  "runs_as_service":  false
+                              },
+                              {
+                                  "name":  "api",
+                                  "command":  "python -m thoughtpins.server --api-only",
+                                  "database_role":  "non_owner_app_role",
+                                  "runs_as_service":  true
+                              },
+                              {
+                                  "name":  "web",
+                                  "command":  "python -m thoughtpins.web_proxy",
+                                  "database_role":  "none",
+                                  "runs_as_service":  true
+                              },
+                              {
+                                  "name":  "worker",
+                                  "command":  "python -m thoughtpins.worker",
+                                  "database_role":  "non_owner_app_role",
+                                  "runs_as_service":  true
+                              }
+                          ],
+    "required_services":  {
+                              "postgres":  {
+                                               "version":  "16",
+                                               "required":  true,
+                                               "rls_required":  true,
+                                               "runtime_app_role":  "thoughtpins_app"
+                                           },
+                              "redis":  {
+                                            "version":  "7",
+                                            "required":  true,
+                                            "uses":  [
+                                                         "rate_limits",
+                                                         "celery_broker",
+                                                         "celery_results",
+                                                         "worker_health"
+                                                     ]
+                                        },
+                              "vector_store":  {
+                                                   "mode":  "qdrant_remote",
+                                                   "required":  true,
+                                                   "authentication_required":  true,
+                                                   "persistent_volume":  "thoughtpins-qdrant"
+                                               },
+                              "vault_store":  {
+                                                  "required":  true,
+                                                  "persistent_volume":  "thoughtpins-vault",
+                                                  "export_format":  "obsidian_vault"
+                                              },
+                              "reports_store":  {
+                                                    "required":  true,
+                                                    "persistent_volume":  "thoughtpins-reports"
+                                                }
+                          },
+    "required_runtime_flags":  {
+                                   "ENVIRONMENT":  "production",
+                                   "REQUIRE_API_AUTH":  "true",
+                                   "AUTO_CREATE_TABLES":  "false",
+                                   "ALLOW_USER_API_KEYS":  "false",
+                                   "RETURN_API_KEY_ON_REGISTER":  "false",
+                                   "RATE_LIMIT_ENABLED":  "true",
+                                   "PROCESS_ENTRIES_ASYNC":  "true",
+                                   "INGESTION_QUEUE_BACKEND":  "celery",
+                                   "VECTOR_MODE":  "qdrant_remote",
+                                   "EMBEDDING_PROVIDER":  "openai",
+                                   "METRICS_REQUIRE_AUTH":  "true",
+                                   "JSON_LOGS":  "true",
+                                   "SECURITY_HEADERS_ENABLED":  "true",
+                                   "RUN_STARTUP_RECOVERY":  "false",
+                                   "ENABLE_TELEGRAM_BOT":  "false",
+                                   "TELEGRAM_TEST_MODE":  "false",
+                                   "ENABLE_FOUNDER_MODE":  "false",
+                                   "SYSTEM_LOCKED":  "true"
+                               },
+    "secret_handling":  {
+                            "stored_in_repo":  false,
+                            "required_external_secrets":  [
+                                                              "API_KEY",
+                                                              "JWT_SECRET",
+                                                              "DATABASE_URL",
+                                                              "REDIS_URL",
+                                                              "DATA_ENCRYPTION_KEY",
+                                                              "LLM_API_KEY",
+                                                              "OPENAI_API_KEY",
+                                                              "QDRANT_API_KEY",
+                                                              "THOUGHTPINS_REVIEW_PASSWORD",
+                                                              "SENTRY_DSN"
+                                                          ],
+                            "rotation_required_before_public_beta":  true,
+                            "public_exports_must_pass":  [
+                                                             "python scripts/forbidden_scan.py",
+                                                             "python scripts/check_public_export.py"
+                                                         ]
+                        },
+    "verification_commands":  [
+                                  "python scripts/release_check.py --skip-quality",
+                                  "python scripts/check_deployment_packet.py",
+                                  "python scripts/check_launch_packet.py",
+                                  "python scripts/check_rls_static.py",
+                                  "python scripts/check_host_capabilities.py",
+                                  "python scripts/generate_launch_packet.py",
+                                  ".\\scripts\\run_compose_rehearsal.ps1",
+                                  "DATABASE_URL=\u003cmigration-role-url\u003e RLS_VERIFY_DATABASE_URL=\u003capp-role-url\u003e python scripts/verify_postgres_rls.py",
+                                  ".\\scripts\\run_staging_smoke.ps1",
+                                  "python scripts/collect_local_closed_beta_evidence.py --telegram-api --live-article --web-smoke",
+                                  "python scripts/collect_closed_beta_evidence.py --api-base-url https://api-staging.thoughtpins.com --telegram-api --web-smoke",
+                                  "python scripts/check_external_proof_artifacts.py --self-test",
+                                  "python scripts/check_external_proof_artifacts.py --compose-report reports/compose-rehearsal-\u003cstamp\u003e.json --playwright-report reports/playwright-web-smoke.json --web-smoke-dir reports/web-smoke",
+                                  "python scripts/collect_closed_beta_evidence.py --api-base-url https://api-staging.thoughtpins.com --telegram-api --web-smoke --compose-rehearsal-report reports/compose-rehearsal-\u003cstamp\u003e.json --playwright-report reports/playwright-web-smoke.json --web-smoke-dir reports/web-smoke",
+                                  "python scripts/check_store_readiness_matrix.py --self-test",
+                                  "python scripts/generate_store_readiness_matrix.py"
+                              ],
+    "live_review_requirements":  {
+                                     "backend_live_during_review":  true,
+                                     "legal_pages_live_over_https":  true,
+                                     "review_account_seeded":  true,
+                                     "review_notes_sanitized":  true,
+                                     "maintenance_mode_documented":  true,
+                                     "native_submission_requires_native_shells":  true
+                                 },
+    "known_external_blockers_before_closed_beta":  [
+                                                       "Provision public DNS and TLS for thoughtpins.com, app.thoughtpins.com, api.thoughtpins.com, staging.thoughtpins.com, and api-staging.thoughtpins.com.",
+                                                       "Deploy PostgreSQL, Redis, API, worker, and persistent vault/vector/report storage.",
+                                                       "Run the Compose rehearsal and PostgreSQL RLS verification from a host with Docker daemon access.",
+                                                       "Run Playwright web smoke/screenshots in an unrestricted browser environment.",
+                                                       "Seed the review account with a private password in staging.",
+                                                       "Rotate all local/test credentials before public beta.",
+                                                       "Copy compose-rehearsal JSON, Playwright JSON, and web-smoke screenshots into reports/ and validate them with scripts/check_external_proof_artifacts.py."
+                                                   ]
+}

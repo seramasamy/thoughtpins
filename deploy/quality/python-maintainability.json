@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "source_roots": ["src/thoughtpins", "scripts"],
+  "default_max_cyclomatic_complexity": 30,
+  "legacy_complexity_budgets": {},
+  "vulture_min_confidence": 80
+}

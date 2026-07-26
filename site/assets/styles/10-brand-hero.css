@@ -1,0 +1,400 @@
+/* Header */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  min-height: 72px;
+  border-bottom: 1px solid var(--tp-line);
+  background: var(--tp-header-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.site-nav {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  min-height: 72px;
+  gap: 24px;
+}
+
+.site-brand {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 11px;
+  width: fit-content;
+  color: var(--tp-ink);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.site-brand span {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.site-brand img {
+  flex: 0 0 auto;
+  border-radius: 8px;
+}
+
+.header-links,
+.header-actions {
+  display: flex;
+  align-items: center;
+}
+
+.header-links {
+  justify-content: center;
+  gap: 28px;
+}
+
+.header-links a,
+.text-action {
+  color: var(--tp-ink-soft);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color var(--motion-quick) var(--ease-quiet);
+}
+
+.header-links a:hover,
+.text-action:hover {
+  color: var(--tp-brand-deep);
+}
+
+.header-actions {
+  justify-content: flex-end;
+  gap: 18px;
+}
+
+/* Theme toggle: quiet round button, icon swapped by site.js */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--tp-line-strong);
+  border-radius: 50%;
+  color: var(--tp-ink-soft);
+  background: transparent;
+  cursor: pointer;
+  transition: color var(--motion-quick) var(--ease-quiet),
+    border-color var(--motion-quick) var(--ease-quiet);
+}
+
+.theme-toggle:hover {
+  color: var(--tp-brand-deep);
+  border-color: var(--tp-brand);
+}
+
+.theme-toggle svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* Back to the modern (lab) landing page — stays visible at every breakpoint,
+   mirroring the "Classic" pill on the modern page's nav. */
+.header-back {
+  padding: 7px 13px;
+  border: 1px solid var(--tp-line);
+  border-radius: 999px;
+  color: var(--tp-ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--motion-quick) var(--ease-quiet),
+    border-color var(--motion-quick) var(--ease-quiet);
+}
+
+.header-back:hover {
+  border-color: var(--tp-brand);
+  color: var(--tp-brand-deep);
+}
+
+/* Sliding underline on the main nav */
+.header-links a {
+  position: relative;
+}
+
+.header-links a::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -7px;
+  left: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--tp-brand);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--motion-standard) var(--ease-quiet);
+}
+
+.header-links a:hover::after {
+  transform: scaleX(1);
+}
+
+/* Buttons */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 12px 22px;
+  border: 1px solid var(--tp-action);
+  border-radius: 7px;
+  color: #fff;
+  background: var(--tp-action);
+  font-size: 15px;
+  font-weight: 640;
+  letter-spacing: 0;
+  text-decoration: none;
+  transition: background var(--motion-quick) var(--ease-quiet),
+    border-color var(--motion-quick) var(--ease-quiet),
+    transform var(--motion-quick) var(--ease-quiet),
+    box-shadow var(--motion-quick) var(--ease-quiet);
+}
+
+.button:hover {
+  border-color: var(--tp-action-hover);
+  background: var(--tp-action-hover);
+  box-shadow: var(--tp-shadow-card);
+  transform: translateY(-1px);
+}
+
+.button-small {
+  min-height: 40px;
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+.button-quiet {
+  border-color: transparent;
+  color: var(--tp-ink);
+  background: transparent;
+}
+
+.button-quiet:hover {
+  border-color: transparent;
+  background: var(--tp-surface-warm);
+  box-shadow: none;
+  transform: none;
+}
+
+/* Hero - matte charcoal, brand first */
+.hero {
+  position: relative;
+  display: grid;
+  min-height: clamp(560px, 82svh, 760px);
+  place-items: center;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.32);
+  color: #f6f1ea;
+  background: #2b241d;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.08);
+  pointer-events: none;
+}
+
+/* Rising memory-motes: soft warm points drift up and fade, like thoughts
+   surfacing. Drawn on a canvas by site.js; the charcoal base stands alone
+   without JS or when reduced motion is requested. */
+.hero-particles {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.hero-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(760px, calc(100% - 48px));
+  margin-inline: auto;
+  padding: clamp(72px, 12vh, 128px) 0 clamp(64px, 10vh, 104px);
+  text-align: center;
+}
+
+/* Soft, blurred dark halo that seats the brand and copy above the moving
+   field so the type stays effortless to read. */
+.hero-inner::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -10% -14%;
+  background: radial-gradient(58% 56% at 50% 46%, rgba(15, 10, 6, 0.66) 0%, rgba(15, 10, 6, 0.36) 44%, transparent 74%);
+  filter: blur(20px);
+  pointer-events: none;
+}
+
+.hero-mark {
+  width: 88px;
+  height: 88px;
+  margin-inline: auto;
+  border-radius: 22px;
+  filter: drop-shadow(0 16px 34px rgba(0, 0, 0, 0.42));
+}
+
+.eyebrow {
+  color: var(--tp-eyebrow);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 1.4;
+  text-transform: none;
+}
+
+.hero .eyebrow {
+  margin-top: 20px;
+  color: #f4b493;
+}
+
+.hero h1 {
+  margin-top: 8px;
+  font-size: 80px;
+  font-weight: 560;
+  line-height: 1.0;
+  letter-spacing: 0;
+  color: #fdf9f3;
+  text-wrap: balance;
+}
+
+.hero-tagline {
+  margin-top: 14px;
+  color: #e9ddce;
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-size: 25px;
+  font-style: italic;
+  font-weight: 460;
+  line-height: 1.3;
+}
+
+.hero-lede {
+  max-width: 640px;
+  margin: 22px auto 0;
+  color: #eee8e1;
+  font-size: 19px;
+  line-height: 1.6;
+}
+
+.hero-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 34px;
+}
+
+.test-session-note,
+.hero-trust {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--tp-ink-soft);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.test-session-note {
+  width: fit-content;
+  margin: 18px auto 0;
+  padding: 8px 14px;
+  border: 1px solid var(--tp-line);
+  border-radius: 6px;
+  color: var(--tp-chip-sage-ink);
+  background: var(--tp-sage-soft);
+  font-weight: 550;
+}
+
+.test-session-note[hidden] {
+  display: none;
+}
+
+.test-session-note span {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tp-sage);
+}
+
+.hero-trust {
+  margin-top: 24px;
+  color: #ece3d7;
+}
+
+.hero .button-quiet {
+  border-color: rgba(255, 255, 255, 0.32);
+  color: #ffffff;
+  background: rgba(30, 25, 21, 0.34);
+}
+
+.hero .button-quiet:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #ffffff;
+  background: rgba(30, 25, 21, 0.52);
+}
+
+/* Principles strip */
+.principles {
+  border-bottom: 1px solid var(--tp-line);
+  background: var(--tp-surface);
+}
+
+.principles-inner {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-height: 132px;
+}
+
+.principles p {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 26px 34px;
+  border-right: 1px solid var(--tp-line);
+}
+
+.principles p:first-child {
+  padding-left: 0;
+}
+
+.principles p:last-child {
+  padding-right: 0;
+  border-right: 0;
+}
+
+.principles strong {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-size: 17px;
+  font-weight: 580;
+}
+
+.principles span {
+  color: var(--tp-ink-soft);
+  font-size: 13px;
+  line-height: 1.55;
+}

@@ -1,0 +1,18 @@
+{
+  "items": [
+    {
+      "id": "job_fixture_01",
+      "status": "completed",
+      "entry_id": "entry_fixture_01",
+      "error": null,
+      "created_at_utc": "2026-07-13T14:30:00",
+      "started_at_utc": "2026-07-13T14:30:01",
+      "finished_at_utc": "2026-07-13T14:30:03"
+    }
+  ],
+  "page": 1,
+  "limit": 20,
+  "total": 1,
+  "has_next": false,
+  "next_cursor": null
+}

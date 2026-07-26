@@ -1,0 +1,33 @@
+{
+  "id": "/app/",
+  "name": "Thought Pins",
+  "short_name": "Thought Pins",
+  "description": "A private memory layer for journaling, recall, and personal knowledge.",
+  "start_url": "/app/",
+  "scope": "/app/",
+  "display": "standalone",
+  "background_color": "#fffaf6",
+  "theme_color": "#e8612b",
+  "orientation": "any",
+  "categories": ["lifestyle", "productivity"],
+  "icons": [
+    {
+      "src": "assets/thought-pins-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/thought-pins-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/thought-pins-icon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

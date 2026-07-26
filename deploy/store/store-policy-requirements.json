@@ -1,0 +1,216 @@
+﻿{
+    "app_name":  "Thought Pins",
+    "sources_checked_on":  "2026-07-13",
+    "scope":  "closed-beta and future App Store / Play Store submission readiness",
+    "official_references":  {
+                                "apple_app_review_guidelines":  "https://developer.apple.com/app-store/review/guidelines/",
+                                "apple_app_privacy_details":  "https://developer.apple.com/app-store/app-privacy-details/",
+                                "apple_account_deletion":  "https://developer.apple.com/support/offering-account-deletion-in-your-app/",
+                                "apple_user_privacy_and_data_use":  "https://developer.apple.com/app-store/user-privacy-and-data-use/",
+                                "google_user_data_policy":  "https://support.google.com/googleplay/android-developer/answer/10144311",
+                                "google_account_deletion":  "https://support.google.com/googleplay/android-developer/answer/13327111",
+                                "google_data_safety_form":  "https://support.google.com/googleplay/android-developer/answer/10787469",
+                                "google_ai_generated_content_policy":  "https://support.google.com/googleplay/android-developer/answer/14094294"
+                            },
+    "requirements":  [
+                         {
+                             "id":  "apple_review_access",
+                             "platform":  "apple",
+                             "official_reference":  "apple_app_review_guidelines",
+                             "required":  true,
+                             "policy_summary":  "If account features are present, Apple review needs full access through an active demo account or fully-featured demo mode.",
+                             "local_gate":  "demo_account_or_demo_mode",
+                             "implementation_status":  "code_ready_needs_private_credentials",
+                             "evidence":  [
+                                              "scripts/seed_review_account.py",
+                                              "scripts/check_review_account_packet.py",
+                                              "deploy/store/submission-packet.json"
+                                          ]
+                         },
+                         {
+                             "id":  "apple_live_backend",
+                             "platform":  "apple",
+                             "official_reference":  "apple_app_review_guidelines",
+                             "required":  true,
+                             "policy_summary":  "Backend services used by the app must be live and reachable while Apple reviews the build.",
+                             "local_gate":  "backend_live_during_review",
+                             "implementation_status":  "infrastructure_required",
+                             "evidence":  [
+                                              "scripts/collect_local_closed_beta_evidence.py",
+                                              "scripts/collect_closed_beta_evidence.py",
+                                              "scripts/smoke_api.py"
+                                          ]
+                         },
+                         {
+                             "id":  "apple_privacy_policy_and_retention",
+                             "platform":  "apple",
+                             "official_reference":  "apple_app_privacy_details",
+                             "required":  true,
+                             "policy_summary":  "The app and metadata need an accessible privacy policy that explains collected data, use, sharing, retention, and deletion paths.",
+                             "local_gate":  "privacy_details_match_runtime",
+                             "implementation_status":  "draft_ready_needs_store_console_entry",
+                             "evidence":  [
+                                              "site/privacy.html",
+                                              "deploy/store/data-safety-inventory.json",
+                                              "docs/release/PRIVACY_AND_STORE_READINESS.md"
+                                          ]
+                         },
+                         {
+                             "id":  "apple_in_app_account_deletion",
+                             "platform":  "apple",
+                             "official_reference":  "apple_account_deletion",
+                             "required":  true,
+                             "policy_summary":  "Apps that support account creation should expose account deletion from inside the app experience.",
+                             "local_gate":  "in_app_account_deletion",
+                             "implementation_status":  "code_ready",
+                             "evidence":  [
+                                              "DELETE /v1/me",
+                                              "frontend/src/features/account/AccountView.tsx",
+                                              "tests/test_api_auth.py"
+                                          ]
+                         },
+                         {
+                             "id":  "apple_sign_in_with_apple_parity",
+                             "platform":  "apple",
+                             "official_reference":  "apple_app_review_guidelines",
+                             "required":  true,
+                             "policy_summary":  "If third-party/social login is offered on iOS, Sign in with Apple must be available with equivalent account functionality.",
+                             "local_gate":  "sign_in_with_apple_parity",
+                             "implementation_status":  "code_ready_needs_client_ids_if_google_enabled_on_ios",
+                             "evidence":  [
+                                              "src/thoughtpins/oauth.py",
+                                              "/v1/auth/oauth",
+                                              "deploy/store/submission-packet.json"
+                                          ]
+                         },
+                         {
+                             "id":  "google_privacy_policy",
+                             "platform":  "google",
+                             "official_reference":  "google_user_data_policy",
+                             "required":  true,
+                             "policy_summary":  "Google Play requires a privacy policy in Play Console and in-app disclosure that comprehensively describes access, collection, use, sharing, retention, deletion, and contact paths.",
+                             "local_gate":  "privacy_policy_public_url",
+                             "implementation_status":  "code_ready_needs_public_deploy",
+                             "evidence":  [
+                                              "site/privacy.html",
+                                              "https://thoughtpins.com/privacy",
+                                              "frontend/src/features/account/AccountView.tsx"
+                                          ]
+                         },
+                         {
+                             "id":  "google_data_safety",
+                             "platform":  "google",
+                             "official_reference":  "google_data_safety_form",
+                             "required":  true,
+                             "policy_summary":  "The Play Data Safety form must accurately match runtime data collection, sharing, security, and deletion behavior.",
+                             "local_gate":  "data_safety_form",
+                             "implementation_status":  "draft_ready_needs_play_console_entry",
+                             "evidence":  [
+                                              "deploy/store/data-safety-inventory.json",
+                                              "scripts/app_store_compliance_check.py",
+                                              "scripts/check_store_submission_packet.py"
+                                          ]
+                         },
+                         {
+                             "id":  "google_in_app_account_deletion",
+                             "platform":  "google",
+                             "official_reference":  "google_account_deletion",
+                             "required":  true,
+                             "policy_summary":  "Apps with account creation need an in-app path to delete the account and associated account data.",
+                             "local_gate":  "in_app_account_deletion",
+                             "implementation_status":  "code_ready",
+                             "evidence":  [
+                                              "DELETE /v1/me",
+                                              "frontend/src/features/account/AccountView.tsx",
+                                              "deploy/store/data-safety-inventory.json"
+                                          ]
+                         },
+                         {
+                             "id":  "google_web_account_deletion",
+                             "platform":  "google",
+                             "official_reference":  "google_account_deletion",
+                             "required":  true,
+                             "policy_summary":  "Apps with account creation need a functional web resource where users can request account and data deletion without reinstalling the app.",
+                             "local_gate":  "web_account_deletion_resource",
+                             "implementation_status":  "code_ready_needs_public_deploy",
+                             "evidence":  [
+                                              "site/account/delete/index.html",
+                                              "https://thoughtpins.com/account/delete",
+                                              "src/thoughtpins/api_routes/public.py"
+                                          ]
+                         },
+                         {
+                             "id":  "google_secure_handling_and_no_sale",
+                             "platform":  "google",
+                             "official_reference":  "google_user_data_policy",
+                             "required":  true,
+                             "policy_summary":  "The app must disclose personal/sensitive data practices and use secure handling for collected user data.",
+                             "local_gate":  "secure_handling_and_no_sale",
+                             "implementation_status":  "code_ready_needs_final_policy_review",
+                             "evidence":  [
+                                              "site/privacy.html",
+                                              "deploy/store/data-safety-inventory.json",
+                                              "src/thoughtpins/api.py"
+                                          ]
+                         },
+                         {
+                             "id":  "public_build_no_founder_leakage",
+                             "platform":  "apple_google",
+                             "official_reference":  "apple_app_review_guidelines",
+                             "required":  true,
+                             "policy_summary":  "Public store builds should not expose hidden test, founder, or review-bypass controls to normal users.",
+                             "local_gate":  "no_hidden_founder_features",
+                             "implementation_status":  "code_ready",
+                             "evidence":  [
+                                              "scripts/check_public_export.py",
+                                              "scripts/app_store_compliance_check.py",
+                                              "scripts/check_web_review_harness.py"
+                                          ]
+                         },
+                         {
+                             "id":  "apple_ai_disclosure_and_safety_reporting",
+                             "platform":  "apple",
+                             "official_reference":  "apple_app_review_guidelines",
+                             "required":  true,
+        "policy_summary":  "Before personal data is shared with a third-party AI processor, the app must clearly disclose that sharing and obtain explicit user permission; AI features also need appropriate safety and reporting paths.",
+                             "local_gate":  "ai_disclosure_and_safety_reporting",
+                             "implementation_status":  "code_ready_needs_store_console_entry",
+                             "evidence":  [
+                         "site/ai-disclosure.html",
+                         "site/support.html",
+                         "mobile/ios/ThoughtPinsApp/Sources/ThoughtPinsApp/ThoughtPinsReviewShell.swift",
+                         "mobile/android/thoughtpins-app/src/main/kotlin/com/thoughtpins/app/ui/ThoughtPinsAppShell.kt",
+                         "deploy/store/data-safety-inventory.json"
+                                          ]
+                         },
+                         {
+                             "id":  "google_ai_generated_content_safety",
+                             "platform":  "google",
+                             "official_reference":  "google_ai_generated_content_policy",
+                             "required":  true,
+                             "policy_summary":  "Generative AI chat features need safeguards against prohibited content and a way for users to report unsafe AI-generated output.",
+                             "local_gate":  "ai_generated_content_safety",
+                             "implementation_status":  "code_ready_needs_play_console_entry",
+                             "evidence":  [
+                                              "site/ai-disclosure.html",
+                                              "site/support.html",
+                                              "deploy/store/data-safety-inventory.json"
+                                          ]
+                         },
+                         {
+                             "id":  "apple_user_generated_content_safety_controls",
+                             "platform":  "apple",
+                             "official_reference":  "apple_app_review_guidelines",
+                             "required":  true,
+                             "policy_summary":  "Apps with user content or AI/chat surfaces need in-app controls to report objectionable, unsafe, abusive, privacy-sensitive, or rights-sensitive content and a documented response path.",
+                             "local_gate":  "user_generated_content_safety_controls",
+                             "implementation_status":  "code_ready_needs_store_console_entry",
+                             "evidence":  [
+                                              "POST /v1/safety/reports",
+                                              "frontend/src/features/legal/LegalView.tsx",
+                                              "site/support.html",
+                                              "deploy/store/data-safety-inventory.json"
+                                          ]
+                         }
+                     ]
+}

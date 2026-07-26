@@ -1,0 +1,16 @@
+; Thought Pins DNS template. Replace provider targets after choosing hosting.
+; Use ALIAS/ANAME for apex if your DNS provider supports it; otherwise use A/AAAA.
+
+$ORIGIN thoughtpins.com.
+$TTL 300
+
+@              IN  A      203.0.113.10
+www            IN  CNAME  thoughtpins.com.
+app            IN  CNAME  app-host.example.net.
+api            IN  CNAME  api-host.example.net.
+staging        IN  CNAME  staging-host.example.net.
+api-staging    IN  CNAME  staging-host.example.net.
+
+; Optional later:
+; status       IN  CNAME  status-page-provider.example.net.
+; docs         IN  CNAME  docs-host.example.net.

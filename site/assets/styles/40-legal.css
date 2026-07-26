@@ -1,0 +1,356 @@
+/* ------------------------------------------------------------------
+   Legal, support, and policy pages
+   ------------------------------------------------------------------ */
+.shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+.topbar,
+.footer {
+  width: min(var(--content), calc(100% - 48px));
+  margin-inline: auto;
+}
+
+.topbar {
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid var(--tp-line);
+}
+
+.brand {
+  color: var(--tp-ink);
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-size: 18px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.nav a {
+  color: var(--tp-ink-soft);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color var(--motion-quick) var(--ease-quiet);
+}
+
+.nav a:hover {
+  color: var(--tp-brand-deep);
+}
+
+.page {
+  width: min(800px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 72px 0 104px;
+}
+
+.page-with-toc {
+  width: min(1080px, calc(100% - 48px));
+}
+
+.page-header {
+  padding-bottom: 36px;
+  border-bottom: 1px solid var(--tp-line);
+}
+
+.page h1 {
+  margin: 14px 0 0;
+  font-size: 48px;
+  font-weight: 580;
+  line-height: 1.08;
+  letter-spacing: 0;
+}
+
+.page h2 {
+  margin: 0 0 12px;
+  font-size: 26px;
+  font-weight: 560;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.page h3 {
+  margin: 22px 0 7px;
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.page p,
+.page li {
+  max-width: 68ch;
+  color: var(--tp-ink-soft);
+  font-size: 16px;
+  line-height: 1.72;
+}
+
+.page li strong {
+  color: var(--tp-ink);
+}
+
+.page a {
+  color: var(--tp-link);
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  text-underline-offset: 3px;
+  transition: color var(--motion-quick) var(--ease-quiet);
+}
+
+.page a:hover {
+  color: var(--tp-action-hover);
+}
+
+.page section {
+  padding-top: 40px;
+  scroll-margin-top: 28px;
+}
+
+.page section:target > h2 {
+  color: var(--tp-brand-deep);
+}
+
+.page ul,
+.page ol {
+  display: grid;
+  gap: 8px;
+  padding-left: 22px;
+}
+
+.legal-meta {
+  margin-top: 14px;
+  color: var(--tp-ink-soft);
+  font-size: 13px;
+}
+
+/* Plain-language summary callout */
+.legal-summary {
+  margin-top: 26px;
+  padding: 18px 22px;
+  border: 1px solid color-mix(in srgb, var(--tp-brand) 24%, transparent);
+  border-radius: 8px;
+  background: var(--tp-brand-soft);
+}
+
+.legal-summary p {
+  color: var(--tp-summary-ink);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.legal-summary a {
+  color: var(--tp-summary-ink);
+  font-weight: 600;
+}
+
+/* At-a-glance definition grid */
+.legal-glance {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1px;
+  margin-top: 26px;
+  overflow: hidden;
+  border: 1px solid var(--tp-line);
+  border-radius: 8px;
+  background: var(--tp-line);
+}
+
+.legal-glance > div {
+  padding: 16px 18px;
+  background: var(--tp-surface);
+}
+
+.legal-glance dt {
+  color: var(--tp-eyebrow);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.legal-glance dd {
+  margin: 7px 0 0;
+  color: var(--tp-ink-soft);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Legacy inline section links (chips) */
+.legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 26px;
+}
+
+.legal-links a {
+  padding: 6px 12px;
+  border: 1px solid var(--tp-line);
+  border-radius: 6px;
+  color: var(--tp-ink-soft);
+  background: var(--tp-surface);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color var(--motion-quick) var(--ease-quiet),
+    border-color var(--motion-quick) var(--ease-quiet),
+    background var(--motion-quick) var(--ease-quiet);
+}
+
+.legal-links a:hover {
+  border-color: var(--tp-line-strong);
+  color: var(--tp-brand-deep);
+  background: var(--tp-surface-warm);
+}
+
+/* Two-column layout with a sticky table of contents */
+.page-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 56px;
+  align-items: start;
+}
+
+.page-toc {
+  position: sticky;
+  top: 28px;
+  padding: 18px 0 4px;
+}
+
+.page-toc-title {
+  color: var(--tp-ink);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.page-toc ol {
+  display: grid;
+  gap: 0;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: toc-item;
+  border-left: 1px solid var(--tp-line);
+}
+
+.page-toc li {
+  counter-increment: toc-item;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.page-toc a {
+  display: flex;
+  gap: 8px;
+  padding: 7px 0 7px 14px;
+  margin-left: -1px;
+  border-left: 1px solid transparent;
+  color: var(--tp-ink-soft);
+  text-decoration: none;
+  transition: color var(--motion-quick) var(--ease-quiet),
+    border-color var(--motion-quick) var(--ease-quiet);
+}
+
+.page-toc a::before {
+  content: counter(toc-item, decimal-leading-zero);
+  flex: 0 0 auto;
+  color: var(--tp-ink-faint);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.7;
+  letter-spacing: 0;
+}
+
+.page-toc a:hover {
+  border-left-color: var(--tp-brand);
+  color: var(--tp-brand-deep);
+}
+
+/* Numbered sections (headings written WITHOUT literal numbers) */
+.page-sections {
+  counter-reset: legal-section;
+}
+
+.page-sections > section {
+  counter-increment: legal-section;
+}
+
+.page-sections > section:first-child {
+  padding-top: 32px;
+}
+
+.page-sections > section > h2::before {
+  content: counter(legal-section, decimal-leading-zero);
+  display: block;
+  margin-bottom: 8px;
+  color: var(--tp-eyebrow);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+/* Anchor affordance on section headings */
+.page h2 {
+  position: relative;
+}
+
+.anchor-link {
+  margin-left: 8px;
+  color: var(--tp-brand);
+  font-family: var(--font-body);
+  font-size: 0.72em;
+  font-weight: 600;
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity var(--motion-quick) var(--ease-quiet);
+}
+
+.page h2:hover .anchor-link,
+.anchor-link:focus-visible {
+  opacity: 1;
+}
+
+.page .anchor-link,
+.page .anchor-link:hover {
+  color: var(--tp-brand-deep);
+  text-decoration: none;
+}
+
+/* Compact legacy footer used by existing legal pages */
+.footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 26px 0 36px;
+  border-top: 1px solid var(--tp-line);
+  color: var(--tp-ink-soft);
+  font-size: 13px;
+}
+
+.footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+
+.footer a {
+  color: var(--tp-ink-soft);
+  text-decoration: none;
+  transition: color var(--motion-quick) var(--ease-quiet);
+}
+
+.footer a:hover {
+  color: var(--tp-brand-deep);
+}

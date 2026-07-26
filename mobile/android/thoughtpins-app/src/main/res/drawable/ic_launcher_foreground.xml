@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Canonical Thought Pins memory pin, scaled into the adaptive-icon safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.66"
+        android:scaleY="0.66"
+        android:translateX="11.76"
+        android:translateY="11.76">
+        <group
+            android:scaleX="0.94"
+            android:scaleY="0.94"
+            android:translateX="3.84"
+            android:translateY="-1.16">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M64,17 C39.7,17 22,34.4 22,57.5 C22,78.3 37.7,94.9 64,121 C90.3,94.9 106,78.3 106,57.5 C106,34.4 88.3,17 64,17 Z" />
+        <path
+            android:fillColor="@android:color/transparent"
+            android:strokeColor="#E8612B"
+            android:strokeWidth="5.5"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M64,29 L64,93 M53,29 C45,26 40,31 40,38 C40,44 44,47 50,48 M39,41 C32,45 31,54 35,60 C39,65 44,65 50,62 M35,63 C33,72 37,80 45,82 C52,84 55,88 55,93 M75,29 C83,26 88,31 88,38 C88,44 84,47 78,48 M89,41 C96,45 97,54 93,60 C89,65 84,65 78,62 M93,63 C95,72 91,80 83,82 C76,84 73,88 73,93" />
+        </group>
+    </group>
+</vector>

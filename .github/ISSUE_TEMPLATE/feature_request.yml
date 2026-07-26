@@ -1,0 +1,28 @@
+name: Feature request
+description: Propose a focused product or engineering improvement.
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Describe the user problem without prescribing an implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: What observable behavior would solve the problem?
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Privacy, portability, and compatibility constraints
+      description: Note effects on data collection, tenant isolation, export, offline use, or store review.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

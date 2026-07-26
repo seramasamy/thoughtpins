@@ -1,0 +1,446 @@
+/* ---------- 6b. Workflow views ----------
+   Entries timeline, processing activity table, status dashboard, account
+   sections, and the capture writing surface. Token-driven like the rest of
+   the system; loaded after 21-controls and before the feature styles. */
+
+/* ===== Entries timeline ===== */
+
+.entry-timeline {
+  display: grid;
+  gap: 14px;
+}
+
+.entry-row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.entry-rail {
+  display: grid;
+  gap: 2px;
+  padding-top: 15px;
+}
+
+.entry-rail-day {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-size: 30px;
+  font-weight: 560;
+  line-height: 1;
+}
+
+.entry-rail-month {
+  color: var(--tp-ink-soft);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+/* The delete action stays quiet until the card is hovered or focused, and
+   remains visible on touch devices where hover never fires. */
+.entry-delete {
+  opacity: 0;
+}
+
+.entry-card:hover .entry-delete,
+.entry-card:focus-within .entry-delete {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .entry-delete {
+    opacity: 1;
+  }
+}
+
+.pager {
+  justify-content: center;
+  gap: 20px;
+  margin-top: 18px;
+}
+
+.pager > span {
+  color: var(--tp-ink-soft);
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .entry-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 5px;
+  }
+
+  .entry-rail {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    padding: 0 2px;
+  }
+
+  .entry-rail-day {
+    font-size: 21px;
+  }
+}
+
+/* ===== Processing activity (Jobs) ===== */
+
+.status.with-dot {
+  gap: 6px;
+}
+
+.status-dot {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.job-id {
+  display: inline-block;
+  max-width: 112px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.jobs-table tbody tr {
+  transition: background-color var(--motion-quick) ease;
+}
+
+.jobs-table tbody tr:hover {
+  background: var(--tp-surface-warm);
+}
+
+.jobs-table .row-actions {
+  white-space: nowrap;
+}
+
+/* At phone widths the table becomes a stack of cards: the header row goes
+   away and each cell regains its label from data-label. */
+@media (max-width: 700px) {
+  .jobs-table-wrap {
+    overflow-x: visible;
+  }
+
+  .jobs-table {
+    min-width: 0;
+  }
+
+  .jobs-table thead {
+    display: none;
+  }
+
+  .jobs-table,
+  .jobs-table tbody,
+  .jobs-table tr,
+  .jobs-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .jobs-table tr {
+    margin-bottom: 10px;
+    padding: 8px 14px;
+    border: 1px solid var(--tp-line);
+    border-radius: var(--radius-card);
+    background: var(--tp-surface);
+  }
+
+  .jobs-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 32px;
+    padding: 4px 0;
+    border-bottom: 0;
+  }
+
+  .jobs-table td[data-label]::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    color: var(--tp-ink-soft);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .jobs-table td > * {
+    min-width: 0;
+  }
+
+  .jobs-table .job-actions-cell {
+    justify-content: flex-end;
+    padding-top: 8px;
+  }
+}
+
+/* ===== Status dashboard ===== */
+
+.health-name {
+  color: var(--tp-ink);
+  font-size: 14px;
+}
+
+.health-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.health-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.health-state.good {
+  color: var(--tp-sage);
+}
+
+.health-state.good .health-dot {
+  background: var(--tp-sage);
+  box-shadow: 0 0 0 3px var(--tp-sage-soft);
+}
+
+.health-state.work {
+  color: #7a4013;
+}
+
+.health-state.work .health-dot {
+  background: #c4872d;
+  box-shadow: 0 0 0 3px #fdf3dd;
+}
+
+.health-state.bad {
+  color: var(--tp-danger);
+}
+
+.health-state.bad .health-dot {
+  background: var(--tp-danger);
+  box-shadow: 0 0 0 3px #f7dfdc;
+}
+
+.system-facts {
+  display: grid;
+  margin: 0;
+  padding: 2px 14px;
+  border: 1px solid var(--tp-line);
+  border-radius: var(--radius-card);
+  background: var(--tp-surface-warm);
+}
+
+.system-facts > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 40px;
+  border-bottom: 1px solid var(--tp-line);
+}
+
+.system-facts > div:last-child {
+  border-bottom: 0;
+}
+
+.system-facts dt {
+  color: var(--tp-ink-soft);
+  font-size: 13px;
+}
+
+.system-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* ===== Account sections ===== */
+
+.account-view {
+  gap: 28px;
+}
+
+.account-section {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.account-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 40px;
+  padding: 0 2px;
+}
+
+.account-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.account-section-title > svg {
+  flex: 0 0 auto;
+  color: var(--tp-brand-deep);
+}
+
+.account-section-title h2 {
+  font-size: 19px;
+}
+
+.account-section-title p {
+  margin-top: 1px;
+  color: var(--tp-ink-soft);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.account-section-danger .account-section-title > svg {
+  color: var(--tp-danger);
+}
+
+.account-section-danger .danger-zone {
+  border-color: #e7c2bd;
+  background: #fdf8f7;
+}
+
+.account-empty {
+  margin: 0;
+  padding: 4px 2px;
+  font-size: 13px;
+}
+
+/* ===== Capture writing surface ===== */
+
+.capture-surface {
+  display: grid;
+  gap: 32px;
+  width: min(720px, 100%);
+  margin: 0 auto;
+}
+
+.capture-editor {
+  display: grid;
+  gap: 10px;
+}
+
+.capture-editor textarea {
+  min-height: 320px;
+  padding: 26px 30px;
+  border-color: var(--tp-line);
+  background: var(--tp-surface);
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-size: 20px;
+  font-weight: 480;
+  line-height: 1.6;
+}
+
+.capture-editor textarea::placeholder {
+  color: var(--tp-ink-faint);
+}
+
+.capture-editor-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.capture-saved {
+  color: var(--tp-ink-faint);
+  font-size: 12px;
+}
+
+.capture-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.capture-drafts {
+  display: grid;
+  gap: 12px;
+}
+
+.capture-drafts-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--tp-line);
+}
+
+.capture-drafts-head h2 {
+  font-size: 19px;
+}
+
+.capture-drafts-head p {
+  margin-top: 2px;
+  color: var(--tp-ink-soft);
+  font-size: 13px;
+}
+
+.capture-drafts .draft-list {
+  margin-top: 0;
+}
+
+.capture-drafts .draft-item {
+  background: var(--tp-surface);
+}
+
+.capture-drafts .draft-meta {
+  justify-content: flex-start;
+}
+
+.capture-drafts .draft-time {
+  color: var(--tp-ink-soft);
+}
+
+.capture-drafts .draft-meta .draft-delete {
+  margin-left: auto;
+}
+
+.capture-drafts .draft-text {
+  color: var(--tp-ink);
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+@media (max-width: 640px) {
+  .capture-editor textarea {
+    min-height: 260px;
+    padding: 18px;
+    font-size: 18px;
+  }
+
+  .capture-editor-foot {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .capture-editor-actions {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .capture-drafts-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

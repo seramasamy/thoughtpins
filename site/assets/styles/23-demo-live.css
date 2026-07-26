@@ -1,0 +1,465 @@
+/* ------------------------------------------------------------------
+   Self-playing product demo ("See it in motion")
+
+   A scripted chat vignette that lives inside the browser frame and phone
+   shell on the homepage. Progressive enhancement: the static screenshot
+   remains the no-JS / reduced-motion / print representation; when the
+   demo runs it sits above the screenshot (kept at opacity 0 so its alt
+   text stays in the accessibility tree). The whole scene is aria-hidden
+   and decorative.
+   ------------------------------------------------------------------ */
+
+.browser-frame,
+.phone-screen {
+  position: relative;
+}
+
+.demo-live {
+  position: absolute;
+  inset: 0;
+  display: none;
+  overflow: hidden;
+  background: var(--tp-canvas);
+  text-align: left;
+}
+
+.demo-live.is-live {
+  display: block;
+}
+
+/* When the demo runs, hide the screenshot but keep it in the a11y tree */
+.browser-frame.demo-running .product-app-capture,
+.phone-screen.demo-running .product-app-capture {
+  opacity: 0;
+}
+
+.dl-app {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  width: 100%;
+  height: 100%;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--tp-ink);
+}
+
+/* Mini navigation rail */
+.dl-rail {
+  grid-row: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 0;
+  background: var(--tp-charcoal);
+}
+
+.dl-rail span {
+  border-radius: 5px;
+}
+
+.dl-rail .dl-rail-mark {
+  width: 26px;
+  height: 26px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background: var(--tp-brand);
+}
+
+.dl-rail .dl-rail-item {
+  width: 20px;
+  height: 5px;
+  background: rgba(245, 241, 234, 0.28);
+}
+
+.dl-rail .dl-rail-item.is-chat {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--tp-brand);
+}
+
+.dl-rail .dl-rail-user {
+  width: 20px;
+  height: 20px;
+  margin-top: auto;
+  border-radius: 50%;
+  background: rgba(245, 241, 234, 0.22);
+}
+
+/* Thread */
+.dl-main {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-width: 0;
+}
+
+.dl-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 24px 11px;
+  border-bottom: 1px solid var(--tp-line);
+  background: var(--tp-surface);
+}
+
+.dl-topbar > div {
+  display: grid;
+  gap: 1px;
+}
+
+.dl-topbar strong {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 580;
+}
+
+.dl-topbar > div > span {
+  color: var(--tp-ink-soft);
+  font-size: 11.5px;
+}
+
+.dl-topbar em {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--tp-ink-soft);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 620;
+  white-space: nowrap;
+}
+
+.dl-topbar em i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tp-sage);
+}
+
+.dl-thread {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  padding: 22px 24px 14px;
+  transition: opacity 320ms var(--ease-quiet);
+}
+
+.demo-live[data-dl-phase="reset"] .dl-thread {
+  opacity: 0;
+}
+
+/* The older note the conversation returns to */
+.dl-note {
+  align-self: stretch;
+  padding: 12px 16px;
+  border: 1px solid var(--tp-line);
+  border-left: 3px solid var(--tp-brand);
+  border-radius: 8px;
+  background: var(--tp-surface);
+}
+
+.dl-note .dl-note-meta {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--tp-ink-soft);
+  font-size: 11.5px;
+  font-weight: 640;
+  letter-spacing: 0.02em;
+}
+
+.dl-note p {
+  font-size: 14px;
+  color: var(--tp-ink-soft);
+}
+
+.dl-note p b {
+  color: var(--tp-ink);
+  font-weight: 640;
+}
+
+.dl-msg {
+  max-width: 78%;
+  padding: 11px 15px;
+  border-radius: 8px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 300ms var(--ease-quiet), transform 300ms var(--ease-quiet);
+}
+
+.dl-msg.is-on {
+  opacity: 1;
+  transform: none;
+}
+
+/* Older exchange, dimmed so the live one pops */
+.dl-history {
+  opacity: 0.62;
+  transform: none;
+}
+
+.dl-user {
+  align-self: flex-end;
+  min-height: 38px;
+  color: var(--tp-ink);
+  background: var(--tp-brand-soft);
+}
+
+.dl-user .dl-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 1px;
+  vertical-align: -0.15em;
+  background: var(--tp-action);
+  animation: dl-caret 0.9s steps(2, start) infinite;
+}
+
+.demo-live[data-dl-phase="thinking"] .dl-user .dl-caret,
+.demo-live[data-dl-phase="answering"] .dl-user .dl-caret,
+.demo-live[data-dl-phase="holding"] .dl-user .dl-caret {
+  display: none;
+}
+
+.dl-thinking {
+  align-self: flex-start;
+  display: inline-flex;
+  gap: 5px;
+  padding: 12px 14px;
+  border: 1px solid var(--tp-line);
+  background: var(--tp-surface);
+}
+
+.dl-thinking i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tp-ink-faint);
+  animation: dl-dot 1s ease-in-out infinite;
+}
+
+.dl-thinking i:nth-child(2) {
+  animation-delay: 140ms;
+}
+
+.dl-thinking i:nth-child(3) {
+  animation-delay: 280ms;
+}
+
+/* Assistant reply: plain text with the brand glyph, like the real app */
+.dl-reply {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 88%;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 300ms var(--ease-quiet), transform 300ms var(--ease-quiet);
+}
+
+.dl-reply.is-on {
+  opacity: 1;
+  transform: none;
+}
+
+.dl-avatar {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  margin-top: 1px;
+  border-radius: 7px;
+  background: var(--tp-brand);
+  position: relative;
+}
+
+.dl-avatar::after {
+  content: "";
+  position: absolute;
+  inset: 6px 9px 7px;
+  border-radius: 50% 50% 50% 4px;
+  background: #fff;
+}
+
+.dl-reply-body {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dl-reply-body p {
+  font-size: 14px;
+}
+
+.dl-reply-links {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.dl-reply-body small {
+  color: var(--tp-ink-soft);
+  font-size: 11px;
+}
+
+.dl-link {
+  display: inline-block;
+  margin-left: 2px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  color: var(--tp-chip-orange-ink);
+  background: var(--tp-chip-orange-bg);
+  font-size: 12px;
+  font-weight: 640;
+  box-shadow: 0 0 0 0 rgba(232, 97, 43, 0);
+  transition: box-shadow 500ms var(--ease-quiet);
+}
+
+.demo-live[data-dl-phase="holding"] .dl-link {
+  box-shadow: 0 0 0 3px rgba(232, 97, 43, 0.22);
+}
+
+/* Composer */
+.dl-composer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 24px 20px;
+  padding: 11px 14px;
+  border: 1px solid var(--tp-line);
+  border-radius: 9px;
+  background: var(--tp-surface);
+}
+
+.dl-composer-hint {
+  flex: 1;
+  color: var(--tp-ink-soft);
+  font-size: 13px;
+}
+
+.dl-cicon {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  border: 1.6px solid var(--tp-line-strong);
+  border-radius: 50%;
+}
+
+.dl-send {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--tp-action);
+  transition: transform 220ms var(--ease-settle), box-shadow 220ms var(--ease-quiet);
+}
+
+.demo-live[data-dl-phase="thinking"] .dl-send {
+  transform: scale(1.12);
+  box-shadow: 0 0 0 4px rgba(179, 62, 22, 0.18);
+}
+
+/* Mobile scene: no rail, no topbar, bottom tab bar */
+.dl-app-mobile {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  font-size: 12px;
+}
+
+.dl-app-mobile .dl-thread {
+  padding: 16px 16px 10px;
+  gap: 9px;
+}
+
+.dl-app-mobile .dl-msg {
+  padding: 9px 12px;
+}
+
+.dl-app-mobile .dl-note {
+  padding: 10px 12px;
+}
+
+.dl-app-mobile .dl-note p,
+.dl-app-mobile .dl-reply-body p {
+  font-size: 12px;
+}
+
+.dl-app-mobile .dl-composer {
+  margin: 0 14px 10px;
+  padding: 9px 12px;
+}
+
+.dl-app-mobile .dl-composer-hint {
+  font-size: 11px;
+}
+
+.dl-app-mobile .dl-send {
+  width: 24px;
+  height: 24px;
+}
+
+.dl-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 8px 18px calc(8px + 2px);
+  border-top: 1px solid var(--tp-line);
+  background: var(--tp-surface);
+}
+
+.dl-tabs i {
+  width: 16px;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--tp-line-strong);
+}
+
+.dl-tabs i.dl-tabs-chat {
+  width: 26px;
+  height: 26px;
+  margin-top: -14px;
+  border-radius: 50%;
+  background: var(--tp-brand);
+  box-shadow: 0 4px 10px rgba(34, 29, 22, 0.18);
+}
+
+/* Keyframes */
+@keyframes dl-caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes dl-dot {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: none;
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+@media (max-width: 680px) {
+  .dl-app:not(.dl-app-mobile) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dl-app:not(.dl-app-mobile) .dl-rail {
+    display: none;
+  }
+}
+
+@media print {
+  .demo-live {
+    display: none !important;
+  }
+
+  .browser-frame.demo-running .product-app-capture,
+  .phone-screen.demo-running .product-app-capture {
+    opacity: 1;
+  }
+}

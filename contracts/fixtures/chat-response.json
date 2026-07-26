@@ -1,0 +1,14 @@
+{
+  "status": "replied",
+  "route_type": "chat",
+  "reply": "You connected that idea to a conversation from last week.",
+  "entry_id": null,
+  "job_id": null,
+  "document_id": null,
+  "requires_confirmation": false,
+  "confirmation_prompt": null,
+  "context_size_chars": 1840,
+  "metadata": {
+    "classification": "chat"
+  }
+}

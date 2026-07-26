@@ -1,0 +1,306 @@
+﻿{
+    "app_name":  "Thought Pins",
+    "brand_handles":  {
+                          "code_package":  "thoughtpins",
+                          "github_or_social":  "thoughtpins",
+                          "display_name":  "Thought Pins"
+                      },
+    "last_reviewed":  "2026-07-13",
+    "official_references":  {
+                                "apple_app_review_guidelines":  "https://developer.apple.com/app-store/review/guidelines/",
+                                "apple_app_privacy_details":  "https://developer.apple.com/app-store/app-privacy-details/",
+                                "apple_account_deletion":  "https://developer.apple.com/support/offering-account-deletion-in-your-app/",
+                                "apple_user_privacy_and_data_use":  "https://developer.apple.com/app-store/user-privacy-and-data-use/",
+                                "google_user_data_policy":  "https://support.google.com/googleplay/android-developer/answer/10144311",
+                                "google_account_deletion":  "https://support.google.com/googleplay/android-developer/answer/13327111",
+                                "google_data_safety_form":  "https://support.google.com/googleplay/android-developer/answer/10787469",
+                                "google_ai_generated_content_policy":  "https://support.google.com/googleplay/android-developer/answer/14094294"
+                            },
+    "public_urls":  {
+                        "marketing_site":  "https://thoughtpins.com",
+                        "privacy_policy":  "https://thoughtpins.com/privacy",
+                        "terms":  "https://thoughtpins.com/terms",
+                        "support":  "https://thoughtpins.com/support",
+                        "account_deletion":  "https://thoughtpins.com/account/delete",
+                        "ai_disclosure":  "https://thoughtpins.com/ai-disclosure",
+                        "web_app":  "https://app.thoughtpins.com/app",
+                        "api":  "https://api.thoughtpins.com/v1"
+                    },
+    "store_targets":  {
+                          "ios":  {
+                                      "bundle_id":  "com.thoughtpins.app",
+                                      "store_url":  "https://apps.apple.com/app/thought-pins/id0000000000",
+                                      "minimum_supported_version":  "1.0.0",
+                                      "distribution":  "TestFlight before public App Store review"
+                                  },
+                          "android":  {
+                                          "package_name":  "com.thoughtpins.app",
+                                          "store_url":  "https://play.google.com/store/apps/details?id=com.thoughtpins.app",
+                                          "minimum_supported_version":  "1.0.0",
+                                          "distribution":  "Play internal testing before closed testing"
+                                      },
+                          "web":  {
+                                      "origin":  "https://app.thoughtpins.com",
+                                      "minimum_supported_version":  "1.0.0",
+                                      "distribution":  "closed beta web app before native store submission"
+                                  }
+                      },
+    "review_access":  {
+                          "demo_account_required":  true,
+                          "seed_command":  "python scripts/seed_review_account.py --export-vault --zip-vault",
+                          "email_env_var":  "THOUGHTPINS_REVIEW_EMAIL",
+                          "password_env_var":  "THOUGHTPINS_REVIEW_PASSWORD",
+                          "default_email":  "review@thoughtpins.com",
+                          "password_stored_in_repo":  false,
+                          "notes":  "Put the generated review credentials only in private App Store Connect and Play Console review notes. The account seed is fictional and non-founder."
+                      },
+    "auth_and_account":  {
+                             "email_login":  true,
+                             "phone_login":  true,
+                             "password_auth":  true,
+                             "google_oauth_supported_when_configured":  true,
+                             "apple_oauth_supported_when_configured":  true,
+                             "apple_parity_required_if_google_offered_on_ios":  true,
+                             "in_app_account_deletion_endpoint":  "DELETE /v1/me",
+                             "web_account_deletion_url":  "https://thoughtpins.com/account/delete",
+                             "account_export_endpoint":  "GET /v1/export"
+                         },
+    "data_and_ai":  {
+                        "data_safety_inventory":  "deploy/store/data-safety-inventory.json",
+                        "privacy_policy_file":  "site/privacy.html",
+                        "ai_disclosure_file":  "site/ai-disclosure.html",
+                        "tracking_used_for_v1":  false,
+                        "advertising_sdks_used_for_v1":  false,
+                        "journal_content_sold":  false,
+                        "user_content_sent_to_model_provider":  true,
+                        "llm_provider_policy":  "Provider-neutral runtime; the actual production processor, data use, and terms must be reflected in final policy and store privacy answers before submission.",
+                        "embedding_provider_policy":  "Provider-neutral embedding runtime; the actual production processor and terms must be reflected in final policy and store privacy answers before submission.",
+                        "store_policy_requirements":  "deploy/store/store-policy-requirements.json",
+                        "native_review_handoff":  "deploy/store/native-review-handoff.json",
+                        "ai_safety_policy":  "site/ai-disclosure.html and site/support.html disclose unsafe-output reporting, prohibited generation categories, and support escalation.",
+                        "article_source_policy":  "User-submitted or user-uploaded sources only; publisher access controls are respected and crawler identities are not impersonated.",
+                        "safety_report_endpoint":  "POST /v1/safety/reports",
+                        "local_device_storage_plan":  "docs/architecture/LOCAL_DEVICE_STORAGE.md",
+                        "apple_review_answers":  "docs/release/APPLE_REVIEW_ANSWERS.md"
+                    },
+    "permissions_rationale":  {
+                                  "web_closed_beta":  {
+                                                          "microphone":  "user-initiated browser voice-note capture; request only after clear in-product disclosure",
+                                                          "camera":  "not requested",
+                                                          "photos":  "user-selected file upload only",
+                                                          "location":  "not requested",
+                                                          "contacts":  "not requested",
+                                                          "notifications":  "not requested by default"
+                                                      },
+                                  "native_apps":  {
+                                                        "microphone":  "implemented optional voice-note capture; request only after an in-app disclosure and explicit user action; the submitted public build discards audio after transcription and does not expose the private archive feature",
+                                                        "photos_or_files":  "optional user-selected document/image import; no broad library scraping",
+                                                        "notifications":  "optional reminders and processing completion notices",
+                                                        "location":  "not planned for v1; places are extracted from user text",
+                                                        "contacts":  "not planned for v1; people are extracted from user text"
+                                                    }
+                              },
+    "public_build_exclusions":  {
+                                    "founder_mode_visible":  false,
+                                    "telegram_test_controls_visible":  false,
+                                    "local_secrets_in_public_build":  false,
+                                    "public_export_checks":  [
+                                                                 "python scripts/forbidden_scan.py",
+                                                                 "python scripts/check_public_export.py"
+                                                             ],
+                                    "private_local_adapter_visible":  false,
+                                    "client_config_exposes_private_adapter_flags":  false
+                                },
+    "apple_review_gates":  [
+                               {
+                                   "name":  "complete_metadata_and_functional_urls",
+                                   "status":  "code_ready_needs_public_deploy",
+                                   "evidence":  [
+                                                    "site/",
+                                                    ".env.production.example",
+                                                    "scripts/check_domain_readiness.py",
+                                                    "docs/release/APPLE_REVIEW_ANSWERS.md"
+                                                ]
+                               },
+                               {
+                                   "name":  "demo_account_or_demo_mode",
+                                   "status":  "code_ready_needs_private_credentials",
+                                   "evidence":  [
+                                                    "src/thoughtpins/review_seed.py",
+                                                    "scripts/seed_review_account.py",
+                                                    "scripts/check_review_account_packet.py"
+                                                ]
+                               },
+                               {
+                                   "name":  "backend_live_during_review",
+                                   "status":  "infrastructure_required",
+                                   "evidence":  [
+                                                    "scripts/smoke_api.py",
+                                                    "scripts/collect_closed_beta_evidence.py"
+                                                ]
+                               },
+                               {
+                                   "name":  "in_app_account_deletion",
+                                   "status":  "code_ready",
+                                   "evidence":  [
+                                                    "DELETE /v1/me",
+                                                    "frontend/src/features/account/AccountView.tsx"
+                                                ]
+                               },
+                               {
+                                   "name":  "privacy_details_match_runtime",
+                                   "status":  "draft_ready_needs_store_console_entry",
+                                   "evidence":  [
+                                                    "deploy/store/data-safety-inventory.json",
+                                                    "docs/release/PRIVACY_AND_STORE_READINESS.md",
+                                                    "docs/architecture/LOCAL_DEVICE_STORAGE.md"
+                                                ]
+                               },
+                               {
+                                   "name":  "sign_in_with_apple_parity",
+                                   "status":  "code_ready_needs_client_ids_if_google_enabled_on_ios",
+                                   "evidence":  [
+                                                    "src/thoughtpins/oauth.py",
+                                                    "/v1/auth/oauth",
+                                                    "frontend/src/features/legal/LegalView.tsx"
+                                                ]
+                               },
+                               {
+                                   "name":  "no_hidden_founder_features",
+                                   "status":  "code_ready",
+                                   "evidence":  [
+                                                    "scripts/check_public_export.py",
+                                                    "scripts/app_store_compliance_check.py",
+                                                    "..\\thoughtpins-founder-telegram-adapter\\README.md"
+                                                ]
+                               },
+                               {
+                                   "name":  "ai_disclosure_and_safety_reporting",
+                                   "status":  "code_ready_needs_store_console_entry",
+                                   "evidence":  [
+                                                    "site/ai-disclosure.html",
+                                                    "site/support.html",
+                                                    "deploy/store/data-safety-inventory.json",
+                                                    "POST /v1/safety/reports",
+                                                    "frontend/src/features/legal/LegalView.tsx"
+                                                ]
+                               },
+                               {
+                                   "name":  "user_generated_content_safety_controls",
+                                   "status":  "code_ready_needs_store_console_entry",
+                                   "evidence":  [
+                                                    "POST /v1/safety/reports",
+                                                    "frontend/src/features/legal/LegalView.tsx",
+                                                    "site/support.html",
+                                                    "deploy/store/data-safety-inventory.json"
+                                                ]
+                               }
+                           ],
+    "google_play_gates":  [
+                              {
+                                  "name":  "privacy_policy_public_url",
+                                  "status":  "code_ready_needs_public_deploy",
+                                  "evidence":  [
+                                                   "site/privacy.html",
+                                                   "https://thoughtpins.com/privacy"
+                                               ]
+                              },
+                              {
+                                  "name":  "data_safety_form",
+                                  "status":  "draft_ready_needs_play_console_entry",
+                                  "evidence":  [
+                                                   "deploy/store/data-safety-inventory.json"
+                                               ]
+                              },
+                              {
+                                  "name":  "in_app_account_deletion",
+                                  "status":  "code_ready",
+                                  "evidence":  [
+                                                   "DELETE /v1/me",
+                                                   "frontend/src/features/account/AccountView.tsx"
+                                               ]
+                              },
+                              {
+                                  "name":  "web_account_deletion_resource",
+                                  "status":  "code_ready_needs_public_deploy",
+                                  "evidence":  [
+                                                   "site/account/delete/index.html",
+                                                   "https://thoughtpins.com/account/delete"
+                                               ]
+                              },
+                              {
+                                  "name":  "secure_handling_and_no_sale",
+                                  "status":  "code_ready_needs_final_policy_review",
+                                  "evidence":  [
+                                                   "site/privacy.html",
+                                                   "deploy/store/data-safety-inventory.json"
+                                               ]
+                              },
+                              {
+                                  "name":  "runtime_permissions_disclosed_before_use",
+                                  "status":  "not_applicable_to_web_closed_beta_ready_for_native_planning",
+                                  "evidence":  [
+                                                   "permissions_rationale"
+                                               ]
+                              },
+                              {
+                                  "name":  "ai_generated_content_safety",
+                                  "status":  "code_ready_needs_play_console_entry",
+                                  "evidence":  [
+                                                   "site/ai-disclosure.html",
+                                                   "site/support.html",
+                                                   "deploy/store/data-safety-inventory.json",
+                                                   "POST /v1/safety/reports",
+                                                   "frontend/src/features/legal/LegalView.tsx"
+                                               ]
+                              }
+                          ],
+    "evidence_commands":  [
+                              "python scripts/release_check.py --skip-quality",
+                              "python scripts/collect_local_closed_beta_evidence.py --telegram-api --live-article --web-smoke",
+                              "python scripts/smoke_startup_shutdown.py",
+                              "python scripts/check_review_notes_packet.py",
+                           "python scripts/check_ios_submission_source.py",
+                           "python scripts/check_native_review_handoff.py",
+                              "python scripts/check_store_submission_packet.py",
+                              "python scripts/check_deployment_packet.py",
+                              "python scripts/check_launch_packet.py",
+                              "python scripts/check_host_capabilities.py",
+                              "python scripts/generate_launch_packet.py",
+                              "python scripts/check_review_account_packet.py",
+                              "python scripts/app_store_compliance_check.py",
+                              "python scripts/check_domain_readiness.py",
+                              "python scripts/check_public_export.py",
+                              "python scripts/collect_closed_beta_evidence.py --web-smoke",
+                              "python scripts/check_store_readiness_matrix.py --self-test",
+                              "python scripts/generate_store_readiness_matrix.py"
+                          ],
+    "known_external_blockers_before_submission":  [
+                                                      "Publish thoughtpins.com legal/support/account deletion pages over HTTPS.",
+                                                      "Deploy staging API, worker, PostgreSQL, Redis, and vector store with live health checks.",
+                                                      "Run PostgreSQL RLS verification against the non-owner app role.",
+                                                      "Run Playwright web screenshots in an unrestricted browser environment.",
+                                                      "Create Apple Developer and Google Play Console app records with final bundle/package IDs.",
+                                                      "Enter final privacy labels, data safety form, review credentials, and AI disclosure notes in store consoles.",
+                                                      "Rotate all local/test credentials before public beta.",
+                                                      "Compile, sign, capture screenshots, and device-test native iOS/Android app shells before native App Store or Play Store submission.",
+                                                      "Keep the private mini-PC adapter outside submitted store builds and public GitHub exports; rotate its local credentials before any public beta."
+                                                  ],
+    "review_notes_template":  "deploy/store/review-notes-template.md",
+    "deployment_packet":  "deploy/closed-beta-deployment-packet.json",
+    "private_adapters":  {
+                             "personal_chat_adapter":  {
+                                                           "location":  "..\\thoughtpins-founder-telegram-adapter",
+                                                           "included_in_store_builds":  false,
+                                                           "included_in_public_github_export":  false,
+                                                           "uses_public_api_only":  true,
+                                                           "required_public_api_paths":  [
+                                                                                             "/v1/chat",
+                                                                                             "/v1/client-config",
+                                                                                             "/v1/health/deep",
+                                                                                             "/v1/export"
+                                                                                         ],
+                                                           "secrets_policy":  "Local .env only; no tokens, personal chat IDs, or private run logs in the Thought Pins public repo or store bundles."
+                                                       }
+                         }
+}

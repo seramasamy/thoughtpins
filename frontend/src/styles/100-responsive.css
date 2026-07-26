@@ -1,0 +1,792 @@
+/* ---------- 13. Responsive ---------- */
+
+@media (max-width: 1180px) {
+  .recap-layout,
+  .memory-layout,
+  .pins-layout.has-detail {
+    grid-template-columns: 1fr;
+  }
+
+  .recap-insights,
+  .memory-detail,
+  .pin-detail {
+    position: static;
+  }
+
+  .recap-insights {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .insight-title {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 1120px) {
+  .library-layout,
+  .two-pane {
+    grid-template-columns: 1fr;
+  }
+
+  .library-detail {
+    position: static;
+  }
+}
+
+@media (max-width: 860px) {
+  .app-shell,
+  .app-shell.sidebar-right {
+    grid-template-columns: 78px minmax(0, 1fr);
+  }
+
+  .app-shell.sidebar-right {
+    grid-template-columns: minmax(0, 1fr) 78px;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 30;
+    width: 78px;
+    height: 100dvh;
+    padding: 16px 10px;
+  }
+
+  .sidebar-right .sidebar {
+    right: 0;
+    left: auto;
+  }
+
+  .sidebar .brand > div,
+  .sidebar-side-toggle,
+  .primary-nav button > span:last-child,
+  .sidebar-secondary-nav button > span:last-child,
+  .profile-button .identity,
+  .profile-button > svg {
+    display: none;
+  }
+
+  .sidebar-brand-row {
+    justify-content: center;
+  }
+
+  .primary-nav button,
+  .profile-button {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .primary-nav button.active {
+    box-shadow: inset 0 -3px 0 var(--tp-brand);
+  }
+
+  .main {
+    grid-column: 2;
+    padding: 18px 20px 40px;
+  }
+
+  .sidebar-right .main {
+    grid-column: 1;
+  }
+
+  .mobile-settings {
+    display: inline-flex;
+  }
+
+  .global-composer {
+    left: 98px;
+  }
+
+  .sidebar-right .global-composer {
+    right: 98px;
+    left: 20px;
+  }
+
+  .utility-popover,
+  .sidebar-right .utility-popover {
+    right: auto;
+    bottom: 14px;
+    left: 88px;
+  }
+}
+
+@media (max-width: 700px), (max-height: 500px) and (max-width: 960px) {
+  .app-shell,
+  .app-shell.sidebar-right {
+    display: block;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .main,
+  .sidebar-right .main {
+    width: 100%;
+    min-height: 100dvh;
+    padding: max(14px, env(safe-area-inset-top)) 14px calc(90px + env(safe-area-inset-bottom));
+  }
+
+  .app-shell.has-global-composer .main {
+    padding-bottom: calc(154px + env(safe-area-inset-bottom));
+  }
+
+  .topbar {
+    align-items: center;
+    min-height: 48px;
+    margin-bottom: 12px;
+  }
+
+  .topbar h1 {
+    font-size: 22px;
+  }
+
+  .topbar .subtle {
+    display: none;
+  }
+
+  .mobile-settings {
+    display: inline-flex;
+  }
+
+  .mobile-tabbar {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 40;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 2px;
+    padding: 6px 7px max(6px, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--tp-line);
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 -10px 26px rgba(34, 29, 22, 0.08);
+  }
+
+  .mobile-tabbar button {
+    position: relative;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 3px;
+    min-width: 0;
+    min-height: 58px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-button);
+    color: var(--tp-ink-soft);
+    background: transparent;
+    font-size: 10px;
+    line-height: 1;
+  }
+
+  .mobile-tabbar .mobile-nav-icon {
+    display: grid;
+    width: 24px;
+    height: 24px;
+    place-items: center;
+  }
+
+  .mobile-tabbar button:not(.featured)::after {
+    position: absolute;
+    right: 50%;
+    bottom: -2px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--tp-brand);
+    content: "";
+    opacity: 0;
+    transform: translateX(50%) scale(0.65);
+    transition: opacity var(--motion-quick) ease, transform var(--motion-quick) ease;
+  }
+
+  .mobile-tabbar button.active:not(.featured) {
+    color: var(--tp-action);
+    background: transparent;
+  }
+
+  .mobile-tabbar button.active:not(.featured)::after {
+    opacity: 1;
+    transform: translateX(50%) scale(1);
+  }
+
+  .mobile-tabbar button.featured {
+    color: var(--tp-action);
+  }
+
+  .mobile-tabbar button.featured:active {
+    transform: scale(0.98);
+  }
+
+  .mobile-tabbar button.featured .mobile-nav-icon {
+    display: grid;
+    width: 46px;
+    height: 46px;
+    place-items: center;
+    border: 3px solid var(--tp-canvas);
+    border-radius: 50%;
+    color: #ffffff;
+    background: var(--tp-brand);
+    box-shadow: 0 0 0 1px rgba(232, 97, 43, 0.3), 0 8px 18px rgba(142, 54, 20, 0.24);
+    transform: translateY(-7px);
+  }
+
+  .mobile-tabbar button.featured .chat-nav-glyph {
+    transform: none;
+  }
+
+  .mobile-tabbar .mobile-nav-label {
+    display: block;
+    min-width: 0;
+    color: currentColor;
+    font-size: 10px;
+    font-weight: 560;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .mobile-tabbar button.featured .mobile-nav-label {
+    margin-top: -7px;
+    font-weight: 700;
+  }
+
+  .utility-popover,
+  .sidebar-right .utility-popover {
+    right: 10px;
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    left: 10px;
+    width: auto;
+  }
+
+  .global-composer,
+  .sidebar-right .global-composer {
+    right: 12px;
+    bottom: calc(82px + env(safe-area-inset-bottom));
+    left: 12px;
+    grid-template-columns: auto minmax(0, 1fr) 44px;
+    gap: 6px;
+  }
+
+  .composer-mode-button {
+    padding: 0 10px;
+  }
+
+  .chat-view {
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    height: calc(100dvh - 190px - env(safe-area-inset-bottom));
+    min-height: 0;
+    margin: 0;
+    border-right: 0;
+    border-left: 0;
+  }
+
+  .chat-header {
+    min-height: 56px;
+    padding: 8px 10px;
+  }
+
+  .private-memory-toggle {
+    width: auto;
+    padding: 0 9px;
+    justify-content: center;
+  }
+
+  .private-memory-toggle .private-memory-label-long {
+    display: none;
+  }
+
+  .private-memory-toggle .private-memory-label-short {
+    display: inline;
+    white-space: nowrap;
+  }
+
+  .private-memory-toggle input {
+    position: absolute;
+    opacity: 0;
+  }
+
+  .chat-stream {
+    padding: 18px 12px 10px;
+  }
+
+  .chat-welcome {
+    margin-top: 24px;
+  }
+
+  .chat-welcome h2 {
+    font-size: 22px;
+  }
+
+  .starter-list {
+    grid-template-columns: 1fr;
+    margin-top: 18px;
+  }
+
+  .starter-list button {
+    min-height: 44px;
+  }
+
+  .chat-message-row {
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 8px;
+    margin-bottom: 17px;
+  }
+
+  .message-avatar {
+    width: 29px;
+    height: 29px;
+  }
+
+  .chat-message-row.user .message-content {
+    max-width: 88%;
+  }
+
+  .message-body p,
+  .message-body ul {
+    font-size: 14px;
+  }
+
+  .chat-composer-wrap {
+    padding: 8px;
+  }
+
+  .composer-caption {
+    display: none;
+  }
+
+  .recap-heading,
+  .pins-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .recap-actions {
+    justify-content: space-between;
+  }
+
+  .period-switcher.segmented {
+    width: 100%;
+  }
+
+  .recap-heading h2,
+  .pins-heading h2 {
+    font-size: 23px;
+  }
+
+  .recap-metrics div {
+    min-height: 68px;
+    padding: 12px;
+  }
+
+  .recap-metrics strong {
+    font-size: 21px;
+  }
+
+  .recap-timeline {
+    max-height: none;
+    min-height: 280px;
+  }
+
+  .recap-insights {
+    grid-template-columns: 1fr;
+  }
+
+  .insight-title {
+    grid-column: auto;
+  }
+
+  .memory-view-heading {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+  }
+
+  .memory-view-heading p {
+    display: none;
+  }
+
+  .memory-controls,
+  .memory-controls > .search-field:only-child {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-column: auto;
+  }
+
+  .memory-card-grid,
+  .pin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .memory-card,
+  .pin-card {
+    min-height: 0;
+  }
+
+  .pin-capture {
+    grid-template-columns: 38px minmax(0, 1fr) 38px;
+  }
+
+  .pin-capture .primary-button {
+    grid-column: 1 / -1;
+  }
+
+  .pins-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pins-toolbar > span {
+    align-self: flex-end;
+  }
+
+  .library-intro h2 {
+    font-size: 23px;
+  }
+
+  .library-fields {
+    min-height: 0;
+  }
+
+  .library-detail-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .library-detail-meta div {
+    min-width: 0;
+    padding-right: 12px;
+  }
+
+  .auth-panel.auth-split {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-brand-pane {
+    gap: 12px;
+    padding: 22px 20px;
+  }
+
+  .auth-brand-dots {
+    display: none;
+  }
+
+  .auth-form-pane {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  h1 {
+    font-size: 24px;
+  }
+
+  .app-shell.has-global-composer .main {
+    padding-bottom: 196px;
+  }
+
+  .topbar,
+  .form-actions,
+  .button-row,
+  .source-row,
+  .device-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .topbar {
+    align-items: center;
+    flex-direction: row;
+  }
+
+  .metric-grid,
+  .two-col,
+  .store-grid,
+  .import-summary,
+  .draft-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .compact-segments {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+}
+
+@media (max-width: 380px) {
+  .main,
+  .sidebar-right .main {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .utility-popover nav {
+    grid-template-columns: 1fr;
+  }
+
+  .library-detail-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Compact-height phones cannot fit the full welcome composition above the
+   fixed composer. Keep the useful prompts and remove only decorative copy. */
+@media (max-height: 620px) and (max-width: 700px) {
+  .chat-stream {
+    padding: 8px;
+  }
+
+  .chat-welcome {
+    margin: 4px auto;
+  }
+
+  .chat-welcome .welcome-mark,
+  .chat-welcome > p {
+    display: none;
+  }
+
+  .chat-welcome h2 {
+    font-size: 21px;
+    line-height: 1.2;
+  }
+
+  .starter-list {
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .starter-list button {
+    min-height: 44px;
+    padding: 6px 10px;
+  }
+}
+
+/* Landscape adds horizontal room but has the tightest vertical budget. */
+@media (max-height: 500px) and (max-width: 960px) {
+  .main,
+  .sidebar-right .main {
+    padding-top: max(8px, env(safe-area-inset-top));
+  }
+
+  .topbar {
+    min-height: 36px;
+    margin-bottom: 4px;
+    padding-bottom: 4px;
+  }
+
+  .topbar h1 {
+    font-size: 20px;
+  }
+
+  .chat-header {
+    min-height: 42px;
+    padding: 4px 10px;
+  }
+
+  .chat-view {
+    height: calc(100dvh - 148px - env(safe-area-inset-bottom));
+  }
+
+  .chat-stream {
+    padding: 4px 8px 2px;
+  }
+
+  .chat-welcome {
+    margin: 0 auto;
+  }
+
+  .chat-welcome .welcome-mark,
+  .chat-welcome > p {
+    display: none;
+  }
+
+  .chat-welcome h2 {
+    font-size: 20px;
+    line-height: 1.2;
+  }
+
+  .starter-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .starter-list button {
+    height: 44px;
+    min-height: 44px;
+    padding: 6px 10px;
+    overflow: hidden;
+    font-size: 12px;
+    line-height: 1.25;
+  }
+
+  .starter-list button span {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .chat-composer-wrap {
+    padding: 4px 8px;
+  }
+}
+
+/* ---------- 14. Reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .skeleton {
+    animation: none;
+    background: var(--tp-line);
+  }
+
+  .thinking-dots i {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+/* ---------- 15. Dark mode ----------
+   Additive: the warm paper palette is re-pointed to a warm dark canvas by
+   overriding the neutral and accent-text tokens. Brand fills (buttons,
+   avatars, dots) stay terracotta; accent *text* shifts to a lighter action
+   orange so links and eyebrows keep WCAG AA on dark surfaces. */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    /* Warm dark neutrals */
+    --tp-canvas: #1a1714;
+    --tp-surface: #221d18;
+    --tp-surface-warm: #2a241e;
+    --tp-ink: #f4efe8;
+    --tp-ink-soft: #b7ad9f;
+    --tp-ink-faint: #8f8578;
+    --tp-line: #38312a;
+    --tp-line-strong: #4a4239;
+
+    /* Accent text that reads on dark (fills keep --tp-brand/--tp-action) */
+    --tp-brand-deep: #ef9a72;
+    --tp-sage: #86a794;
+
+    /* Elevation reads through shadow on dark */
+    --shadow-float: 0 14px 34px rgba(0, 0, 0, 0.55);
+    --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.42);
+
+    /* Focus ring visible on dark */
+    --tp-focus: rgba(232, 137, 95, 0.55);
+  }
+
+  /* Chrome surfaces with hardcoded light backgrounds need dark equivalents. */
+  :root:not([data-theme="light"]) .auth-layout {
+    background: var(--tp-canvas);
+  }
+
+  :root:not([data-theme="light"]) .global-composer {
+    background: rgba(34, 29, 22, 0.94);
+  }
+
+  :root:not([data-theme="light"]) .mobile-tabbar {
+    background: rgba(26, 23, 20, 0.94);
+  }
+
+  /* Bare links and accent text on dark neutral surfaces (chip text keeps
+     the darker --tp-action against its light brand-soft background). */
+  :root:not([data-theme="light"]) a {
+    color: #e8895f;
+  }
+
+  :root:not([data-theme="light"]) .source-link,
+  :root:not([data-theme="light"]) .auth-consent a {
+    color: #e8895f;
+  }
+
+  :root:not([data-theme="light"]) ::selection {
+    color: #ffffff;
+    background: var(--tp-brand);
+  }
+}
+
+/* Explicit theme choices. This dark block must stay in sync with the
+   media-query block above: same tokens, same surface fixes, same values. */
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Warm dark neutrals */
+  --tp-canvas: #1a1714;
+  --tp-surface: #221d18;
+  --tp-surface-warm: #2a241e;
+  --tp-ink: #f4efe8;
+  --tp-ink-soft: #b7ad9f;
+  --tp-ink-faint: #8f8578;
+  --tp-line: #38312a;
+  --tp-line-strong: #4a4239;
+
+  /* Accent text that reads on dark (fills keep --tp-brand/--tp-action) */
+  --tp-brand-deep: #ef9a72;
+  --tp-sage: #86a794;
+
+  /* Elevation reads through shadow on dark */
+  --shadow-float: 0 14px 34px rgba(0, 0, 0, 0.55);
+  --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.42);
+
+  /* Focus ring visible on dark */
+  --tp-focus: rgba(232, 137, 95, 0.55);
+}
+
+:root[data-theme="dark"] .auth-layout {
+  background: var(--tp-canvas);
+}
+
+:root[data-theme="dark"] .global-composer {
+  background: rgba(34, 29, 22, 0.94);
+}
+
+:root[data-theme="dark"] .mobile-tabbar {
+  background: rgba(26, 23, 20, 0.94);
+}
+
+:root[data-theme="dark"] a {
+  color: #e8895f;
+}
+
+:root[data-theme="dark"] .source-link,
+:root[data-theme="dark"] .auth-consent a {
+  color: #e8895f;
+}
+
+:root[data-theme="dark"] ::selection {
+  color: #ffffff;
+  background: var(--tp-brand);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* Dark-mode empty states: the light brand-soft halo reads as dull gray on
+   the warm dark canvas, so it shifts to a low terracotta glow. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .empty-state-halo::before {
+    background: var(--tp-brand);
+    opacity: 0.16;
+  }
+}
+
+:root[data-theme="dark"] .empty-state-halo::before {
+  background: var(--tp-brand);
+  opacity: 0.16;
+}

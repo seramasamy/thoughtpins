@@ -1,0 +1,204 @@
+﻿services:
+  postgres:
+    image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+    environment:
+      POSTGRES_DB: thoughtpins
+      POSTGRES_USER: thoughtpins
+      POSTGRES_PASSWORD: thoughtpins
+    ports:
+      - "${THOUGHTPINS_COMPOSE_POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - thoughtpins-postgres:/var/lib/postgresql/data
+      - ./deploy/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U thoughtpins -d thoughtpins"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
+    ports:
+      - "${THOUGHTPINS_COMPOSE_REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:v1.18.2@sha256:75eab8c4ba42096724fdcfde8b4de0b5713d529dde32f285a1f86fdcb2c9e50c
+    environment:
+      QDRANT__SERVICE__API_KEY: ${THOUGHTPINS_COMPOSE_QDRANT_API_KEY:-change-me-for-local-compose-qdrant-key}
+    ports:
+      - "127.0.0.1:${THOUGHTPINS_COMPOSE_QDRANT_PORT:-6333}:6333"
+    volumes:
+      - thoughtpins-qdrant:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "bash", "-c", ":> /dev/tcp/127.0.0.1/6333"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    build:
+      context: .
+      args:
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+        VITE_APPLE_CLIENT_ID: ${VITE_APPLE_CLIENT_ID:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+psycopg2://thoughtpins:thoughtpins@postgres:5432/thoughtpins
+      AUTO_CREATE_TABLES: "false"
+      THOUGHTPINS_APP_DB_ROLE: thoughtpins_app
+    command: alembic upgrade head
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      args:
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+        VITE_APPLE_CLIENT_ID: ${VITE_APPLE_CLIENT_ID:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+psycopg2://thoughtpins_app:thoughtpins_app@postgres:5432/thoughtpins
+      REDIS_URL: redis://redis:6379/0
+      REQUIRE_API_AUTH: "true"
+      API_KEY: ${THOUGHTPINS_COMPOSE_API_KEY:-change-me-for-local-compose-api-key-32chars}
+      JWT_SECRET: ${THOUGHTPINS_COMPOSE_JWT_SECRET:-change-me-for-local-compose-jwt-secret-32chars}
+      ALLOW_USER_API_KEYS: "false"
+      RETURN_API_KEY_ON_REGISTER: "false"
+      AUTO_CREATE_TABLES: "false"
+      RATE_LIMIT_ENABLED: "true"
+      RATE_LIMIT_AUTH_PER_MINUTE: "5"
+      RATE_LIMIT_INGEST_PER_MINUTE: "30"
+      RATE_LIMIT_LLM_PER_MINUTE: "20"
+      PROCESS_ENTRIES_ASYNC: "true"
+      INGESTION_QUEUE_BACKEND: celery
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      CELERY_QUEUE_NAME: celery
+      WORKER_RECOVERY_INTERVAL_SECONDS: "60"
+      LLM_PROVIDER: ${LLM_PROVIDER:-openai_compatible}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
+      LLM_MODEL: ${LLM_MODEL:-chat-model}
+      LLM_SUPPORTS_THINKING: ${LLM_SUPPORTS_THINKING:-false}
+      VECTOR_MODE: qdrant_remote
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_API_KEY: ${THOUGHTPINS_COMPOSE_QDRANT_API_KEY:-change-me-for-local-compose-qdrant-key}
+      QDRANT_TIMEOUT_SECONDS: "10"
+      EMBEDDING_PROVIDER: openai
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_EMBEDDING_MODEL: text-embedding-3-small
+      OPENAI_EMBEDDING_DIMENSIONS: "1536"
+      TRANSCRIPTION_PROVIDER: ${THOUGHTPINS_COMPOSE_TRANSCRIPTION_PROVIDER:-hosted}
+      TRANSCRIPTION_API_KEY: ${THOUGHTPINS_COMPOSE_TRANSCRIPTION_API_KEY:-${OPENAI_API_KEY:-}}
+      TRANSCRIPTION_BASE_URL: ${THOUGHTPINS_COMPOSE_TRANSCRIPTION_BASE_URL:-https://api.openai.com/v1}
+      TRANSCRIPTION_MODEL: ${THOUGHTPINS_COMPOSE_TRANSCRIPTION_MODEL:-whisper-1}
+      API_HOST: 0.0.0.0
+      API_PORT: "8420"
+      RUN_STARTUP_RECOVERY: "false"
+    ports:
+      - "${THOUGHTPINS_COMPOSE_API_PORT:-8420}:8420"
+    volumes:
+      - thoughtpins-vault:/app/vault
+      - thoughtpins-reports:/app/reports
+    command: python -m thoughtpins.server --api-only
+
+  web:
+    build:
+      context: .
+      args:
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+        VITE_APPLE_CLIENT_ID: ${VITE_APPLE_CLIENT_ID:-}
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: development
+      THOUGHTPINS_WEB_HOST: 0.0.0.0
+      THOUGHTPINS_WEB_PORT: "8421"
+      THOUGHTPINS_WEB_API_UPSTREAM: http://api:8420
+    ports:
+      - "${THOUGHTPINS_COMPOSE_WEB_PORT:-8421}:8421"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8421/health', timeout=3).read()"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    command: python -m thoughtpins.web_proxy
+
+  worker:
+    build:
+      context: .
+      args:
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+        VITE_APPLE_CLIENT_ID: ${VITE_APPLE_CLIENT_ID:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+psycopg2://thoughtpins_app:thoughtpins_app@postgres:5432/thoughtpins
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: ${THOUGHTPINS_COMPOSE_JWT_SECRET:-change-me-for-local-compose-jwt-secret-32chars}
+      AUTO_CREATE_TABLES: "false"
+      INGESTION_QUEUE_BACKEND: celery
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      CELERY_WORKER_CONCURRENCY: ${THOUGHTPINS_COMPOSE_WORKER_CONCURRENCY:-2}
+      CELERY_QUEUE_NAME: celery
+      WORKER_RECOVERY_INTERVAL_SECONDS: "60"
+      LLM_PROVIDER: ${LLM_PROVIDER:-openai_compatible}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
+      LLM_MODEL: ${LLM_MODEL:-chat-model}
+      LLM_SUPPORTS_THINKING: ${LLM_SUPPORTS_THINKING:-false}
+      VECTOR_MODE: qdrant_remote
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_API_KEY: ${THOUGHTPINS_COMPOSE_QDRANT_API_KEY:-change-me-for-local-compose-qdrant-key}
+      QDRANT_TIMEOUT_SECONDS: "10"
+      EMBEDDING_PROVIDER: openai
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_EMBEDDING_MODEL: text-embedding-3-small
+      OPENAI_EMBEDDING_DIMENSIONS: "1536"
+      TRANSCRIPTION_PROVIDER: ${THOUGHTPINS_COMPOSE_TRANSCRIPTION_PROVIDER:-hosted}
+      TRANSCRIPTION_API_KEY: ${THOUGHTPINS_COMPOSE_TRANSCRIPTION_API_KEY:-${OPENAI_API_KEY:-}}
+      TRANSCRIPTION_BASE_URL: ${THOUGHTPINS_COMPOSE_TRANSCRIPTION_BASE_URL:-https://api.openai.com/v1}
+      TRANSCRIPTION_MODEL: ${THOUGHTPINS_COMPOSE_TRANSCRIPTION_MODEL:-whisper-1}
+    volumes:
+      - thoughtpins-vault:/app/vault
+      - thoughtpins-reports:/app/reports
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os; from redis import Redis; os.kill(1, 0); Redis.from_url(os.environ['CELERY_BROKER_URL'], socket_connect_timeout=2, socket_timeout=2).ping()"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    command: python -m thoughtpins.worker
+
+volumes:
+  thoughtpins-postgres:
+  thoughtpins-qdrant:
+  thoughtpins-vault:
+  thoughtpins-reports:

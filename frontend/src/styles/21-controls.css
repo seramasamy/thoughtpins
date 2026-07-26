@@ -1,0 +1,274 @@
+/* Forms */
+
+label {
+  display: grid;
+  gap: 6px;
+  color: var(--tp-ink);
+  font-size: 13px;
+  font-weight: 550;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--tp-line-strong);
+  border-radius: var(--radius-card);
+  color: var(--tp-ink);
+  background: var(--tp-surface);
+  font-weight: 400;
+  outline: none;
+}
+
+::placeholder {
+  color: var(--tp-ink-faint);
+  opacity: 1;
+}
+
+textarea {
+  min-height: 220px;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--tp-brand);
+  box-shadow: 0 0 0 3px rgba(232, 97, 43, 0.16);
+}
+
+.check-row {
+  display: flex;
+  grid-template-columns: none;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  min-height: 34px;
+}
+
+.check-row input {
+  width: 18px;
+  min-height: 18px;
+  padding: 0;
+  accent-color: var(--tp-action);
+}
+
+.field-help,
+.inline-help,
+.loading-line,
+.empty-state span,
+.detail-section p {
+  color: var(--tp-ink-soft);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.loading-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Buttons */
+
+.primary-button,
+.secondary-button,
+.danger-button,
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-button);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.primary-button {
+  padding: 0 16px;
+  color: #ffffff;
+  background: var(--tp-action);
+}
+
+.primary-button:hover:not(:disabled) {
+  background: var(--tp-action-hover);
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-1px);
+}
+
+.secondary-button {
+  padding: 0 14px;
+  border-color: var(--tp-line-strong);
+  color: var(--tp-ink);
+  background: var(--tp-surface);
+}
+
+.secondary-button:hover:not(:disabled) {
+  border-color: var(--tp-ink-faint);
+  background: var(--tp-surface-warm);
+}
+
+.danger-button {
+  padding: 0 14px;
+  color: #ffffff;
+  background: var(--tp-danger);
+}
+
+.danger-button:hover:not(:disabled) {
+  background: #8c2626;
+}
+
+.icon-button {
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border-color: var(--tp-line-strong);
+  color: var(--tp-ink);
+  background: var(--tp-surface);
+}
+
+.icon-button:hover:not(:disabled) {
+  border-color: var(--tp-ink-faint);
+  background: var(--tp-surface-warm);
+}
+
+.icon-button.danger {
+  color: var(--tp-danger);
+}
+
+/* Quiet text action: no fill, brand-ink label, soft tint on hover. Used for
+   pagers and low-emphasis row actions like retry/cancel. */
+.quiet-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 36px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-button);
+  color: var(--tp-action);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.quiet-button:hover:not(:disabled) {
+  color: var(--tp-action-hover);
+  background: var(--tp-brand-soft);
+}
+
+.quiet-button.danger {
+  color: var(--tp-danger);
+}
+
+.quiet-button.danger:hover:not(:disabled) {
+  color: #8c2626;
+  background: #f7dfdc;
+}
+
+.form-actions,
+.button-row,
+.toolbar,
+.pager,
+.entry-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.wrap {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.right,
+.row-actions {
+  text-align: right;
+}
+
+.row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* Segmented control */
+
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 14px;
+  padding: 4px;
+  border: 1px solid var(--tp-line);
+  border-radius: var(--radius-card);
+  background: var(--tp-canvas);
+}
+
+.segmented button {
+  min-height: 36px;
+  border: 0;
+  border-radius: var(--radius-chip);
+  color: var(--tp-ink-soft);
+  background: transparent;
+  font-weight: 600;
+}
+
+.segmented button:hover:not(:disabled) {
+  color: var(--tp-ink);
+}
+
+.segmented button.active {
+  color: var(--tp-ink);
+  background: var(--tp-surface);
+  box-shadow: 0 1px 2px rgba(34, 29, 22, 0.08);
+}
+
+.compact-segments {
+  display: flex;
+  gap: 4px;
+  margin: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.compact-segments button {
+  flex: 0 0 auto;
+  padding: 0 13px;
+  white-space: nowrap;
+}
+
+.compact-segments button.active,
+.period-switcher.segmented button.active {
+  color: var(--tp-paper);
+  background: var(--tp-charcoal);
+}
+
+.period-switcher.segmented {
+  grid-template-columns: repeat(3, minmax(58px, 1fr));
+  min-width: 210px;
+  margin: 0;
+}
+
+.appearance-field {
+  display: grid;
+  gap: 6px;
+  color: var(--tp-ink);
+  font-size: 13px;
+  font-weight: 550;
+}
+
+.appearance-segments.segmented {
+  grid-template-columns: repeat(3, 1fr);
+  margin: 0;
+}
+

@@ -1,0 +1,183 @@
+/* ---------- 7. Global composer, utility popover, mobile tabbar ---------- */
+
+.global-composer {
+  position: fixed;
+  right: clamp(22px, 3vw, 52px);
+  bottom: 18px;
+  left: calc(236px + clamp(22px, 3vw, 52px));
+  z-index: 18;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 10px;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--radius-card);
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 0 0 1px var(--tp-line-strong), var(--shadow-float);
+  backdrop-filter: blur(14px);
+  animation: tp-rise var(--motion-entrance) var(--ease-quiet) both;
+}
+
+.sidebar-right .global-composer {
+  right: calc(236px + clamp(22px, 3vw, 52px));
+  left: clamp(22px, 3vw, 52px);
+}
+
+.global-composer textarea {
+  min-height: 44px;
+  max-height: 110px;
+  padding: 11px 8px;
+  border: 0;
+  background: transparent;
+  resize: none;
+  box-shadow: none;
+}
+
+.composer-mode-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-button);
+  color: var(--tp-action);
+  background: var(--tp-brand-soft);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.composer-mode-button:hover:not(:disabled) {
+  color: #ffffff;
+  background: var(--tp-action);
+}
+
+.global-composer .primary-button {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--tp-brand);
+  /* Subtle settle so the send action eases into place with the bar. */
+  animation: tp-settle var(--motion-standard) var(--ease-settle) both;
+}
+
+.global-composer .primary-button:hover:not(:disabled) {
+  background: var(--tp-brand-deep);
+  transform: translateY(-1px);
+}
+
+.global-composer-status {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 8px 14px;
+  border: 1px solid var(--tp-charcoal-line);
+  border-radius: var(--radius-button);
+  color: var(--tp-paper);
+  background: var(--tp-charcoal);
+  box-shadow: var(--shadow-hover);
+  font-size: 13px;
+  font-weight: 600;
+  animation: tp-settle var(--motion-standard) var(--ease-settle) both;
+}
+
+.global-composer-status .thinking-dots {
+  color: var(--tp-brand);
+}
+
+.global-composer-status .thinking-dots i {
+  width: 6px;
+  height: 6px;
+}
+
+.utility-popover {
+  position: fixed;
+  bottom: 16px;
+  left: 248px;
+  z-index: 50;
+  width: min(300px, calc(100vw - 24px));
+  padding: 10px;
+  border: 1px solid var(--tp-line);
+  border-radius: var(--radius-card);
+  background: var(--tp-surface);
+  box-shadow: var(--shadow-float);
+  animation: tp-rise var(--motion-standard) var(--ease-quiet) both;
+}
+
+.sidebar-right .utility-popover {
+  right: 248px;
+  left: auto;
+}
+
+.utility-popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 4px 8px 10px;
+}
+
+.utility-popover-head strong {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-size: 15px;
+  font-weight: 580;
+}
+
+.utility-popover-head > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.utility-popover nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+
+.utility-popover nav button,
+.utility-logout {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: var(--radius-button);
+  color: var(--tp-ink-soft);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 550;
+  text-align: left;
+}
+
+.utility-popover nav button:hover,
+.utility-popover nav button.active {
+  color: var(--tp-action);
+  background: var(--tp-brand-soft);
+}
+
+.utility-logout {
+  width: 100%;
+  margin-top: 8px;
+  border-top: 1px solid var(--tp-line);
+  border-radius: 0 0 var(--radius-button) var(--radius-button);
+  color: var(--tp-danger);
+}
+
+.utility-logout:hover {
+  background: #f9eae7;
+}
+
+.mobile-tabbar {
+  display: none;
+}

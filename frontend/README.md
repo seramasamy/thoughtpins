@@ -1,0 +1,70 @@
+# Thought Pins Frontend
+
+This is the backend-served web app for Thought Pins. It is intentionally
+chat-first and mirrors the future mobile app structure so iOS and Android can
+reuse the same product model.
+
+## Module Map
+
+- `src/app/`: app orchestration, auth screen, shell, navigation, shared view
+  types.
+- `src/components/`: shared UI primitives and formatting helpers.
+- `src/features/chat/`: primary conversational surface backed by `/v1/chat`.
+- `src/features/memory/`: people/place/project/organization/thing memory cards.
+- `src/features/capture/`: explicit journal capture.
+- `src/features/library/`: article, link, and document source ingestion.
+- `src/features/entries/`: journal timeline and deletion.
+- `src/features/jobs/`: job queue operations.
+- `src/features/account/`: preferences, devices, export, deletion, legal
+  acceptance.
+- `src/features/dashboard/`: health/status panels.
+- `src/features/legal/`: legal, support, store, and disclosure links.
+- `src/core/`: UI-free primitives for session, storage, validation, drafts,
+  sync, installation, runtime, and version policy.
+
+Keep fetch logic in `src/api.ts`. Feature modules should consume typed API
+methods instead of hardcoding endpoints.
+
+## Responsive Contract
+
+The primary information architecture is identical on every product surface:
+Recap, People, Chat, Places, and Pins. Chat is the centered, emphasized action.
+Desktop uses a persistent side rail that can move left or right; tablet uses a
+compact icon rail; mobile uses a five-item bottom tab bar with safe-area
+spacing. Account, explicit capture, the full source library, all entries,
+processing activity, health, and legal controls live in the utility menu so the
+primary product remains personal rather than administrative.
+
+- `Recap` renders daily, weekly, and monthly journal periods plus synthesized
+  report sections from `/v1/reports`.
+- `People` and `Places` use the typed memory-card API and retain provenance,
+  relationship, and timeline detail.
+- `Chat` is the only composer on its route and supports natural routing, file
+  attachment, confirmations, maintenance behavior, and memory-backed history.
+- `Pins` is the human-facing source library for links, books, documents, and
+  notes. Source memories remain distinct from lived journal memories.
+
+The orange token is the primary action color. Charcoal, sage, blue, and neutral
+surfaces preserve contrast and prevent the UI from becoming a single-hue theme.
+Animations honor `prefers-reduced-motion`.
+
+## Local Checks
+
+```powershell
+npm run check
+npm run build
+```
+
+On locked Windows hosts, `npm run build` may validate the static fallback when
+Vite cannot spawn its child process. A successful unrestricted build writes
+`dist/.thoughtpins-build.json`; the backend only serves `dist` when that marker
+exists.
+
+## OAuth Builds
+
+Google and Apple web client IDs are compile-time Vite values. Set
+`VITE_GOOGLE_CLIENT_ID` and `VITE_APPLE_CLIENT_ID` for a production build when
+the matching backend provider is enabled. The Dockerfile and Compose builds
+forward both values explicitly; changing either ID requires rebuilding the web
+bundle. Production validation rejects enabled providers whose web ID is absent
+or missing from the backend allowlist.

@@ -1,0 +1,257 @@
+/* ---------- 11. Pins ---------- */
+
+.pin-capture {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 38px auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--tp-line-strong);
+  border-radius: var(--radius-card);
+  background: var(--tp-surface);
+}
+
+.pin-capture:focus-within {
+  border-color: var(--tp-brand);
+  box-shadow: 0 0 0 3px rgba(232, 97, 43, 0.12);
+}
+
+.pin-capture-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--tp-action);
+  background: var(--tp-brand-soft);
+}
+
+.pin-capture input:not([type="file"]) {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.pins-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pin-search {
+  width: min(440px, 100%);
+}
+
+.pin-search > button {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: var(--tp-ink-soft);
+  background: transparent;
+}
+
+.pins-toolbar > span {
+  color: var(--tp-ink-soft);
+  font-size: 12px;
+}
+
+.pins-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.pins-layout.has-detail {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+}
+
+.pin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.pin-card {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  min-height: 226px;
+  padding: 16px;
+  border: 1px solid var(--tp-line);
+  border-radius: var(--radius-card);
+  color: var(--tp-ink);
+  background: var(--tp-surface);
+  text-align: left;
+}
+
+.pin-card:hover {
+  border-color: var(--tp-brand);
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+
+.pin-card-top,
+.pin-card footer,
+.pin-detail header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.source-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: var(--radius-card);
+  color: #2f5468;
+  background: var(--tp-blue-soft);
+}
+
+.source-book,
+.source-paper {
+  color: #6b5417;
+  background: #f3ecd2;
+}
+
+.source-note,
+.source-text {
+  color: #2f4a3c;
+  background: var(--tp-sage-soft);
+}
+
+.pin-card-copy > span,
+.pin-author {
+  color: var(--tp-brand-deep);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.pin-card-copy h3 {
+  margin-top: 5px;
+  font-size: 16px;
+}
+
+.pin-card-copy p {
+  display: -webkit-box;
+  margin-top: 8px;
+  overflow: hidden;
+  color: var(--tp-ink-soft);
+  font-size: 12px;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.pin-card footer {
+  padding-top: 10px;
+  border-top: 1px solid var(--tp-line);
+  color: var(--tp-ink-soft);
+  font-size: 12px;
+}
+
+.pin-detail {
+  position: sticky;
+  top: 18px;
+  display: grid;
+  gap: 13px;
+  padding: 16px;
+  border: 1px solid var(--tp-line);
+  border-radius: var(--radius-card);
+  background: var(--tp-surface);
+}
+
+.pin-detail h2 {
+  font-size: 20px;
+  line-height: 1.3;
+}
+
+.pin-summary {
+  color: var(--tp-ink-soft);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.pin-meta {
+  display: grid;
+  gap: 0;
+}
+
+.pin-meta div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 34px;
+  border-bottom: 1px solid var(--tp-line);
+}
+
+.pin-meta dt {
+  color: var(--tp-ink-soft);
+  font-size: 12px;
+}
+
+.pin-meta dd {
+  font-size: 12px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.pin-taxonomy,
+.pin-concepts {
+  display: grid;
+  gap: 8px;
+}
+
+.pin-taxonomy > strong,
+.pin-concepts > strong {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.pin-taxonomy > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pin-taxonomy span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 3px 9px;
+  border-radius: var(--radius-chip);
+  color: #2f5468;
+  background: var(--tp-blue-soft);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pin-concepts p {
+  color: var(--tp-ink-soft);
+  font-size: 13px;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+.source-availability {
+  padding: 12px 14px;
+  border: 1px solid var(--tp-line-strong);
+  border-radius: var(--radius-card);
+  color: var(--tp-ink-soft);
+  background: var(--tp-surface-warm);
+  font-size: 13px;
+  line-height: 1.55;
+}
