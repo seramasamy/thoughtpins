@@ -26,6 +26,8 @@ PUBLIC_PATHS = frozenset(
         "/v1/auth/register",
         "/v1/auth/login",
         "/v1/auth/oauth",
+        "/v1/auth/magic-link/request",
+        "/v1/auth/magic-link/consume",
         "/v1/auth/email/verify",
         "/v1/auth/refresh",
         "/v1/auth/logout",

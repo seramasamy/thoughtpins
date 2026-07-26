@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from typing import Any, Callable
 
 from fastapi import APIRouter, HTTPException, Request
+from loguru import logger
 from pydantic import BaseModel, Field, field_validator
 
 from thoughtpins.apple_oauth import AppleOAuthError, exchange_apple_authorization_code
@@ -26,7 +27,15 @@ from thoughtpins.email_verification import (
     is_email_verified,
     verify_email_token,
 )
+from thoughtpins.email_delivery import EmailDeliveryError
+from thoughtpins.magic_link import (
+    MagicLinkInvalid,
+    MagicLinkRateLimited,
+    consume_magic_link,
+    issue_magic_link,
+)
 from thoughtpins.oauth import verify_oauth_id_token
+from thoughtpins.privacy import fingerprint_identifier
 from thoughtpins.oauth_accounts import (
     OAuthAccountError,
     OAuthIdentityConflict,
@@ -165,6 +174,24 @@ class EmailVerifyRequest(BaseModel):
     email: str = Field(..., max_length=255)
     token: str = Field(..., min_length=16, max_length=256)
     model_config = {"json_schema_extra": {"examples": [{"email": "user@example.com", "token": "tpv_example"}]}}
+
+
+class MagicLinkRequest(BaseModel):
+    email: str = Field(..., max_length=255)
+    model_config = {"json_schema_extra": {"examples": [{"email": "user@example.com"}]}}
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        normalized = _normalize_email_address(value)
+        if not normalized:
+            raise ValueError("Invalid email address")
+        return normalized
+
+
+class MagicLinkConsumeRequest(BaseModel):
+    token: str = Field(..., min_length=16, max_length=256)
+    model_config = {"json_schema_extra": {"examples": [{"token": "tpm_example"}]}}
 
 
 class TokenResponse(BaseModel):
@@ -335,6 +362,85 @@ def create_auth_router(
         finally:
             session.close()
 
+    @router.post("/v1/auth/magic-link/request")
+    async def request_magic_link(req: MagicLinkRequest, request: Request) -> dict[str, str]:
+        if not config.MAGIC_LINK_ENABLED:
+            raise HTTPException(status_code=404, detail="Passwordless sign-in is not enabled")
+
+        # Always answer identically. A different response for known vs unknown
+        # addresses would turn this endpoint into an account-existence oracle.
+        accepted = {"status": "sent"}
+        session = get_session()
+        try:
+            user = get_user_by_email(req.email, session=session)
+            if user is None and not (config.MAGIC_LINK_ALLOW_REGISTRATION and not config.SYSTEM_LOCKED):
+                logger.info("Magic link requested for unknown address {}", fingerprint_identifier(req.email))
+                return accepted
+            try:
+                issue_magic_link(
+                    session,
+                    req.email,
+                    request_ip_hash=fingerprint_identifier(_client_ip(request)),
+                )
+            except MagicLinkRateLimited:
+                # Also answered identically: revealing the limit would leak that
+                # the address is being targeted.
+                logger.info("Magic link rate limited for {}", fingerprint_identifier(req.email))
+                return accepted
+            except EmailDeliveryError as exc:
+                logger.error("Magic link delivery failed: {}", exc)
+                raise HTTPException(status_code=502, detail="Could not send the sign-in email") from exc
+            return accepted
+        finally:
+            session.close()
+
+    @router.post("/v1/auth/magic-link/consume", response_model=TokenResponse)
+    async def consume_magic_link_route(req: MagicLinkConsumeRequest, request: Request) -> TokenResponse:
+        if not config.MAGIC_LINK_ENABLED:
+            raise HTTPException(status_code=404, detail="Passwordless sign-in is not enabled")
+
+        session = get_session()
+        try:
+            try:
+                email = consume_magic_link(session, req.token)
+            except MagicLinkInvalid as exc:
+                raise HTTPException(status_code=400, detail="Invalid or expired sign-in link") from exc
+
+            user = get_user_by_email(email, session=session)
+            created = False
+            if user is None:
+                if config.SYSTEM_LOCKED or not config.MAGIC_LINK_ALLOW_REGISTRATION:
+                    raise HTTPException(status_code=403, detail="Registration is disabled")
+                try:
+                    user = create_user(email=email, password_hash=None)
+                except ValueError as exc:
+                    raise HTTPException(status_code=409, detail=str(exc)) from exc
+                user = get_user_by_email(email, session=session)
+                created = True
+                if user is None:
+                    raise HTTPException(status_code=500, detail="Could not create the account")
+
+            # Opening the link proves control of the inbox, which is exactly what
+            # email verification asks for; record it so verification-gated logins
+            # are not blocked afterwards.
+            _mark_email_verified(user)
+            user.last_login_utc = _utcnow()
+            tokens = issue_token_pair(
+                session,
+                user,
+                user_agent=request.headers.get("User-Agent"),
+                ip_address=_client_ip(request),
+            )
+            record_audit_event(
+                session,
+                user_id=user.id,
+                action="auth.magic_link",
+                metadata={"method": "magic_link", "created": created, "ip": _client_ip(request)},
+            )
+            return TokenResponse(**tokens)
+        finally:
+            session.close()
+
     @router.post("/v1/auth/refresh", response_model=TokenResponse)
     async def refresh(req: RefreshRequest, request: Request) -> TokenResponse:
         session = get_session()
@@ -438,6 +544,16 @@ def _normalize_email_address(value: str | None) -> str | None:
     if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", value):
         raise ValueError("Invalid email address")
     return value
+
+
+def _mark_email_verified(user: User) -> None:
+    """Record inbox control proven by opening a magic link."""
+    prefs = dict(user.preferences_json or {})
+    verification = dict(prefs.get("email_verification") or {})
+    verification["verified"] = True
+    verification.pop("token_hash", None)
+    prefs["email_verification"] = verification
+    user.preferences_json = prefs
 
 
 def _client_ip(request: Request) -> str | None:

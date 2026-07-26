@@ -252,6 +252,30 @@ class AuditLog(Base):
     metadata_json = Column(JSON, default=dict)
 
 
+class MagicLinkToken(Base):
+    """A single-use passwordless sign-in token.
+
+    Deliberately keyed by email rather than user_id: the token is issued and
+    looked up before any tenant context exists, and may precede the account it
+    creates. Same pre-authentication rationale that exempts auth_sessions and
+    oauth_credentials from row-level security.
+    """
+
+    __tablename__ = "magic_link_tokens"
+    __table_args__ = (
+        Index("ix_magic_link_tokens_email_created", "email", "created_at_utc"),
+        Index("ix_magic_link_tokens_expires", "expires_at_utc"),
+    )
+
+    id = Column(String(32), primary_key=True, default=_new_id)
+    email = Column(String(255), nullable=False, index=True)
+    token_hash = Column(String(128), nullable=False, unique=True, index=True)
+    created_at_utc = Column(DateTime, default=_utcnow, nullable=False)
+    expires_at_utc = Column(DateTime, nullable=False)
+    consumed_at_utc = Column(DateTime, nullable=True)
+    request_ip_hash = Column(String(64), nullable=True)
+
+
 class LlmUsageEvent(Base):
     """One metered provider call: real token counts and their approximate cost."""
 

@@ -247,6 +247,22 @@ class Config:
     APPLE_OAUTH_TIMEOUT_SECONDS: int = _env_int("APPLE_OAUTH_TIMEOUT_SECONDS", 10)
     ALLOW_OAUTH_REGISTRATION: bool = _env_bool("ALLOW_OAUTH_REGISTRATION", False)
     REQUIRE_EMAIL_VERIFICATION: bool = _env_bool("REQUIRE_EMAIL_VERIFICATION", False)
+
+    # Transactional email. "none" keeps delivery disabled and logs instead, so
+    # local development never sends real mail.
+    EMAIL_PROVIDER: str = _env("EMAIL_PROVIDER", "none").lower()
+    RESEND_API_KEY: str = _env("RESEND_API_KEY")
+    RESEND_BASE_URL: str = _env("RESEND_BASE_URL", "https://api.resend.com")
+    EMAIL_FROM_ADDRESS: str = _env("EMAIL_FROM_ADDRESS")
+    EMAIL_TIMEOUT_SECONDS: int = _env_int("EMAIL_TIMEOUT_SECONDS", 10)
+
+    # Passwordless sign-in. Short TTL because the link is a bearer credential
+    # sitting in an inbox.
+    MAGIC_LINK_ENABLED: bool = _env_bool("MAGIC_LINK_ENABLED", False)
+    MAGIC_LINK_TTL_MINUTES: int = _env_int("MAGIC_LINK_TTL_MINUTES", 15)
+    MAGIC_LINK_REQUESTS_PER_HOUR: int = _env_int("MAGIC_LINK_REQUESTS_PER_HOUR", 5)
+    MAGIC_LINK_ALLOW_REGISTRATION: bool = _env_bool("MAGIC_LINK_ALLOW_REGISTRATION", True)
+    MAGIC_LINK_BASE_URL: str = _env("MAGIC_LINK_BASE_URL")
     EMAIL_VERIFICATION_TOKEN_TTL_HOURS: int = _env_int("EMAIL_VERIFICATION_TOKEN_TTL_HOURS", 24)
     REQUIRE_API_AUTH: bool = _env_bool(
         "REQUIRE_API_AUTH",
@@ -566,6 +582,19 @@ class Config:
                 "WORKER_RECOVERY_INTERVAL_SECONDS must be between 10 and 3600.",
             ),
             (not cls.SENTRY_DSN, "SENTRY_DSN must be set outside local development."),
+            (
+                cls.MAGIC_LINK_ENABLED and cls.EMAIL_PROVIDER == "none",
+                "EMAIL_PROVIDER must deliver real mail when MAGIC_LINK_ENABLED is true; "
+                "the 'none' provider logs sign-in links instead of sending them.",
+            ),
+            (
+                cls.MAGIC_LINK_ENABLED and not cls.EMAIL_FROM_ADDRESS,
+                "EMAIL_FROM_ADDRESS must be set when MAGIC_LINK_ENABLED is true.",
+            ),
+            (
+                cls.MAGIC_LINK_ENABLED and cls.MAGIC_LINK_TTL_MINUTES > 60,
+                "MAGIC_LINK_TTL_MINUTES must be 60 or less; a sign-in link is a bearer credential.",
+            ),
             (not cls.SECURITY_HEADERS_ENABLED, "SECURITY_HEADERS_ENABLED must be true outside local development."),
             (cls.MAX_REQUEST_BODY_BYTES < 65_536, "MAX_REQUEST_BODY_BYTES must allow normal journal payloads."),
             (cls.LLM_TIMEOUT_SECONDS < 5, "LLM_TIMEOUT_SECONDS must be at least 5."),
