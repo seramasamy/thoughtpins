@@ -22,6 +22,7 @@ ERROR_CODE_DOCS: dict[str, str] = {
     "conflict": "The request conflicts with existing data, such as duplicate registration.",
     "payload_too_large": "The request body exceeds MAX_REQUEST_BODY_BYTES.",
     "rate_limit_exceeded": "The caller exceeded the configured rate limit tier.",
+    "usage_budget_exceeded": "The account or deployment reached its configured AI spend budget for the month.",
     "validation_error": "FastAPI/Pydantic rejected the request parameters or body.",
     "internal_error": "An unexpected server error occurred.",
     "maintenance_mode": "The deployment is temporarily in maintenance mode; retry after the supplied Retry-After value.",

@@ -46,6 +46,13 @@ def _env_int(key: str, default: int) -> int:
         return default
 
 
+def _env_float(key: str, default: float) -> float:
+    try:
+        return float(os.getenv(key, str(default)))
+    except (TypeError, ValueError):
+        return default
+
+
 def _env_bool(key: str, default: bool = False) -> bool:
     val = os.getenv(key, "").strip().lower()
     if val in ("true", "1", "yes", "on"):
@@ -253,6 +260,28 @@ class Config:
     RATE_LIMIT_LLM_PER_MINUTE: int = _env_int("RATE_LIMIT_LLM_PER_MINUTE", 20)
     RATE_LIMIT_EXPORT_PER_MINUTE: int = _env_int("RATE_LIMIT_EXPORT_PER_MINUTE", 10)
     RATE_LIMIT_ACCOUNT_PER_MINUTE: int = _env_int("RATE_LIMIT_ACCOUNT_PER_MINUTE", 30)
+
+    # Provider spend metering. Rate limits cap request *frequency*; these cap
+    # actual token *cost*, which is what a free tier can otherwise leak without
+    # bound. Tracking and enforcement are separate flags so a deployment can
+    # observe real per-user spend before committing to a budget number.
+    USAGE_TRACKING_ENABLED: bool = _env_bool("USAGE_TRACKING_ENABLED", True)
+    USAGE_ENFORCEMENT_ENABLED: bool = _env_bool(
+        "USAGE_ENFORCEMENT_ENABLED", ENVIRONMENT in {"staging", "production"}
+    )
+    USAGE_MONTHLY_BUDGET_USD: float = _env_float("USAGE_MONTHLY_BUDGET_USD", 3.00)
+    USAGE_BUDGET_WARN_RATIO: float = _env_float("USAGE_BUDGET_WARN_RATIO", 0.8)
+    USAGE_GLOBAL_MONTHLY_BUDGET_USD: float = _env_float("USAGE_GLOBAL_MONTHLY_BUDGET_USD", 50.00)
+    USAGE_BUDGET_EXEMPT_ADMINS: bool = _env_bool("USAGE_BUDGET_EXEMPT_ADMINS", True)
+    # Per-model USD prices per 1M tokens, as {"model-id": {"input_per_1m": x,
+    # "output_per_1m": y}}. Deliberately empty by default and supplied per
+    # deployment: prices are provider-specific and change over time, and this
+    # source stays provider-neutral. Models absent from the map bill at the
+    # conservative defaults below, so an unmapped runtime is never free.
+    LLM_PRICING_JSON: str = _env("LLM_PRICING_JSON", "{}")
+    LLM_DEFAULT_INPUT_PRICE_PER_1M_USD: float = _env_float("LLM_DEFAULT_INPUT_PRICE_PER_1M_USD", 0.30)
+    LLM_DEFAULT_OUTPUT_PRICE_PER_1M_USD: float = _env_float("LLM_DEFAULT_OUTPUT_PRICE_PER_1M_USD", 1.20)
+
     PROCESS_ENTRIES_ASYNC: bool = _env_bool("PROCESS_ENTRIES_ASYNC", ENVIRONMENT in {"staging", "production"})
     INGESTION_WORKER_THREADS: int = _env_int("INGESTION_WORKER_THREADS", 2)
     INGESTION_STALE_AFTER_MINUTES: int = _env_int("INGESTION_STALE_AFTER_MINUTES", 30)

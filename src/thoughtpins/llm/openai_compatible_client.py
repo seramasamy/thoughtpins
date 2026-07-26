@@ -11,6 +11,27 @@ from loguru import logger
 from openai import OpenAI
 
 from thoughtpins.config import config
+from thoughtpins.tenancy import get_current_tenant_id
+from thoughtpins.usage import ensure_budget_available, record_llm_usage
+
+
+def _record_provider_usage(response: Any, *, operation: str, requested_model: str) -> None:
+    """Meter one provider call from its own usage block.
+
+    Called per attempt rather than per :meth:`chat` call: the retry/fallback loop
+    below can hit the provider several times and each hit is billed separately.
+    """
+    usage = getattr(response, "usage", None)
+    if usage is None:
+        return
+    record_llm_usage(
+        user_id=get_current_tenant_id(),
+        provider=config.LLM_PROVIDER,
+        model=getattr(response, "model", "") or requested_model,
+        operation=operation,
+        prompt_tokens=getattr(usage, "prompt_tokens", 0) or 0,
+        completion_tokens=getattr(usage, "completion_tokens", 0) or 0,
+    )
 
 
 class OpenAICompatibleLLMClient:
@@ -46,7 +67,9 @@ class OpenAICompatibleLLMClient:
         response_format: dict[str, Any] | None = None,
         use_thinking: bool | None = None,
         model_override: str | None = None,
+        operation: str = "chat",
     ) -> str:
+        ensure_budget_available(get_current_tenant_id())
         primary_model = normalize_llm_model_name(model_override) if model_override else self._model
         extra_body: dict[str, Any] = {}
         thinking_enabled = self._thinking if use_thinking is None else use_thinking
@@ -113,6 +136,11 @@ class OpenAICompatibleLLMClient:
                 variant = "plain" if "extra_body" not in current_kwargs else "configured"
             try:
                 response = self._client.chat.completions.create(**current_kwargs)
+                _record_provider_usage(
+                    response,
+                    operation=operation,
+                    requested_model=str(current_kwargs.get("model") or primary_model),
+                )
                 content = response.choices[0].message.content or ""
                 last_error = None
             except Exception as exc:
@@ -153,6 +181,7 @@ class OpenAICompatibleLLMClient:
             response_format={"type": "json_object"},
             use_thinking=False,
             model_override=self._extraction_model,
+            operation="extraction",
         )
         result = _parse_json(raw)
         if result is not None:
@@ -172,6 +201,7 @@ class OpenAICompatibleLLMClient:
             response_format={"type": "json_object"},
             use_thinking=False,
             model_override=self._extraction_model,
+            operation="extraction",
         )
         result2 = _parse_json(raw2)
         if result2 is not None:
@@ -182,15 +212,19 @@ class OpenAICompatibleLLMClient:
 
     def embed(self, texts: list[str], model: str | None = None) -> list[list[float]]:
         """Get embeddings from the configured OpenAI-compatible endpoint when available."""
+        requested_model = model or config.LLM_MODEL
+        ensure_budget_available(get_current_tenant_id())
         try:
             response = self._client.embeddings.create(
-                model=model or config.LLM_MODEL,
+                model=requested_model,
                 input=texts,
             )
-            return [d.embedding for d in response.data]
         except Exception as e:
             logger.debug("LLM embedding API failed ({}), using fallback", _redact_runtime_identifiers(str(e))[:200])
+            # The local hash fallback costs nothing, so it is deliberately unmetered.
             return self._fallback_embed(texts)
+        _record_provider_usage(response, operation="embedding", requested_model=requested_model)
+        return [d.embedding for d in response.data]
 
     def _fallback_embed(self, texts: list[str]) -> list[list[float]]:
         """Simple hash-based fallback when embedding API is unavailable."""

@@ -24,6 +24,7 @@ from thoughtpins.db import (
     EventParticipant,
     Expense,
     IngestionJob,
+    LlmUsageEvent,
     Memory,
     OAuthCredential,
     PendingChatAction,
@@ -253,6 +254,7 @@ def delete_user_data(session: Session, user_id: str) -> dict[str, int]:
         RawEntry,
         Entity,
         AuditLog,
+        LlmUsageEvent,
     ]
 
     for model in ordered_models:

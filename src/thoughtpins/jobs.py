@@ -16,6 +16,7 @@ from thoughtpins.db import IngestionJob, User
 from thoughtpins.ingestion.pipeline import process_message
 from thoughtpins.store import get_session
 from thoughtpins.tenancy import tenant_context
+from thoughtpins.usage import UsageBudgetExceeded
 
 _executor = ThreadPoolExecutor(max_workers=max(1, config.INGESTION_WORKER_THREADS))
 _DISPATCHABLE_STATUSES = ("pending", "retry")
@@ -379,6 +380,26 @@ def run_ingestion_job(job_id: str, tenant_user_id: str | None = None) -> None:
             job.error = result.get("error")
             job.finished_at_utc = _utcnow()
             session.commit()
+    except UsageBudgetExceeded as e:
+        # A spend cap is a temporary, time-based condition, not a bad job. Park it
+        # as retryable without consuming an attempt so the entry resumes on its
+        # own once the monthly budget resets, instead of being dead-lettered.
+        logger.info("Ingestion job {} paused by usage budget", job_id)
+        session.rollback()
+        with tenant_context(tenant_user_id):
+            blocked_job_query = session.query(IngestionJob).filter(IngestionJob.id == job_id)
+            if tenant_user_id:
+                blocked_job_query = blocked_job_query.filter(IngestionJob.user_id == tenant_user_id)
+            job = blocked_job_query.first()
+        if job:
+            metadata = dict(job.metadata_json or {})
+            metadata["budget_blocked"] = True
+            metadata["last_error"] = str(e)[:1000]
+            job.status = "retry"
+            job.error = str(e)[:1000]
+            job.metadata_json = metadata
+            job.finished_at_utc = _utcnow()
+            session.commit()
     except Exception as e:
         logger.exception("Ingestion job {} failed", job_id)
         session.rollback()
@@ -391,6 +412,7 @@ def run_ingestion_job(job_id: str, tenant_user_id: str | None = None) -> None:
             metadata = dict(job.metadata_json or {})
             attempts = int(metadata.get("attempts", 0))
             metadata["last_error"] = str(e)[:1000]
+            metadata.pop("budget_blocked", None)
             if attempts < config.INGESTION_MAX_RETRIES:
                 job.status = "retry"
                 job.error = str(e)[:1000]

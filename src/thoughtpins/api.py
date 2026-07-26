@@ -21,6 +21,7 @@ from thoughtpins.api_idempotency_http import call_with_idempotency
 from thoughtpins.api_openapi import install_openapi_contract
 from thoughtpins.api_route_policy import MAINTENANCE_ALWAYS_ALLOWED_PATHS, PUBLIC_PATHS, PUBLIC_PREFIXES
 from thoughtpins.api_routes.account import create_account_router
+from thoughtpins.api_routes.admin import create_admin_router
 from thoughtpins.api_routes.auth import create_auth_router
 from thoughtpins.api_routes.chat import create_chat_router
 from thoughtpins.api_routes.entries import create_entries_router
@@ -48,6 +49,7 @@ from thoughtpins.rate_limit import RateLimitBackendUnavailable, check_rate_limit
 from thoughtpins.startup_recovery import recover_orphaned_entries as _recover_orphaned_entries
 from thoughtpins.store import get_session, init_db
 from thoughtpins.tenancy import tenant_context
+from thoughtpins.usage import UsageBudgetExceeded
 from thoughtpins.users import (
     get_or_create_default_user,
     get_user_by_api_key,
@@ -90,6 +92,7 @@ def _http_error_code(status_code: int) -> str:
         401: "unauthorized",
         403: "forbidden",
         404: "not_found",
+        402: "usage_budget_exceeded",
         409: "conflict",
         413: "payload_too_large",
         429: "rate_limit_exceeded",
@@ -175,6 +178,22 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
         status_code=exc.status_code,
         headers=headers,
         content=_error_payload(_http_error_code(exc.status_code), str(exc.detail), request_id),
+    )
+
+
+@app.exception_handler(UsageBudgetExceeded)
+async def usage_budget_exception_handler(request: Request, exc: UsageBudgetExceeded) -> JSONResponse:
+    """Surface a spend cap as 402 rather than a generic 500.
+
+    Interactive chat degrades gracefully before reaching here; this covers the
+    synchronous ingestion/extraction routes, where blocking is the correct and
+    cheapest behaviour.
+    """
+    request_id = _request_id(request)
+    return JSONResponse(
+        status_code=402,
+        headers={"X-Request-ID": request_id},
+        content=_error_payload("usage_budget_exceeded", str(exc), request_id, {"scope": exc.scope}),
     )
 
 
@@ -454,6 +473,7 @@ app.include_router(
         execute_chat_message_fn=lambda session, text, **kwargs: execute_chat_message(session, text, **kwargs),
     )
 )
+app.include_router(create_admin_router(current_user_dependency=current_user_id))
 app.include_router(create_library_router(current_user_dependency=current_user_id))
 app.include_router(create_memory_router(current_user_dependency=current_user_id, start_time=_start_time))
 app.include_router(create_exports_router(current_user_dependency=current_user_id))

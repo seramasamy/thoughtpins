@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from loguru import logger
+
 from thoughtpins.bot.personality import enforce_response_style, get_response_profile
 from thoughtpins.bot.style_memory import build_user_style_prompt
 from thoughtpins.chat.fallbacks import fallback_conversation_reply as _fallback_conversation_reply
@@ -12,6 +14,7 @@ from thoughtpins.memory.context_package import build_memory_context_package
 from thoughtpins.memory.context_safety import MEMORY_EVIDENCE_POLICY, wrap_memory_evidence
 from thoughtpins.memory.context_scope import scope_user as _scope_user
 from thoughtpins.memory.query_terms import fallback_tokens as _fallback_tokens
+from thoughtpins.usage import UsageBudgetExceeded
 
 SYNTHESIS_PROMPT = """You are a personal memory assistant answering questions about the user's private journal and reading memory. You have been given a bounded memory context package selected for this request.
 
@@ -101,7 +104,13 @@ def answer_with_llm(
     ]
 
     llm = llm_factory()
-    response = llm.chat(messages, temperature=0.3, max_tokens=1500)
+    try:
+        response = llm.chat(messages, temperature=0.3, max_tokens=1500)
+    except UsageBudgetExceeded:
+        # Degrade rather than error: the user still gets their own memories back,
+        # just without model-generated narration. Same path as an empty reply.
+        logger.info("Chat budget exceeded; serving local memory fallback")
+        response = ""
     if not response.strip():
         response = build_local_memory_fallback_reply(
             query,

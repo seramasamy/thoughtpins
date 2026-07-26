@@ -66,6 +66,7 @@ class User(Base):
     safety_reports = relationship("SafetyReport", back_populates="user", cascade="all, delete-orphan")
     idempotency_records = relationship("ApiIdempotencyRecord", back_populates="user", cascade="all, delete-orphan")
     voice_assets = relationship("VoiceAsset", back_populates="user", cascade="all, delete-orphan")
+    llm_usage_events = relationship("LlmUsageEvent", back_populates="user", cascade="all, delete-orphan")
 
 
 class AuthSession(Base):
@@ -249,6 +250,31 @@ class AuditLog(Base):
     action = Column(String(64), nullable=False, index=True)
     created_at_utc = Column(DateTime, default=_utcnow, index=True)
     metadata_json = Column(JSON, default=dict)
+
+
+class LlmUsageEvent(Base):
+    """One metered provider call: real token counts and their approximate cost."""
+
+    __tablename__ = "llm_usage_events"
+    __table_args__ = (
+        Index("ix_llm_usage_events_user_created", "user_id", "created_at_utc"),
+        Index("ix_llm_usage_events_created", "created_at_utc"),
+    )
+
+    id = Column(String(32), primary_key=True, default=_new_id)
+    user_id = Column(String(32), ForeignKey("users.id"), nullable=False, index=True)
+    created_at_utc = Column(DateTime, default=_utcnow, nullable=False)
+    provider = Column(String(32), nullable=False)
+    model = Column(String(128), nullable=False)
+    operation = Column(String(32), nullable=False)
+    prompt_tokens = Column(Integer, nullable=False, default=0)
+    completion_tokens = Column(Integer, nullable=False, default=0)
+    total_tokens = Column(Integer, nullable=False, default=0)
+    # Float matches the existing money-column convention (see Expense.amount).
+    cost_usd = Column(Float, nullable=False, default=0.0)
+    request_id = Column(String(64), nullable=True)
+
+    user = relationship("User", back_populates="llm_usage_events")
 
 
 class SafetyReport(Base):

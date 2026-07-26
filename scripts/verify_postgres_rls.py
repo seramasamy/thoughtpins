@@ -37,6 +37,7 @@ LIVE_RLS_TABLES = (
     "events",
     "expenses",
     "ingestion_jobs",
+    "llm_usage_events",
     "memories",
     "pending_chat_actions",
     "raw_entries",
@@ -65,6 +66,7 @@ DELETE_ORDER = (
     "safety_reports",
     "vault_import_sessions",
     "voice_assets",
+    "llm_usage_events",
     "audit_logs",
     "app_devices",
     "ingestion_jobs",
@@ -405,6 +407,25 @@ def _insert_fixture_rows(conn, ids: dict[str, tuple[str, str]], user_a: str, use
     conn.execute(
         text(
             """
+            INSERT INTO llm_usage_events (
+                id, user_id, created_at_utc, provider, model, operation,
+                prompt_tokens, completion_tokens, total_tokens, cost_usd
+            )
+            VALUES
+              (:usage_a, :user_a, CURRENT_TIMESTAMP, 'rls', 'rls-model', 'chat', 10, 5, 15, 0.001),
+              (:usage_b, :user_b, CURRENT_TIMESTAMP, 'rls', 'rls-model', 'chat', 10, 5, 15, 0.001)
+            """
+        ),
+        {
+            "usage_a": ids["llm_usage_events"][0],
+            "usage_b": ids["llm_usage_events"][1],
+            "user_a": user_a,
+            "user_b": user_b,
+        },
+    )
+    conn.execute(
+        text(
+            """
             INSERT INTO api_idempotency_records
               (id, user_id, scope, idempotency_key, request_hash, status, created_at_utc, expires_at_utc)
             VALUES
@@ -590,6 +611,7 @@ def main() -> int:
         "safety_reports": (f"saf_a_{suffix}", f"saf_b_{suffix}"),
         "vault_import_sessions": (f"vlt_a_{suffix}", f"vlt_b_{suffix}"),
         "voice_assets": (f"voc_a_{suffix}", f"voc_b_{suffix}"),
+        "llm_usage_events": (f"usg_a_{suffix}", f"usg_b_{suffix}"),
     }
 
     admin_engine = get_engine()

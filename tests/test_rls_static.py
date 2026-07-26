@@ -35,7 +35,7 @@ def test_new_user_owned_tables_have_explicit_app_role_grants() -> None:
     user_tables = set(rls_static._metadata_user_tables())
     expected = rls_static._post_baseline_user_tables(user_tables)
 
-    assert expected == {"vault_import_sessions", "voice_assets"}
+    assert expected == {"llm_usage_events", "vault_import_sessions", "voice_assets"}
     assert expected <= rls_static._migration_explicit_app_role_tables()
 
 

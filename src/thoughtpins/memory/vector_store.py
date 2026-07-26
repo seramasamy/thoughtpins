@@ -598,8 +598,16 @@ def _openai_model_supports_dimensions(model: str) -> bool:
 def _embed_openai(texts: list[str]) -> list[list[float]]:
     from openai import OpenAI
 
+    from thoughtpins.tenancy import get_current_tenant_id
+    from thoughtpins.usage import ensure_budget_available, record_llm_usage
+
     if not getattr(config, "OPENAI_API_KEY", ""):
         raise RuntimeError("OPENAI_API_KEY is required for EMBEDDING_PROVIDER=openai")
+
+    # This is a separate billed path from the LLM client's embed(); it must be
+    # metered here or hosted-embedding spend goes untracked entirely.
+    tenant_id = get_current_tenant_id()
+    ensure_budget_available(tenant_id)
 
     client = OpenAI(
         api_key=config.OPENAI_API_KEY,
@@ -615,6 +623,15 @@ def _embed_openai(texts: list[str]) -> list[list[float]]:
     if dimensions > 0 and _openai_model_supports_dimensions(config.OPENAI_EMBEDDING_MODEL):
         kwargs["dimensions"] = dimensions
     response = client.embeddings.create(**kwargs)
+    usage = getattr(response, "usage", None)
+    if usage is not None:
+        record_llm_usage(
+            user_id=tenant_id,
+            provider="openai",
+            model=getattr(response, "model", "") or config.OPENAI_EMBEDDING_MODEL,
+            operation="embedding",
+            prompt_tokens=getattr(usage, "prompt_tokens", 0) or 0,
+        )
     return [list(item.embedding) for item in response.data]
 
 
