@@ -388,8 +388,16 @@ def create_auth_router(
                 logger.info("Magic link rate limited for {}", fingerprint_identifier(req.email))
                 return accepted
             except EmailDeliveryError as exc:
-                logger.error("Magic link delivery failed: {}", exc)
-                raise HTTPException(status_code=502, detail="Could not send the sign-in email") from exc
+                # Never surface delivery outcome. Providers reject some
+                # recipients and not others, so a distinct status here would
+                # reintroduce exactly the enumeration oracle this endpoint
+                # avoids. Failures are alerted through logging/Sentry instead.
+                logger.error(
+                    "Magic link delivery failed for {}: {}",
+                    fingerprint_identifier(req.email),
+                    exc,
+                )
+                return accepted
             return accepted
         finally:
             session.close()

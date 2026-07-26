@@ -130,6 +130,22 @@ def test_response_does_not_reveal_whether_account_exists(isolated_db, magic_link
     assert known.json() == unknown.json()
 
 
+def test_delivery_failure_is_not_visible_in_response(isolated_db, magic_link_enabled, monkeypatch):
+    """A provider that rejects some recipients must not become an oracle."""
+    from thoughtpins.api import app
+    from thoughtpins.email_delivery import EmailDeliveryError
+
+    def always_fail(**kwargs):
+        raise EmailDeliveryError("provider rejected recipient")
+
+    monkeypatch.setattr("thoughtpins.magic_link.send_email", always_fail)
+    client = TestClient(app)
+
+    failed = client.post("/v1/auth/magic-link/request", json={"email": "rejected@example.com"})
+    assert failed.status_code == 200
+    assert failed.json() == {"status": "sent"}
+
+
 def test_existing_password_account_can_sign_in_by_link(isolated_db, magic_link_enabled, monkeypatch):
     """The recovery path for a forgotten password."""
     from thoughtpins.api import app
