@@ -125,6 +125,23 @@ def create_public_router() -> APIRouter:
             """,
         )
 
+    @router.get("/classic", include_in_schema=False)
+    @router.get("/classic/", include_in_schema=False)
+    async def classic_home():
+        """The alternate landing page linked from the homepage header and footer.
+
+        Needs its own route: unlisted paths fall through to the authenticated
+        API and answer 401, so the link would break for signed-out visitors.
+        """
+        return site_page_or_fallback(
+            Path("classic") / "index.html",
+            "Thought Pins",
+            """
+            <p>Thought Pins is a private memory layer for journaling, reflection, source capture, and recall.</p>
+            <p><a href="/">Back to the current homepage</a></p>
+            """,
+        )
+
     @router.get("/robots.txt", include_in_schema=False)
     async def robots_txt():
         file_path = safe_site_file("robots.txt")
