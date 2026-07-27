@@ -49,6 +49,7 @@ export function AuthScreen({
   const [oauthBusy, setOauthBusy] = useState<OAuthProvider | null>(null);
   const [magicBusy, setMagicBusy] = useState(false);
   const [magicSentTo, setMagicSentTo] = useState<string | null>(null);
+  const [magicCode, setMagicCode] = useState("");
   // Starts true when the URL carries a token so the form never flashes before
   // the automatic sign-in resolves.
   const [consumingMagicLink, setConsumingMagicLink] = useState(() => magicTokenFromUrl() !== null);
@@ -136,6 +137,22 @@ export function AuthScreen({
       setMagicSentTo(address);
     } catch (error) {
       setNotice(messageFromError(error));
+    } finally {
+      setMagicBusy(false);
+    }
+  };
+
+  const submitMagicCode = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!magicSentTo) return;
+    setMagicBusy(true);
+    setNotice(null);
+    try {
+      const tokens = await api.consumeMagicCode(magicSentTo, magicCode);
+      setSession({ accessToken: tokens.access_token, refreshToken: tokens.refresh_token });
+    } catch (error) {
+      setNotice(messageFromError(error));
+      setMagicCode("");
     } finally {
       setMagicBusy(false);
     }
@@ -278,10 +295,42 @@ export function AuthScreen({
         {magicLinkEnabled && (
           <div className="auth-magic">
             {magicSentTo ? (
-              <p className="inline-help" role="status">
-                If an account can be reached at <strong>{magicSentTo}</strong>, a sign-in link is on its way.
-                It works once and expires in 15 minutes.
-              </p>
+              <>
+                <p className="inline-help" role="status">
+                  If an account can be reached at <strong>{magicSentTo}</strong>, an email is on its way.
+                  Click the link in it, or enter the 6-digit code below. Either works once and expires in 15 minutes.
+                </p>
+                <form className="form-stack" onSubmit={submitMagicCode}>
+                  <label>
+                    Sign-in code
+                    <input
+                      value={magicCode}
+                      onChange={(event) => setMagicCode(event.target.value)}
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      placeholder="123456"
+                      maxLength={7}
+                      required
+                    />
+                  </label>
+                  <PrimaryButton disabled={magicBusy || magicCode.replace(/\D/g, "").length !== 6}>
+                    {magicBusy ? <Loader2 className="spin" size={16} /> : <ShieldCheck size={16} />}
+                    Sign in with code
+                  </PrimaryButton>
+                </form>
+                <button
+                  type="button"
+                  className="link-button"
+                  disabled={magicBusy}
+                  onClick={() => {
+                    setMagicSentTo(null);
+                    setMagicCode("");
+                    setNotice(null);
+                  }}
+                >
+                  Use a different email
+                </button>
+              </>
             ) : (
               <>
                 <div className="auth-divider"><span>or sign in without a password</span></div>

@@ -274,6 +274,11 @@ class MagicLinkToken(Base):
     expires_at_utc = Column(DateTime, nullable=False)
     consumed_at_utc = Column(DateTime, nullable=True)
     request_ip_hash = Column(String(64), nullable=True)
+    # Short code for signing in on a device that does not hold the email.
+    # Hashed like the link token; attempts are counted so a 6-digit secret
+    # cannot be brute forced.
+    code_hash = Column(String(128), nullable=True, index=True)
+    code_attempts = Column(Integer, nullable=False, default=0)
 
 
 class LlmUsageEvent(Base):

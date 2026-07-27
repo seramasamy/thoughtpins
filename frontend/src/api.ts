@@ -271,6 +271,12 @@ export const api = {
       body: { token },
     });
   },
+  consumeMagicCode(email: string, code: string) {
+    return request<TokenResponse>("/v1/auth/magic-code/consume", {
+      method: "POST",
+      body: { email, code },
+    });
+  },
   refresh(refreshToken: string) {
     return request<TokenResponse>("/v1/auth/refresh", {
       method: "POST",

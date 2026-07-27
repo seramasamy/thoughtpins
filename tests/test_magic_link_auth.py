@@ -15,17 +15,17 @@ def magic_link_enabled(monkeypatch):
     return config
 
 
-def _capture_tokens(monkeypatch) -> list[str]:
-    """Capture issued tokens; delivery is disabled so we cannot read an inbox."""
+def _capture_tokens(monkeypatch) -> list:
+    """Capture (token, code) pairs as issued; delivery is off, so no inbox."""
     from thoughtpins import magic_link
 
-    issued: list[str] = []
+    issued: list = []
     original = magic_link.issue_magic_link
 
     def spy(session, email, **kwargs):
-        token = original(session, email, **kwargs)
-        issued.append(token)
-        return token
+        pair = original(session, email, **kwargs)
+        issued.append(pair)
+        return pair
 
     monkeypatch.setattr(magic_link, "issue_magic_link", spy)
     monkeypatch.setattr("thoughtpins.api_routes.auth.issue_magic_link", spy)
@@ -48,7 +48,7 @@ def test_request_and_consume_creates_account_and_signs_in(isolated_db, magic_lin
     assert client.post("/v1/auth/magic-link/request", json={"email": "New@Example.com "}).status_code == 200
     assert len(issued) == 1
 
-    consumed = client.post("/v1/auth/magic-link/consume", json={"token": issued[0]})
+    consumed = client.post("/v1/auth/magic-link/consume", json={"token": issued[0][0]})
     assert consumed.status_code == 200, consumed.text
     access_token = consumed.json()["access_token"]
 
@@ -64,8 +64,8 @@ def test_token_is_single_use(isolated_db, magic_link_enabled, monkeypatch):
     client = TestClient(app)
     client.post("/v1/auth/magic-link/request", json={"email": "once@example.com"})
 
-    assert client.post("/v1/auth/magic-link/consume", json={"token": issued[0]}).status_code == 200
-    replay = client.post("/v1/auth/magic-link/consume", json={"token": issued[0]})
+    assert client.post("/v1/auth/magic-link/consume", json={"token": issued[0][0]}).status_code == 200
+    replay = client.post("/v1/auth/magic-link/consume", json={"token": issued[0][0]})
     assert replay.status_code == 400
 
 
@@ -88,7 +88,7 @@ def test_expired_token_is_rejected(isolated_db, magic_link_enabled, monkeypatch)
     finally:
         session.close()
 
-    assert client.post("/v1/auth/magic-link/consume", json={"token": issued[0]}).status_code == 400
+    assert client.post("/v1/auth/magic-link/consume", json={"token": issued[0][0]}).status_code == 400
 
 
 def test_forged_token_is_rejected(isolated_db, magic_link_enabled):
@@ -155,7 +155,7 @@ def test_existing_password_account_can_sign_in_by_link(isolated_db, magic_link_e
     client.post("/v1/auth/register", json={"email": "forgot@example.com", "password": "correct horse battery"})
 
     client.post("/v1/auth/magic-link/request", json={"email": "forgot@example.com"})
-    consumed = client.post("/v1/auth/magic-link/consume", json={"token": issued[-1]})
+    consumed = client.post("/v1/auth/magic-link/consume", json={"token": issued[-1][0]})
 
     assert consumed.status_code == 200
     me = client.get("/v1/me", headers={"Authorization": f"Bearer {consumed.json()['access_token']}"})
@@ -172,7 +172,90 @@ def test_registration_blocked_when_system_locked(isolated_db, magic_link_enabled
     assert len(issued) == 1
 
     monkeypatch.setattr(config, "SYSTEM_LOCKED", True)
-    assert client.post("/v1/auth/magic-link/consume", json={"token": issued[0]}).status_code == 403
+    assert client.post("/v1/auth/magic-link/consume", json={"token": issued[0][0]}).status_code == 403
+
+
+def test_code_signs_in_and_is_single_use(isolated_db, magic_link_enabled, monkeypatch):
+    """The same request must work via code as well as via link."""
+    from thoughtpins.api import app
+
+    issued = _capture_tokens(monkeypatch)
+    client = TestClient(app)
+    client.post("/v1/auth/magic-link/request", json={"email": "coder@example.com"})
+    _, code = issued[0]
+    assert len(code) == 6 and code.isdigit()
+
+    consumed = client.post("/v1/auth/magic-code/consume", json={"email": "coder@example.com", "code": code})
+    assert consumed.status_code == 200, consumed.text
+    me = client.get("/v1/me", headers={"Authorization": f"Bearer {consumed.json()['access_token']}"})
+    assert me.json()["email"] == "coder@example.com"
+
+    replay = client.post("/v1/auth/magic-code/consume", json={"email": "coder@example.com", "code": code})
+    assert replay.status_code == 400
+
+
+def test_code_accepts_spaced_input(isolated_db, magic_link_enabled, monkeypatch):
+    """People paste codes with spaces or dashes."""
+    from thoughtpins.api import app
+
+    issued = _capture_tokens(monkeypatch)
+    client = TestClient(app)
+    client.post("/v1/auth/magic-link/request", json={"email": "spaced@example.com"})
+    _, code = issued[0]
+
+    spaced = f"{code[:3]} {code[3:]}"
+    assert client.post("/v1/auth/magic-code/consume", json={"email": "spaced@example.com", "code": spaced}).status_code == 200
+
+
+def test_code_brute_force_is_capped(isolated_db, magic_link_enabled, monkeypatch):
+    """A 6-digit secret must not be guessable by repeated tries."""
+    from thoughtpins.api import app
+
+    issued = _capture_tokens(monkeypatch)
+    client = TestClient(app)
+    client.post("/v1/auth/magic-link/request", json={"email": "brute@example.com"})
+    _, code = issued[0]
+    wrong = "000000" if code != "000000" else "111111"
+
+    for _ in range(5):
+        assert client.post("/v1/auth/magic-code/consume", json={"email": "brute@example.com", "code": wrong}).status_code == 400
+
+    # The correct code must now be refused too: the attempt budget burned it.
+    assert client.post("/v1/auth/magic-code/consume", json={"email": "brute@example.com", "code": code}).status_code == 400
+
+
+def test_code_is_scoped_to_its_own_address(isolated_db, magic_link_enabled, monkeypatch):
+    from thoughtpins.api import app
+
+    issued = _capture_tokens(monkeypatch)
+    client = TestClient(app)
+    client.post("/v1/auth/magic-link/request", json={"email": "owner@example.com"})
+    client.post("/v1/auth/magic-link/request", json={"email": "other@example.com"})
+    _, owner_code = issued[0]
+
+    stolen = client.post("/v1/auth/magic-code/consume", json={"email": "other@example.com", "code": owner_code})
+    assert stolen.status_code == 400
+
+
+def test_email_contains_both_link_and_code(isolated_db, magic_link_enabled, monkeypatch):
+    from thoughtpins import magic_link
+    from thoughtpins.store import get_session
+
+    sent: dict = {}
+
+    def capture(**kwargs):
+        sent.update(kwargs)
+
+    monkeypatch.setattr(magic_link, "send_email", capture)
+    session = get_session()
+    try:
+        token, code = magic_link.issue_magic_link(session, "both@example.com")
+    finally:
+        session.close()
+
+    for body in (sent["html"], sent["text"]):
+        assert token in body
+        assert code in body
 
 
 def test_production_rejects_logging_provider(monkeypatch):

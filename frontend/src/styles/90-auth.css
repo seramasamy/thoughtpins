@@ -166,6 +166,33 @@
   margin-top: 14px;
 }
 
+.auth-magic input[autocomplete="one-time-code"] {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 20px;
+  letter-spacing: 5px;
+  text-align: center;
+}
+
+.link-button {
+  justify-self: center;
+  padding: 4px 2px;
+  border: 0;
+  background: none;
+  color: var(--tp-ink-soft);
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.link-button:hover:not(:disabled) {
+  color: var(--tp-brand-deep);
+}
+
+.link-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .oauth-button {
   display: flex;
   align-items: center;

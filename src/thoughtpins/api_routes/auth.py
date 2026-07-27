@@ -31,6 +31,7 @@ from thoughtpins.email_delivery import EmailDeliveryError
 from thoughtpins.magic_link import (
     MagicLinkInvalid,
     MagicLinkRateLimited,
+    consume_magic_code,
     consume_magic_link,
     issue_magic_link,
 )
@@ -192,6 +193,20 @@ class MagicLinkRequest(BaseModel):
 class MagicLinkConsumeRequest(BaseModel):
     token: str = Field(..., min_length=16, max_length=256)
     model_config = {"json_schema_extra": {"examples": [{"token": "tpm_example"}]}}
+
+
+class MagicCodeConsumeRequest(BaseModel):
+    email: str = Field(..., max_length=255)
+    code: str = Field(..., min_length=4, max_length=16)
+    model_config = {"json_schema_extra": {"examples": [{"email": "user@example.com", "code": "123456"}]}}
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        normalized = _normalize_email_address(value)
+        if not normalized:
+            raise ValueError("Invalid email address")
+        return normalized
 
 
 class TokenResponse(BaseModel):
@@ -402,50 +417,69 @@ def create_auth_router(
         finally:
             session.close()
 
+    def _sign_in_by_email(session, email: str, request: Request, *, method: str) -> TokenResponse:
+        """Shared tail of both passwordless paths: resolve or create, then issue."""
+        user = get_user_by_email(email, session=session)
+        created = False
+        if user is None:
+            if config.SYSTEM_LOCKED or not config.MAGIC_LINK_ALLOW_REGISTRATION:
+                raise HTTPException(status_code=403, detail="Registration is disabled")
+            try:
+                create_user(email=email, password_hash=None)
+            except ValueError as exc:
+                raise HTTPException(status_code=409, detail=str(exc)) from exc
+            user = get_user_by_email(email, session=session)
+            created = True
+            if user is None:
+                raise HTTPException(status_code=500, detail="Could not create the account")
+
+        # Receiving the link or code proves control of the inbox, which is what
+        # email verification asks for; record it so verification-gated logins are
+        # not blocked afterwards.
+        _mark_email_verified(user)
+        user.last_login_utc = _utcnow()
+        tokens = issue_token_pair(
+            session,
+            user,
+            user_agent=request.headers.get("User-Agent"),
+            ip_address=_client_ip(request),
+        )
+        record_audit_event(
+            session,
+            user_id=user.id,
+            action="auth.magic_link",
+            metadata={"method": method, "created": created, "ip": _client_ip(request)},
+        )
+        return TokenResponse(**tokens)
+
     @router.post("/v1/auth/magic-link/consume", response_model=TokenResponse)
     async def consume_magic_link_route(req: MagicLinkConsumeRequest, request: Request) -> TokenResponse:
         if not config.MAGIC_LINK_ENABLED:
             raise HTTPException(status_code=404, detail="Passwordless sign-in is not enabled")
-
         session = get_session()
         try:
             try:
                 email = consume_magic_link(session, req.token)
             except MagicLinkInvalid as exc:
                 raise HTTPException(status_code=400, detail="Invalid or expired sign-in link") from exc
+            return _sign_in_by_email(session, email, request, method="magic_link")
+        finally:
+            session.close()
 
-            user = get_user_by_email(email, session=session)
-            created = False
-            if user is None:
-                if config.SYSTEM_LOCKED or not config.MAGIC_LINK_ALLOW_REGISTRATION:
-                    raise HTTPException(status_code=403, detail="Registration is disabled")
-                try:
-                    user = create_user(email=email, password_hash=None)
-                except ValueError as exc:
-                    raise HTTPException(status_code=409, detail=str(exc)) from exc
-                user = get_user_by_email(email, session=session)
-                created = True
-                if user is None:
-                    raise HTTPException(status_code=500, detail="Could not create the account")
-
-            # Opening the link proves control of the inbox, which is exactly what
-            # email verification asks for; record it so verification-gated logins
-            # are not blocked afterwards.
-            _mark_email_verified(user)
-            user.last_login_utc = _utcnow()
-            tokens = issue_token_pair(
-                session,
-                user,
-                user_agent=request.headers.get("User-Agent"),
-                ip_address=_client_ip(request),
-            )
-            record_audit_event(
-                session,
-                user_id=user.id,
-                action="auth.magic_link",
-                metadata={"method": "magic_link", "created": created, "ip": _client_ip(request)},
-            )
-            return TokenResponse(**tokens)
+    @router.post("/v1/auth/magic-code/consume", response_model=TokenResponse)
+    async def consume_magic_code_route(req: MagicCodeConsumeRequest, request: Request) -> TokenResponse:
+        if not config.MAGIC_LINK_ENABLED:
+            raise HTTPException(status_code=404, detail="Passwordless sign-in is not enabled")
+        session = get_session()
+        try:
+            try:
+                email = consume_magic_code(session, req.email, req.code)
+            except MagicLinkInvalid as exc:
+                # One message for every failure mode. Distinguishing "wrong code"
+                # from "no code outstanding" would say whether an address has a
+                # pending sign-in.
+                raise HTTPException(status_code=400, detail="Invalid or expired sign-in code") from exc
+            return _sign_in_by_email(session, email, request, method="magic_code")
         finally:
             session.close()
 

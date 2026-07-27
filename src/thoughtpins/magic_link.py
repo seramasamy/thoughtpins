@@ -28,6 +28,10 @@ from thoughtpins.email_delivery import send_email
 from thoughtpins.privacy import fingerprint_identifier
 
 TOKEN_PREFIX = "tpm_"
+CODE_DIGITS = 6
+# A 6-digit code is only 10^6 wide, so guessing has to be capped rather than
+# rate limited alone. Five tries burns the whole token.
+MAX_CODE_ATTEMPTS = 5
 
 
 class MagicLinkRateLimited(RuntimeError):
@@ -65,13 +69,25 @@ def _recent_request_count(session: Session, email: str) -> int:
     )
 
 
+def _new_code() -> str:
+    return f"{secrets.randbelow(10 ** CODE_DIGITS):0{CODE_DIGITS}d}"
+
+
+def normalize_code(value: str) -> str:
+    """Strip spaces and dashes people add when copying a code."""
+    return "".join(ch for ch in (value or "") if ch.isdigit())
+
+
 def issue_magic_link(
     session: Session,
     email: str,
     *,
     request_ip_hash: str | None = None,
-) -> str:
-    """Create and email a sign-in link. Returns the raw token (tests only).
+) -> tuple[str, str]:
+    """Create and email a sign-in link plus code. Returns (token, code).
+
+    The return value exists for tests; callers must not surface it, since both
+    values are credentials that belong only in the recipient's inbox.
 
     Raises :class:`MagicLinkRateLimited` when the address has requested too many
     links in the past hour.
@@ -81,10 +97,12 @@ def issue_magic_link(
         raise MagicLinkRateLimited(f"Too many sign-in links requested for {fingerprint_identifier(email)}")
 
     token = TOKEN_PREFIX + secrets.token_urlsafe(32)
+    code = _new_code()
     session.add(
         MagicLinkToken(
             email=email,
             token_hash=hash_refresh_token(token),
+            code_hash=hash_refresh_token(code),
             expires_at_utc=_utcnow() + timedelta(minutes=max(1, config.MAGIC_LINK_TTL_MINUTES)),
             request_ip_hash=request_ip_hash,
         )
@@ -96,11 +114,50 @@ def issue_magic_link(
     send_email(
         to=email,
         subject="Your Thought Pins sign-in link",
-        html=_html_body(link, minutes),
-        text=_text_body(link, minutes),
+        html=_html_body(link, code, minutes),
+        text=_text_body(link, code, minutes),
     )
     logger.info("Magic link issued for {}", fingerprint_identifier(email))
-    return token
+    return token, code
+
+
+def consume_magic_code(session: Session, email: str, code: str) -> str:
+    """Validate and burn a short code for one address.
+
+    Scoped to the newest unconsumed token for that address so an attacker cannot
+    spray one guess across many outstanding codes.
+    """
+    digits = normalize_code(code)
+    if len(digits) != CODE_DIGITS:
+        raise MagicLinkInvalid("Malformed sign-in code")
+
+    record = (
+        session.query(MagicLinkToken)
+        .filter(
+            MagicLinkToken.email == email,
+            MagicLinkToken.consumed_at_utc.is_(None),
+            MagicLinkToken.code_hash.isnot(None),
+        )
+        .order_by(MagicLinkToken.created_at_utc.desc())
+        .first()
+    )
+    if record is None:
+        raise MagicLinkInvalid("No sign-in code is outstanding for this address")
+    if record.expires_at_utc < _utcnow():
+        raise MagicLinkInvalid("Sign-in code expired")
+    if record.code_attempts >= MAX_CODE_ATTEMPTS:
+        raise MagicLinkInvalid("Too many incorrect attempts; request a new code")
+
+    if not secrets.compare_digest(record.code_hash or "", hash_refresh_token(digits)):
+        # Persist the failed attempt before returning, so a crash or a dropped
+        # connection cannot reset the counter.
+        record.code_attempts = int(record.code_attempts or 0) + 1
+        session.commit()
+        raise MagicLinkInvalid("Incorrect sign-in code")
+
+    record.consumed_at_utc = _utcnow()
+    session.commit()
+    return record.email
 
 
 def consume_magic_link(session: Session, token: str) -> str:
@@ -133,18 +190,22 @@ def purge_expired_tokens(session: Session, *, older_than_days: int = 7) -> int:
     return int(removed or 0)
 
 
-def _text_body(link: str, minutes: int) -> str:
+def _text_body(link: str, code: str, minutes: int) -> str:
     return (
         "Sign in to Thought Pins\n\n"
         f"{link}\n\n"
-        f"This link works once and expires in {minutes} minutes.\n"
-        "If you did not request it, you can ignore this email. "
-        "Nobody can access your account without opening the link above.\n"
+        f"Or enter this code: {code}\n\n"
+        f"The link and the code each work once and expire in {minutes} minutes.\n"
+        "Use the code if your email is on a different device than the one you "
+        "are signing in on.\n\n"
+        "If you did not request this, you can ignore this email. Nobody can "
+        "access your account without the link or the code above.\n"
     )
 
 
-def _html_body(link: str, minutes: int) -> str:
+def _html_body(link: str, code: str, minutes: int) -> str:
     safe_link = escape(link, quote=True)
+    safe_code = escape(code)
     return f"""\
 <!doctype html>
 <html>
@@ -158,9 +219,15 @@ def _html_body(link: str, minutes: int) -> str:
          style="display:inline-block;padding:13px 26px;border-radius:8px;background:#b33e16;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;">
         Sign in
       </a>
+      <p style="margin:28px 0 8px;font-size:13px;line-height:1.5;color:#6b6459;">
+        On a different device? Enter this code instead:
+      </p>
+      <p style="margin:0;font-size:30px;font-weight:600;letter-spacing:6px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#221d16;">
+        {safe_code}
+      </p>
       <p style="margin:24px 0 0;font-size:13px;line-height:1.5;color:#948c7f;">
         If you did not request this, you can ignore this email. Nobody can access
-        your account without opening the link.
+        your account without the link or the code.
       </p>
     </div>
   </body>
