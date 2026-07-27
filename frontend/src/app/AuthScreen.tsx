@@ -1,4 +1,4 @@
-import { ArrowLeft, Loader2, Moon, ShieldCheck, Sun } from "lucide-react";
+import { ArrowLeft, Loader2, Mail, Moon, ShieldCheck, Sun } from "lucide-react";
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { api, type ApiSession } from "../api";
@@ -47,11 +47,17 @@ export function AuthScreen({
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [oauthBusy, setOauthBusy] = useState<OAuthProvider | null>(null);
+  const [magicBusy, setMagicBusy] = useState(false);
+  const [magicSentTo, setMagicSentTo] = useState<string | null>(null);
+  // Starts true when the URL carries a token so the form never flashes before
+  // the automatic sign-in resolves.
+  const [consumingMagicLink, setConsumingMagicLink] = useState(() => magicTokenFromUrl() !== null);
   const theme = useResolvedTheme();
   const registrationLocked = clientConfig?.registration_locked ?? true;
   const showGoogle = clientConfig?.oauth_google_enabled ?? false;
   const showApple = clientConfig?.oauth_apple_enabled ?? false;
   const showOAuth = showGoogle || showApple;
+  const magicLinkEnabled = clientConfig?.magic_link_enabled ?? false;
   const maintenanceMessage = clientConfig?.maintenance_mode
     ? clientConfig.maintenance_message || "Thought Pins is in maintenance for a short upgrade. Please try again soon."
     : null;
@@ -61,6 +67,41 @@ export function AuthScreen({
       selectMode("login");
     }
   }, [mode, registrationLocked]);
+
+  // Complete a sign-in arriving from an emailed link. Runs once on mount.
+  useEffect(() => {
+    const token = magicTokenFromUrl();
+    if (!token) return;
+    let cancelled = false;
+
+    // Strip the token from the address bar immediately so it is not left in
+    // history, bookmarks, or a shared screenshot. It is single-use, but it is
+    // still a credential until consumed.
+    clearMagicTokenFromUrl();
+
+    (async () => {
+      try {
+        const tokens = await api.consumeMagicLink(token);
+        if (cancelled) return;
+        setSession({ accessToken: tokens.access_token, refreshToken: tokens.refresh_token });
+      } catch (error) {
+        if (cancelled) return;
+        setNotice({
+          tone: "warn",
+          text:
+            error instanceof Error && error.message
+              ? error.message
+              : "That sign-in link is no longer valid. Request a new one below.",
+        });
+      } finally {
+        if (!cancelled) setConsumingMagicLink(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [setSession, setNotice]);
 
   function selectMode(next: "login" | "register") {
     setMode(next);
@@ -80,6 +121,23 @@ export function AuthScreen({
       setNotice({ tone: "warn", text: error instanceof Error ? error.message : "Sign-in did not complete." });
     } finally {
       setOauthBusy(null);
+    }
+  };
+
+  const sendMagicLink = async () => {
+    const address = (mode === "login" ? identifier : email).trim();
+    if (!address) return;
+    setMagicBusy(true);
+    setNotice(null);
+    try {
+      await api.requestMagicLink(address);
+      // The API answers identically whether or not the account exists, so the
+      // wording here must not imply one or the other.
+      setMagicSentTo(address);
+    } catch (error) {
+      setNotice(messageFromError(error));
+    } finally {
+      setMagicBusy(false);
     }
   };
 
@@ -108,6 +166,21 @@ export function AuthScreen({
       setBusy(false);
     }
   };
+
+  if (consumingMagicLink) {
+    return (
+      <main className="auth-layout">
+        <section className="auth-panel">
+          <div className="auth-form-pane" style={{ alignItems: "center", textAlign: "center" }}>
+            <BrandMark />
+            <Loader2 className="spin" size={24} aria-hidden="true" />
+            <h1>Signing you in</h1>
+            <p className="inline-help">Confirming your sign-in link.</p>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="auth-layout">
@@ -202,6 +275,32 @@ export function AuthScreen({
             {mode === "login" ? "Login" : "Create Account"}
           </PrimaryButton>
         </form>
+        {magicLinkEnabled && (
+          <div className="auth-magic">
+            {magicSentTo ? (
+              <p className="inline-help" role="status">
+                If an account can be reached at <strong>{magicSentTo}</strong>, a sign-in link is on its way.
+                It works once and expires in 15 minutes.
+              </p>
+            ) : (
+              <>
+                <div className="auth-divider"><span>or sign in without a password</span></div>
+                <button
+                  type="button"
+                  className="oauth-button"
+                  disabled={busy || magicBusy || !(mode === "login" ? identifier.trim() : email.trim())}
+                  onClick={sendMagicLink}
+                >
+                  {magicBusy ? <Loader2 className="spin" size={18} /> : <Mail size={18} />}
+                  <span>Email me a sign-in link</span>
+                </button>
+                <p className="inline-help">
+                  Enter your email above and we will send a link. No password needed.
+                </p>
+              </>
+            )}
+          </div>
+        )}
           <p className="auth-policy-note">Your memories are not used to build an advertising profile. You can export your data or delete your account from Settings.</p>
         </div>
       </section>
@@ -211,4 +310,15 @@ export function AuthScreen({
 
 function requestedAuthMode(): "login" | "register" {
   return new URLSearchParams(window.location.search).get("auth") === "register" ? "register" : "login";
+}
+
+function magicTokenFromUrl(): string | null {
+  const token = new URLSearchParams(window.location.search).get("magic");
+  return token && token.trim() ? token.trim() : null;
+}
+
+function clearMagicTokenFromUrl(): void {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("magic");
+  window.history.replaceState({}, "", url);
 }

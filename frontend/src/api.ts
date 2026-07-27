@@ -259,6 +259,18 @@ export const api = {
       body: { identifier, password },
     });
   },
+  requestMagicLink(email: string) {
+    return request<{ status: string }>("/v1/auth/magic-link/request", {
+      method: "POST",
+      body: { email },
+    });
+  },
+  consumeMagicLink(token: string) {
+    return request<TokenResponse>("/v1/auth/magic-link/consume", {
+      method: "POST",
+      body: { token },
+    });
+  },
   refresh(refreshToken: string) {
     return request<TokenResponse>("/v1/auth/refresh", {
       method: "POST",

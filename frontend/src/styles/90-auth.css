@@ -160,6 +160,12 @@
   margin-bottom: 6px;
 }
 
+.auth-magic {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
 .oauth-button {
   display: flex;
   align-items: center;

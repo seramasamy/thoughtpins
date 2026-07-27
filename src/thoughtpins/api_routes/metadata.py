@@ -38,6 +38,7 @@ class ClientConfigResponse(BaseModel):
 
     oauth_google_enabled: bool
     oauth_apple_enabled: bool
+    magic_link_enabled: bool = False
     voice_archive_enabled: bool
     ai_processing: str
     memory_context_mode: str
@@ -124,6 +125,7 @@ def create_metadata_router(
             registration_locked=config.SYSTEM_LOCKED,
             oauth_google_enabled=bool(config.GOOGLE_OAUTH_CLIENT_IDS),
             oauth_apple_enabled=bool(config.APPLE_OAUTH_CLIENT_IDS),
+            magic_link_enabled=bool(config.MAGIC_LINK_ENABLED),
             voice_archive_enabled=config.VOICE_ARCHIVE_ENABLED,
             ai_processing="configured",
             memory_context_mode=config.MEMORY_CONTEXT_MODE,
