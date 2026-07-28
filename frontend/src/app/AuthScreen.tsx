@@ -6,7 +6,7 @@ import type { Notice } from "./types";
 import { messageFromError } from "./types";
 import type { ClientConfigResponse } from "../types";
 import { BrandMark, IconButton, NoticeBanner, PrimaryButton } from "../components/ui";
-import { signInWithProvider, type OAuthProvider } from "./oauth";
+import { setOAuthClientIds, signInWithProvider, type OAuthProvider } from "./oauth";
 import { toggleTheme, useResolvedTheme } from "../core/theme";
 
 function GoogleIcon() {
@@ -68,6 +68,15 @@ export function AuthScreen({
       selectMode("login");
     }
   }, [mode, registrationLocked]);
+
+  // Hand the server-provided client IDs to the OAuth helpers before any button
+  // can be pressed.
+  useEffect(() => {
+    setOAuthClientIds({
+      google: clientConfig?.oauth_google_client_id,
+      apple: clientConfig?.oauth_apple_client_id,
+    });
+  }, [clientConfig?.oauth_google_client_id, clientConfig?.oauth_apple_client_id]);
 
   // Complete a sign-in arriving from an emailed link. Runs once on mount.
   useEffect(() => {

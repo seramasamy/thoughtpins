@@ -38,6 +38,11 @@ class ClientConfigResponse(BaseModel):
 
     oauth_google_enabled: bool
     oauth_apple_enabled: bool
+    # Public by design: an OAuth client ID appears in the page source of every
+    # site using these providers. Served here so rotating it does not require a
+    # frontend rebuild.
+    oauth_google_client_id: str | None = None
+    oauth_apple_client_id: str | None = None
     magic_link_enabled: bool = False
     voice_archive_enabled: bool
     ai_processing: str
@@ -125,6 +130,8 @@ def create_metadata_router(
             registration_locked=config.SYSTEM_LOCKED,
             oauth_google_enabled=bool(config.GOOGLE_OAUTH_CLIENT_IDS),
             oauth_apple_enabled=bool(config.APPLE_OAUTH_CLIENT_IDS),
+            oauth_google_client_id=(config.GOOGLE_OAUTH_CLIENT_IDS[0] if config.GOOGLE_OAUTH_CLIENT_IDS else None),
+            oauth_apple_client_id=(config.APPLE_OAUTH_CLIENT_IDS[0] if config.APPLE_OAUTH_CLIENT_IDS else None),
             magic_link_enabled=bool(config.MAGIC_LINK_ENABLED),
             voice_archive_enabled=config.VOICE_ARCHIVE_ENABLED,
             ai_processing="configured",

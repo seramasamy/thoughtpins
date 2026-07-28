@@ -1,9 +1,14 @@
 // Third-party sign-in helpers. The buttons only render when the deployment
 // reports the provider as enabled (client config), and the flow only runs when
-// a public client ID is provided at build time. When a provider is shown but a
-// client ID is not configured, the caller surfaces a clear message rather than
-// failing silently — these are real integrations awaiting configuration, not
-// mock controls.
+// a public client ID is available. When a provider is shown but a client ID is
+// not configured, the caller surfaces a clear message rather than failing
+// silently — these are real integrations awaiting configuration, not mock
+// controls.
+//
+// The client ID is taken from the server's client config first, falling back to
+// the build-time variable. OAuth client IDs are public by design, and reading
+// one at runtime means rotating it does not require rebuilding the bundle — a
+// build-only value silently yields an enabled-looking button that cannot work.
 
 export type OAuthProvider = "google" | "apple";
 
@@ -14,11 +19,25 @@ export class OAuthNotConfiguredError extends Error {
   }
 }
 
-const GOOGLE_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined) || "";
-const APPLE_CLIENT_ID = (import.meta.env.VITE_APPLE_CLIENT_ID as string | undefined) || "";
+const BUILD_GOOGLE_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined) || "";
+const BUILD_APPLE_CLIENT_ID = (import.meta.env.VITE_APPLE_CLIENT_ID as string | undefined) || "";
+
+const runtimeClientIds: { google: string; apple: string } = { google: "", apple: "" };
+
+/** Supply client IDs from the server's client config once it has loaded. */
+export function setOAuthClientIds(ids: { google?: string | null; apple?: string | null }): void {
+  runtimeClientIds.google = (ids.google || "").trim();
+  runtimeClientIds.apple = (ids.apple || "").trim();
+}
+
+function clientIdFor(provider: OAuthProvider): string {
+  return provider === "google"
+    ? runtimeClientIds.google || BUILD_GOOGLE_CLIENT_ID
+    : runtimeClientIds.apple || BUILD_APPLE_CLIENT_ID;
+}
 
 export function oauthClientConfigured(provider: OAuthProvider): boolean {
-  return provider === "google" ? Boolean(GOOGLE_CLIENT_ID) : Boolean(APPLE_CLIENT_ID);
+  return Boolean(clientIdFor(provider));
 }
 
 function loadScript(src: string, id: string): Promise<void> {
@@ -44,14 +63,15 @@ export type OAuthResult = {
 };
 
 async function signInWithGoogle(): Promise<OAuthResult> {
-  if (!GOOGLE_CLIENT_ID) throw new OAuthNotConfiguredError("google");
+  const clientId = clientIdFor("google");
+  if (!clientId) throw new OAuthNotConfiguredError("google");
   await loadScript("https://accounts.google.com/gsi/client", "tp-gsi");
   const google = (window as unknown as { google?: any }).google;
   if (!google?.accounts?.id) throw new Error("Google sign-in is temporarily unavailable.");
   const nonce = randomOAuthValue();
   return await new Promise<OAuthResult>((resolve, reject) => {
     google.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
+      client_id: clientId,
       nonce,
       callback: (response: { credential?: string }) => {
         if (response?.credential) resolve({ idToken: response.credential, nonce });
@@ -67,7 +87,8 @@ async function signInWithGoogle(): Promise<OAuthResult> {
 }
 
 async function signInWithApple(): Promise<OAuthResult> {
-  if (!APPLE_CLIENT_ID) throw new OAuthNotConfiguredError("apple");
+  const clientId = clientIdFor("apple");
+  if (!clientId) throw new OAuthNotConfiguredError("apple");
   await loadScript("https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js", "tp-appleid");
   const AppleID = (window as unknown as { AppleID?: any }).AppleID;
   if (!AppleID?.auth) throw new Error("Apple sign-in is temporarily unavailable.");
@@ -75,7 +96,7 @@ async function signInWithApple(): Promise<OAuthResult> {
   const state = randomOAuthValue();
   const nonce = randomOAuthValue();
   AppleID.auth.init({
-    clientId: APPLE_CLIENT_ID,
+    clientId,
     scope: "name email",
     redirectURI: redirectUri,
     state,

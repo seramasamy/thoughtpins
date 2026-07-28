@@ -14,6 +14,8 @@ export type ClientConfigResponse = {
 
   oauth_google_enabled: boolean;
   oauth_apple_enabled: boolean;
+  oauth_google_client_id?: string | null;
+  oauth_apple_client_id?: string | null;
   magic_link_enabled?: boolean;
   voice_archive_enabled: boolean;
   ai_processing: string;
