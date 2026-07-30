@@ -790,3 +790,22 @@
   background: var(--tp-brand);
   opacity: 0.16;
 }
+
+/* ---------------- Touch targets ----------------
+   Coarse-pointer only. The checkbox and segmented controls are sized for a
+   cursor; on touch they sit below the 44px platform guidance. The visible label
+   already extends the checkbox hit area, so only the control itself grows. */
+@media (pointer: coarse) {
+  .check-row {
+    min-height: 44px;
+  }
+
+  .check-row input {
+    width: 22px;
+    min-height: 22px;
+  }
+
+  .segmented button {
+    min-height: 44px;
+  }
+}

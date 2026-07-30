@@ -748,3 +748,35 @@
     color: #000;
   }
 }
+
+/* ---------------- Touch targets ----------------
+   Coarse-pointer only: the legal-page and classic-page navigation are text
+   links around 20px tall, which is comfortable with a cursor and awkward with
+   a thumb. Padding raises the hit area toward the 44px platform guidance
+   without changing type size or layout rhythm. */
+@media (pointer: coarse) {
+  .nav a,
+  .header-links a,
+  .text-action {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .site-brand,
+  .header-back,
+  .theme-toggle {
+    min-height: 44px;
+  }
+
+  .theme-toggle {
+    width: 44px;
+  }
+
+  .footer-column a,
+  .footer-bottom a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+  }
+}

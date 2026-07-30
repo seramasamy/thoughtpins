@@ -961,3 +961,38 @@ button:focus-visible {
   border-radius: 50%;
   background: #7fae95;
 }
+
+/* ---------------- Touch targets ----------------
+   Text links sized for a mouse are hard to hit with a thumb. Applied on coarse
+   pointers only, so desktop keeps its intended density while touch devices get
+   targets near the 44px platform guidance. Padding does the work, leaving type
+   scale and rhythm untouched. */
+@media (pointer: coarse) {
+  .lab-nav-links a,
+  .lab-nav-login {
+    padding-block: 11px;
+  }
+
+  .lab-brand,
+  .lab-nav-signup {
+    min-height: 44px;
+  }
+
+  .lab-nav-signup {
+    align-items: center;
+  }
+
+  .lab-quiet {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .lab-footer a {
+    padding-block: 10px;
+  }
+
+  .lab-preview-tabs .preview-tab {
+    min-height: 44px;
+  }
+}
