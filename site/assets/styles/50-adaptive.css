@@ -780,3 +780,12 @@
     min-height: 40px;
   }
 }
+
+@media (pointer: coarse) {
+  /* Table-of-contents entries are discrete chips rather than prose. */
+  .page-toc a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}

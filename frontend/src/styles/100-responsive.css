@@ -809,3 +809,15 @@
     min-height: 44px;
   }
 }
+
+/* The sign-in screen's "Home" link is a standalone control, not prose, so it
+   gets a full touch target. Links inside paragraphs are deliberately left at
+   text size: growing them would break line rhythm, and the accessibility
+   guidance exempts inline links for that reason. */
+@media (pointer: coarse) {
+  .auth-home-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}
