@@ -31,6 +31,10 @@ def read_stylesheet_bundle(entrypoint: Path) -> str:
     active: list[Path] = []
 
     def import_path(parent: Path, target: str) -> Path:
+        # Imports carry a ?v= cache-busting query so a CDN cannot keep serving a
+        # stale sub-stylesheet after a release. That query addresses the browser,
+        # not the filesystem, so drop it before resolving to a file.
+        target = target.split("?", 1)[0].split("#", 1)[0]
         if target.startswith("/assets/"):
             return web_root / target.removeprefix("/")
         if target.startswith("/"):
