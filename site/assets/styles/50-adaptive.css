@@ -789,3 +789,9 @@
     min-height: 44px;
   }
 }
+
+@media (pointer: coarse) {
+  .button-small {
+    min-height: 44px;
+  }
+}

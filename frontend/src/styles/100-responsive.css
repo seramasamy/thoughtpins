@@ -821,3 +821,19 @@
     min-height: 44px;
   }
 }
+
+/* The private-memory checkbox decides whether private entries are sent to the
+   model, so it needs to be easy to hit deliberately rather than by accident.
+   The surrounding control grows to a full touch target while the box itself
+   stays visually small. */
+@media (pointer: coarse) {
+  .private-memory-toggle {
+    min-height: 44px;
+  }
+
+  .private-memory-toggle input {
+    width: 20px;
+    height: 20px;
+    min-height: 20px;
+  }
+}
