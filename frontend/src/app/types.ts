@@ -20,7 +20,9 @@ export type GlobalComposeMode = "chat" | "journal";
 
 export type Notice = { tone: "ok" | "warn" | "error"; text: string; requestId?: string };
 
-export type Runner = <T>(task: () => Promise<T>, success?: string) => Promise<T | null>;
+// `success` may be derived from the result so a caller can report what actually
+// happened (for example "saved" versus "queued") instead of one fixed message.
+export type Runner = <T>(task: () => Promise<T>, success?: string | ((result: T) => string)) => Promise<T | null>;
 
 export type ScreenProps = {
   token: string;

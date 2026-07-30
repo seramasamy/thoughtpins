@@ -561,6 +561,93 @@ button:focus-visible {
 }
 
 /* ---------------- Closer ---------------- */
+/* Device toggle for the product preview. The modern page does not load
+   styles.css, so these are defined here in the lab palette. */
+.lab-preview-tabs {
+  display: inline-flex;
+  gap: 4px;
+  margin-top: 26px;
+  padding: 4px;
+  border: 1px solid var(--lab-line);
+  border-radius: 999px;
+}
+
+.lab-preview-tabs .preview-tab {
+  padding: 8px 20px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--lab-soft);
+  background: transparent;
+  font: 600 13.5px/1 inherit;
+  cursor: pointer;
+  transition: color 160ms ease, background 160ms ease;
+}
+
+.lab-preview-tabs .preview-tab:hover {
+  color: var(--lab-ink);
+}
+
+.lab-preview-tabs .preview-tab.is-active {
+  color: var(--lab-bg);
+  background: var(--lab-apricot);
+}
+
+.lab-preview-tabs .preview-tab:focus-visible {
+  outline: 2px solid var(--lab-brand);
+  outline-offset: 2px;
+}
+
+/* ---------------- What you keep ---------------- */
+.lab-keep {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 120px 28px 40px;
+}
+
+.lab-keep-head {
+  max-width: 640px;
+}
+
+.lab-keep-head h2 {
+  margin-top: 14px;
+  font: 480 clamp(30px, 4.4vw, 46px)/1.2 var(--serif);
+}
+
+.lab-keep-lede {
+  margin-top: 18px;
+  color: var(--lab-soft);
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.lab-keep-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+  margin-top: 56px;
+  padding: 0;
+  list-style: none;
+}
+
+.lab-keep-list li {
+  display: grid;
+  gap: 8px;
+  padding-top: 22px;
+  border-top: 1px solid var(--lab-line);
+}
+
+.lab-keep-list strong {
+  color: var(--lab-apricot);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.lab-keep-list span {
+  color: var(--lab-soft);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
 .lab-closer {
   display: flex;
   flex-direction: column;
@@ -639,6 +726,16 @@ button:focus-visible {
 
   .lab-week-head {
     margin-bottom: 30px;
+  }
+
+  .lab-keep {
+    padding: 80px 22px 20px;
+  }
+
+  .lab-keep-list {
+    grid-template-columns: 1fr;
+    gap: 22px;
+    margin-top: 38px;
   }
 }
 

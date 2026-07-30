@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from scripts.web_assets import read_stylesheet_bundle
@@ -17,7 +18,12 @@ def test_homepage_declares_social_touch_and_product_visual_assets():
     assert "Illustrative preview." in html
     assert 'property="og:image" content="https://thoughtpins.com/assets/product-chat-desktop.png"' in html
     assert 'name="twitter:card" content="summary_large_image"' in html
-    assert 'rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=20260712-memory-pin-v4"' in html
+    # Assert the icon is cache-busted, not which version it is pinned to.
+    # Freezing the exact string made every legitimate cache bump a test failure.
+    assert re.search(
+        r'rel="apple-touch-icon" href="/assets/apple-touch-icon\.png\?v=[A-Za-z0-9._-]+"',
+        html,
+    ), "apple-touch-icon must be referenced with a cache-busting ?v= query"
     assert (assets / "product-chat-desktop.png").stat().st_size > 20_000
     touch_icon = (assets / "apple-touch-icon.png").read_bytes()
     assert touch_icon.startswith(b"\x89PNG\r\n\x1a\n")

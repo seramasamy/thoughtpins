@@ -154,9 +154,13 @@
     <header class="lab-product-head">
       <p class="lab-eyebrow">The product</p>
       <h2 id="product-title">One calm conversation,<br><em>shaped for every screen.</em></h2>
+      <div class="preview-tabs lab-preview-tabs" role="tablist" aria-label="Product preview device: desktop or mobile">
+        <button class="preview-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="lab-preview-desktop" id="preview-tab-desktop" data-preview-tab="desktop">Desktop</button>
+        <button class="preview-tab" type="button" role="tab" aria-selected="false" aria-controls="lab-preview-mobile" id="preview-tab-mobile" data-preview-tab="mobile" tabindex="-1">Mobile</button>
+      </div>
     </header>
     <div class="lab-demo" data-product-demo data-preview-mode="desktop">
-      <div class="lab-demo-panel" data-preview-panel="desktop">
+      <div class="lab-demo-panel" data-preview-panel="desktop" id="lab-preview-desktop" role="tabpanel" aria-labelledby="preview-tab-desktop">
         <div class="lab-frame">
           <div class="lab-frame-bar" aria-hidden="true"><i></i><i></i><i></i><span>app.thoughtpins.com</span></div>
           <div class="lab-frame-screen">
@@ -185,7 +189,7 @@
           </div>
         </div>
       </div>
-      <div class="lab-demo-panel" data-preview-panel="mobile" hidden>
+      <div class="lab-demo-panel" data-preview-panel="mobile" id="lab-preview-mobile" role="tabpanel" aria-labelledby="preview-tab-mobile" hidden>
         <div class="lab-phone">
           <div class="lab-phone-speaker" aria-hidden="true"></div>
           <div class="lab-phone-screen">
@@ -213,6 +217,31 @@
       </div>
       <p class="lab-demo-caption">Illustrative preview. Your own memories stay private, and the same conversation adapts from a wide workspace to a focused mobile view.</p>
     </div>
+  </section>
+
+  <!-- What you keep: positioning and the data-ownership promise -->
+  <section class="lab-keep" id="keep" aria-labelledby="keep-title">
+    <header class="lab-keep-head">
+      <p class="lab-eyebrow">Why it feels different</p>
+      <h2 id="keep-title">A calmer way to remember</h2>
+      <p class="lab-keep-lede">Writing something down should not feel like filing it. Thought Pins turns ordinary
+        conversation into a record you can walk back through, without turning your life into data entry.</p>
+    </header>
+    <ul class="lab-keep-list">
+      <li>
+        <strong>Yours to take</strong>
+        <span>Export everything as an Obsidian-compatible vault of plain Markdown files. No lock-in, readable
+          without us.</span>
+      </li>
+      <li>
+        <strong>Yours to end</strong>
+        <span>Delete your account and its data from inside the app, whenever you decide.</span>
+      </li>
+      <li>
+        <strong>Yours alone</strong>
+        <span>Kept to your account. Never used to build an advertising profile.</span>
+      </li>
+    </ul>
   </section>
 
   <!-- Closer -->

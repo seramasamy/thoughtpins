@@ -82,11 +82,15 @@ export default function App() {
     return () => { mounted = false; };
   }, []);
 
-  const run = useCallback(async <T,>(task: () => Promise<T>, success?: string): Promise<T | null> => {
+  const run = useCallback(async <T,>(
+    task: () => Promise<T>,
+    success?: string | ((result: T) => string),
+  ): Promise<T | null> => {
     setBusy(true);
     try {
       const result = await task();
-      if (success) setNotice({ tone: "ok", text: success });
+      const message = typeof success === "function" ? success(result) : success;
+      if (message) setNotice({ tone: "ok", text: message });
       return result;
     } catch (error) {
       setNotice(messageFromError(error));

@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../../api";
 import type { ScreenProps } from "../../app/types";
+import type { IngestResponse } from "../../types";
 import { EmptyState, IconButton, KeyValue, PrimaryButton, SecondaryButton, StatusPill } from "../../components/ui";
 import { truncate } from "../../components/format";
 import { EncryptedDraftQueue, browserStorage, syncDraftQueue, type CaptureDraft, type DraftSyncSummary } from "../../core";
@@ -13,6 +14,7 @@ export function CaptureView({ token, run }: ScreenProps) {
   const [drafts, setDrafts] = useState<CaptureDraft[]>([]);
   const [syncSummary, setSyncSummary] = useState<DraftSyncSummary | null>(null);
   const [queueMessage, setQueueMessage] = useState<string | null>(null);
+  const [lastResult, setLastResult] = useState<IngestResponse | null>(null);
 
   const queue = useMemo(() => {
     const storage = browserStorage();
@@ -32,11 +34,18 @@ export function CaptureView({ token, run }: ScreenProps) {
     const body = text.trim();
     if (!body) return;
 
-    const result = await run(() => api.ingest(token, body), "Entry saved");
+    // A queued entry is accepted but not yet enriched. Saying "saved" for both
+    // outcomes is what makes a queued entry look finished while its memories are
+    // still missing, so the two are reported differently.
+    const queuedNotice = "Entry queued. Memories appear once processing finishes.";
+    const result = await run(() => api.ingest(token, body), (response) =>
+      response?.status === "queued" ? queuedNotice : "Entry saved",
+    );
     if (result) {
       setSavedAt(new Date());
       setText("");
       setQueueMessage(null);
+      setLastResult(result);
       void refreshDrafts();
       return;
     }
@@ -68,7 +77,7 @@ export function CaptureView({ token, run }: ScreenProps) {
 
   return (
     <section className="capture-surface">
-      <form className="capture-editor" onSubmit={submit}>
+      <form className="capture-editor" onSubmit={submit} aria-label="Explicit Journal Save">
         <textarea
           value={text}
           onChange={(event) => setText(event.target.value)}
@@ -90,10 +99,34 @@ export function CaptureView({ token, run }: ScreenProps) {
         </div>
       </form>
 
+      {lastResult && (
+        <div className="capture-result" role="status" aria-live="polite">
+          {lastResult.status === "queued" ? (
+            <>
+              <p className="capture-result-title">Queued for processing</p>
+              <p className="inline-help">
+                Your words are saved. People, places, and memories are still being pulled out, so this entry may
+                take a moment to appear in Memory and Recall.
+              </p>
+              {lastResult.job_id && <KeyValue label="Job" value={lastResult.job_id} />}
+            </>
+          ) : (
+            <>
+              <p className="capture-result-title">Saved and organized</p>
+              <div className="draft-summary">
+                <KeyValue label="Memories" value={lastResult.memories} />
+                <KeyValue label="People and places" value={lastResult.entities} />
+                <KeyValue label="Events" value={lastResult.events} />
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       <section className="capture-drafts">
         <header className="capture-drafts-head">
           <div>
-            <h2>Draft queue</h2>
+            <h2>Local Draft Queue</h2>
             <p>Notes kept on this device when a save could not reach the server.</p>
           </div>
           <SecondaryButton onClick={syncQueued} disabled={!queue || !drafts.some((draft) => ["queued", "failed"].includes(draft.status))}>
@@ -121,7 +154,13 @@ export function CaptureView({ token, run }: ScreenProps) {
                   </IconButton>
                 </div>
                 <p className="draft-text">{firstLine(draft.text)}</p>
-                {draft.lastError && <p className="inline-help">{draft.lastError}</p>}
+                <p className="draft-attempts subtle">
+                  {draft.attemptCount === 0
+                    ? "Not sent yet"
+                    : `${draft.attemptCount} sync ${draft.attemptCount === 1 ? "attempt" : "attempts"}`}
+                  {draft.jobId ? ` · job_id ${draft.jobId}` : ""}
+                </p>
+                {draft.lastError && <p className="inline-help draft-error">{draft.lastError}</p>}
               </article>
             ))}
           </div>

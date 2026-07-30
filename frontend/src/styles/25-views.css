@@ -370,9 +370,34 @@
   gap: 14px;
 }
 
+/* Outcome of the last save. Queued entries need a persistent, readable state
+   rather than a toast that disappears before the work finishes. */
+.capture-result {
+  display: grid;
+  gap: 8px;
+  padding: 16px 18px;
+  border: 1px solid var(--tp-line);
+  border-radius: 8px;
+  background: var(--tp-surface);
+}
+
+.capture-result-title {
+  font-weight: 600;
+  font-size: 15px;
+}
+
 .capture-drafts {
   display: grid;
   gap: 12px;
+}
+
+.draft-attempts {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.draft-error {
+  color: var(--tp-brand-deep);
 }
 
 .capture-drafts-head {
