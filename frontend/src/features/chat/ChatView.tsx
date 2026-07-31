@@ -150,18 +150,21 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
       setSendPulse(true);
       window.setTimeout(() => setSendPulse(false), 240);
     } catch (error) {
-      // Stopping is a deliberate choice, not a failure. Say what happened and
-      // leave the question in place so it can be sent again.
+      // Stopping is a deliberate choice, not a failure, so it is acknowledged
+      // in the thread rather than reported as an error.
+      //
+      // The composer is deliberately left empty. Restoring the stopped message
+      // into it re-entered the submit path and sent the same question a second
+      // time, which is worse than retyping.
       if (error instanceof DOMException && error.name === "AbortError") {
         setMessages((current) => [...current, {
           id: `stopped-${crypto.randomUUID()}`,
           role: "assistant",
-          text: "Stopped. Your message is still here if you want to send it again or reword it.",
+          text: "Stopped before a reply came back. Ask again whenever you are ready.",
           routeType: "stopped",
           status: "paused",
           createdAt: new Date().toISOString(),
         }]);
-        setText(body);
         return;
       }
       throw error;
