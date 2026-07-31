@@ -568,3 +568,23 @@
   .voice-bars i:nth-child(5) { animation-delay: 480ms; }
 }
 
+
+/* ---------------- Chat view height ----------------
+   The view previously subtracted a fixed 100px for the chrome above it while
+   that chrome actually measures 119px, so the composer's caption sat below the
+   fold at every window size. Rather than correct the constant, which drifts
+   whenever the topbar changes, the view now fills whatever space is left.
+   Scoped with :has() so only the chat screen is affected, and only above the
+   phone breakpoint, where the floating tab bar already governs the layout. */
+@media (min-width: 701px) {
+  .main:has(.chat-view) {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .main:has(.chat-view) .chat-view {
+    flex: 1;
+    height: auto;
+    min-height: 0;
+  }
+}
