@@ -361,6 +361,16 @@
   box-shadow: 0 0 0 3px rgba(232, 97, 43, 0.12);
 }
 
+/* The composer is the focus indicator for everything inside it. Without this,
+   focusing the field drew a second ring inside the first: the global control
+   focus style plus the container's own, stacked. Focus stays clearly visible,
+   it is just expressed once, by the whole control. */
+.chat-composer textarea:focus,
+.chat-composer textarea:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 .chat-composer textarea {
   min-height: 40px;
   max-height: 150px;
@@ -557,3 +567,4 @@
   .voice-bars i:nth-child(4) { animation-delay: 360ms; }
   .voice-bars i:nth-child(5) { animation-delay: 480ms; }
 }
+

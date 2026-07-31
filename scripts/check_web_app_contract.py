@@ -473,7 +473,7 @@ def main() -> int:
             _req(
                 "global composer mobile safe area",
                 "bottom: calc(82px + env(safe-area-inset-bottom))",
-                "padding-bottom: calc(154px + env(safe-area-inset-bottom))",
+                "padding-bottom: calc(170px + env(safe-area-inset-bottom))",
                 all_required=True,
             ),
             _req("safe area support", "env(safe-area-inset-bottom)"),

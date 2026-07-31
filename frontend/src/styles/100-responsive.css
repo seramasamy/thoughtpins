@@ -130,7 +130,7 @@
   }
 
   .app-shell.has-global-composer .main {
-    padding-bottom: calc(154px + env(safe-area-inset-bottom));
+    padding-bottom: calc(170px + env(safe-area-inset-bottom));
   }
 
   .topbar {
@@ -151,20 +151,30 @@
     display: inline-flex;
   }
 
+  /* A detached bar rather than a docked strip: it reads as a control resting
+     over the page instead of a chrome edge welded to it, and the gap lets the
+     canvas show through so the app feels lighter on a small screen. The full
+     pill radius is deliberate; the design system allows tight radii or true
+     pills, and the in-between blobby range is what it rules out. */
   .mobile-tabbar {
     position: fixed;
-    right: 0;
-    bottom: 0;
-    left: 0;
+    right: 10px;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    left: 10px;
     z-index: 40;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 2px;
-    padding: 6px 7px max(6px, env(safe-area-inset-bottom));
-    border-top: 1px solid var(--tp-line);
-    background: rgba(255, 255, 255, 0.96);
-    backdrop-filter: blur(14px);
-    box-shadow: 0 -10px 26px rgba(34, 29, 22, 0.08);
+    padding: 6px 10px;
+    border: 1px solid var(--tp-line);
+    border-radius: var(--radius-pill);
+    background: rgba(255, 255, 255, 0.82);
+    /* Safari, including every iPhone, only honours the prefixed property.
+       Without it the bar falls back to flat translucency and the content
+       behind it shows through unblurred. */
+    -webkit-backdrop-filter: blur(20px) saturate(1.6);
+    backdrop-filter: blur(20px) saturate(1.6);
+    box-shadow: 0 10px 30px rgba(34, 29, 22, 0.14), 0 2px 8px rgba(34, 29, 22, 0.06);
   }
 
   .mobile-tabbar button {
@@ -699,7 +709,11 @@
   }
 
   :root:not([data-theme="light"]) .mobile-tabbar {
-    background: rgba(26, 23, 20, 0.94);
+    /* Matched to the light bar's translucency so the blur reads the same in
+       both themes rather than going flat and heavy in dark. */
+    border-color: rgba(245, 241, 234, 0.1);
+    background: rgba(26, 23, 20, 0.72);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.24);
   }
 
   /* Bare links and accent text on dark neutral surfaces (chip text keeps

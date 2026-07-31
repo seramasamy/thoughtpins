@@ -47,7 +47,10 @@ PHONE_UI_MARKERS = (
     "grid-template-columns: repeat(5, 1fr)",
     "min-height: 48px",
     "bottom: calc(72px + env(safe-area-inset-bottom))",
-    "padding: 6px 7px max(6px, env(safe-area-inset-bottom))",
+    # The tab bar floats clear of the bottom edge, so it offsets itself from the
+    # safe area rather than padding its own inside. The guard is unchanged in
+    # substance: the bar must still never sit under the home indicator.
+    "bottom: max(10px, env(safe-area-inset-bottom))",
     ".mobile-nav-icon",
     ".mobile-nav-label",
     ".chat-nav-glyph",
