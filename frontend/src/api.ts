@@ -292,13 +292,14 @@ export const api = {
   me(token: string) {
     return request<MeResponse>("/v1/me", { token });
   },
-  chat(token: string, body: ChatRequest) {
+  chat(token: string, body: ChatRequest, signal?: AbortSignal) {
     const messageId = body.message_id || crypto.randomUUID();
     return request<ChatResponse>("/v1/chat", {
       method: "POST",
       token,
       body: { surface: "web", conversation_id: "main", ...body, message_id: messageId },
       idempotencyKey: messageId,
+      signal,
     });
   },
   chatConversations(token: string, page = 1, limit = 20) {

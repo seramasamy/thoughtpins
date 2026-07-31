@@ -93,6 +93,9 @@ export default function App() {
       if (message) setNotice({ tone: "ok", text: message });
       return result;
     } catch (error) {
+      // A cancelled request is a choice the person made, not a failure. Let the
+      // caller decide what to show instead of flashing an error notice.
+      if (error instanceof DOMException && error.name === "AbortError") throw error;
       setNotice(messageFromError(error));
       return null;
     } finally {

@@ -44,6 +44,7 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const wasBusyRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recordingStreamRef = useRef<MediaStream | null>(null);
   const recordingChunksRef = useRef<Blob[]>([]);
@@ -122,6 +123,11 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
     const intent = pendingActionId ? confirmationIntent(body) : null;
     setBusyLabel("Thinking with your memory");
     setBusy(true);
+    // A reply can take a while when the model is reasoning over a lot of
+    // memory. Without a way out, a slow or stalled turn leaves the person
+    // watching a spinner with no recourse.
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
       const result = await run(() => api.chat(token, {
         text: body,
@@ -129,7 +135,7 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
         include_private: includePrivate,
         confirm_action: Boolean(forceConfirm || (pendingActionId && intent === "confirm")),
         pending_action_id: pendingActionId,
-      }));
+      }, controller.signal));
       if (!result) return;
       setLastResponse(result);
       setPendingActionId(extractPendingActionId(result));
@@ -143,10 +149,32 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
       }]);
       setSendPulse(true);
       window.setTimeout(() => setSendPulse(false), 240);
+    } catch (error) {
+      // Stopping is a deliberate choice, not a failure. Say what happened and
+      // leave the question in place so it can be sent again.
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setMessages((current) => [...current, {
+          id: `stopped-${crypto.randomUUID()}`,
+          role: "assistant",
+          text: "Stopped. Your message is still here if you want to send it again or reword it.",
+          routeType: "stopped",
+          status: "paused",
+          createdAt: new Date().toISOString(),
+        }]);
+        setText(body);
+        return;
+      }
+      throw error;
     } finally {
+      abortRef.current = null;
       setBusy(false);
     }
   }, [busy, includePrivate, maintenanceMessage, pendingActionId, run, token]);
+
+  const stopReply = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+  }, []);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -390,7 +418,14 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
               </span>
             )}
           </div>
-          <PrimaryButton className={sendPulse ? "send-pulse" : ""} disabled={!text.trim() || busy} aria-label="Send message"><ArrowUp size={19} /></PrimaryButton>
+          {busy ? (
+            // Same position as send, so stopping is where the hand already is.
+            <PrimaryButton type="button" onClick={stopReply} aria-label="Stop reply" title="Stop reply">
+              <Square size={16} fill="currentColor" />
+            </PrimaryButton>
+          ) : (
+            <PrimaryButton className={sendPulse ? "send-pulse" : ""} disabled={!text.trim()} aria-label="Send message"><ArrowUp size={19} /></PrimaryButton>
+          )}
         </form>
         {isRecording && (
           <div className="voice-progress" role="progressbar" aria-label="Recording time used" aria-valuemin={0} aria-valuemax={600} aria-valuenow={Math.min(600, recordingElapsed)}>
