@@ -288,8 +288,19 @@ export function AuthScreen({
               autoComplete={mode === "login" ? "current-password" : "new-password"}
               minLength={12}
               required
+              aria-describedby={mode === "register" ? "password-requirement" : undefined}
             />
           </label>
+          {mode === "register" && (
+            // State the length rule before it is enforced. Left unsaid, the form
+            // silently refuses to submit and the only feedback is a browser
+            // tooltip that is easy to miss, which reads as the page being broken.
+            <p className="inline-help" id="password-requirement">
+              {password.length > 0 && password.length < 12
+                ? `${12 - password.length} more character${12 - password.length === 1 ? "" : "s"} needed.`
+                : "At least 12 characters. A short phrase you will remember works well."}
+            </p>
+          )}
           {mode === "register" && (
             <label className="auth-consent check-row">
               <input type="checkbox" checked={legalAccepted} onChange={(event) => setLegalAccepted(event.target.checked)} required />
