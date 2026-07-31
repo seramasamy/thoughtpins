@@ -4,7 +4,10 @@
   display: grid;
   grid-template-rows: auto minmax(360px, 1fr) auto;
   width: 100%;
-  height: calc(100dvh - 100px);
+  /* 119px is the measured chrome above this view: the main padding, the topbar
+     and its rule. The old 100px left the composer caption 19px below the fold at
+     every window height. */
+  height: calc(100dvh - 119px);
   min-height: 590px;
   margin: 0 auto;
   overflow: hidden;
@@ -569,22 +572,3 @@
 }
 
 
-/* ---------------- Chat view height ----------------
-   The view previously subtracted a fixed 100px for the chrome above it while
-   that chrome actually measures 119px, so the composer's caption sat below the
-   fold at every window size. Rather than correct the constant, which drifts
-   whenever the topbar changes, the view now fills whatever space is left.
-   Scoped with :has() so only the chat screen is affected, and only above the
-   phone breakpoint, where the floating tab bar already governs the layout. */
-@media (min-width: 701px) {
-  .main:has(.chat-view) {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .main:has(.chat-view) .chat-view {
-    flex: 1;
-    height: auto;
-    min-height: 0;
-  }
-}
