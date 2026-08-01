@@ -463,6 +463,7 @@ def test_full_context_renders_expenses_without_crashing(isolated_db):
 
 
 async def test_handle_conversation_sends_memory_vault_and_history_to_llm(
+    telegram_bot,
     isolated_db,
     monkeypatch,
     tmp_path,
@@ -776,7 +777,7 @@ async def test_handle_conversation_persists_chat_and_style_profile(isolated_db, 
         session.close()
 
 
-async def test_handler_defaults_ambiguous_thought_to_chat(monkeypatch):
+async def test_handler_defaults_ambiguous_thought_to_chat(telegram_bot, monkeypatch):
     import thoughtpins.bot.processing as processing
     from thoughtpins.bot import handlers
     from thoughtpins.bot.natural_commands import clear_pending
@@ -828,7 +829,7 @@ async def test_handler_defaults_ambiguous_thought_to_chat(monkeypatch):
     assert update.message.replies == ["chat ok"]
 
 
-async def test_handler_persists_durable_telegram_chat_thread(isolated_db, monkeypatch, tmp_path):
+async def test_handler_persists_durable_telegram_chat_thread(telegram_bot, isolated_db, monkeypatch, tmp_path):
     import thoughtpins.bot.processing as processing
     from thoughtpins.bot import commands, handlers
     from thoughtpins.db import ChatConversation, ChatMessage, RawEntry, User
@@ -906,7 +907,7 @@ async def test_handler_persists_durable_telegram_chat_thread(isolated_db, monkey
         session.close()
 
 
-async def test_handler_confirms_durable_telegram_undo(isolated_db, monkeypatch):
+async def test_handler_confirms_durable_telegram_undo(telegram_bot, isolated_db, monkeypatch):
     from datetime import datetime
 
     import thoughtpins.bot.processing as processing
@@ -985,7 +986,7 @@ async def test_handler_confirms_durable_telegram_undo(isolated_db, monkeypatch):
         session.close()
 
 
-async def test_cmd_mark_chat_demotes_latest_journal_save(isolated_db, monkeypatch):
+async def test_cmd_mark_chat_demotes_latest_journal_save(telegram_bot, isolated_db, monkeypatch):
     from datetime import datetime
 
     from thoughtpins.bot import commands
@@ -1054,7 +1055,7 @@ async def test_cmd_mark_chat_demotes_latest_journal_save(isolated_db, monkeypatc
         session.close()
 
 
-async def test_telegram_long_essay_routes_as_single_entry(monkeypatch):
+async def test_telegram_long_essay_routes_as_single_entry(telegram_bot, monkeypatch):
     from thoughtpins.bot import handlers
 
     class FakeMessage:

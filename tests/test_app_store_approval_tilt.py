@@ -17,7 +17,7 @@ def _checker_module():
     return module
 
 
-def test_app_store_approval_tilt_check_passes() -> None:
+def test_app_store_approval_tilt_check_passes(built_frontend) -> None:
     result = subprocess.run(
         [sys.executable, "scripts/check_app_store_approval_tilt.py"],
         cwd=ROOT,

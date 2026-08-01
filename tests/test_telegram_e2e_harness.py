@@ -19,7 +19,7 @@ def no_processing(monkeypatch):
     monkeypatch.setattr(processing, "is_processing", lambda chat_id: False)
 
 
-async def test_fake_telegram_e2e_public_article_link_routes_to_document_memory(isolated_db, monkeypatch):
+async def test_fake_telegram_e2e_public_article_link_routes_to_document_memory(telegram_bot, isolated_db, monkeypatch):
     from thoughtpins import library
     from thoughtpins.bot import handlers
     from thoughtpins.db import DocumentSource, User
@@ -70,7 +70,9 @@ async def test_fake_telegram_e2e_public_article_link_routes_to_document_memory(i
         session.close()
 
 
-async def test_fake_telegram_e2e_restricted_article_link_keeps_reference_without_body(isolated_db, monkeypatch):
+async def test_fake_telegram_e2e_restricted_article_link_keeps_reference_without_body(
+    telegram_bot, isolated_db, monkeypatch
+):
     from thoughtpins import library
     from thoughtpins.bot import handlers
     from thoughtpins.db import DocumentSource
@@ -121,7 +123,7 @@ async def test_fake_telegram_e2e_restricted_article_link_keeps_reference_without
         session.close()
 
 
-async def test_fake_telegram_e2e_ops_command_uses_extracted_ops_module(monkeypatch):
+async def test_fake_telegram_e2e_ops_command_uses_extracted_ops_module(telegram_bot, monkeypatch):
     from thoughtpins.bot import handlers
 
     called: dict[str, list[str]] = {}
@@ -139,7 +141,7 @@ async def test_fake_telegram_e2e_ops_command_uses_extracted_ops_module(monkeypat
     assert update.message.replies == ["doctor ok"]
 
 
-async def test_fake_telegram_e2e_plain_chat_uses_durable_engine(monkeypatch):
+async def test_fake_telegram_e2e_plain_chat_uses_durable_engine(telegram_bot, monkeypatch):
     from thoughtpins.bot import handlers
 
     routed: list[str] = []

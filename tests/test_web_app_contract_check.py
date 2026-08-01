@@ -29,7 +29,7 @@ def test_web_app_contract_check_guards_deploy_bundle() -> None:
     assert "Apple review expects useful app functionality beyond a repackaged website" in checker
 
 
-def test_chat_confirmation_parser_is_exact() -> None:
+def test_chat_confirmation_parser_is_exact(built_frontend) -> None:
     react_helper = (ROOT / "frontend/src/features/chat/confirmation.ts").read_text(encoding="utf-8-sig")
     react_chat = (ROOT / "frontend/src/features/chat/ChatView.tsx").read_text(encoding="utf-8-sig")
     static_app = (ROOT / "frontend/static/app.js").read_text(encoding="utf-8-sig")

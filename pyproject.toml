@@ -109,7 +109,11 @@ extend-exclude = [
 select = ["E9", "F", "I", "B"]
 
 [tool.mypy]
-python_version = "3.11"
+# Match the interpreter CI and production actually run. Pinned at 3.11 this
+# parsed modern third-party stubs under 3.11 rules and died on numpy's use of
+# `type` statements, which are 3.12+. requires-python stays at 3.11 because
+# nothing here needs newer syntax; this setting is about the analysis runtime.
+python_version = "3.13"
 mypy_path = "src"
 ignore_missing_imports = true
 follow_imports = "skip"

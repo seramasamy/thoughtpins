@@ -16,6 +16,30 @@ for _name in ("TMP", "TEMP", "TMPDIR", "PYTEST_DEBUG_TEMPROOT"):
 tempfile.tempdir = str(PYTEST_TEMP_ROOT)
 
 
+@pytest.fixture()
+def telegram_bot():
+    """Skip when the telegram extra is absent.
+
+    thoughtpins.bot.handlers imports the telegram package at module scope. That
+    extra pulls easyocr and whisper, which drag in torch, so CI deliberately does
+    not install it and these tests are not applicable there.
+    """
+    return pytest.importorskip("telegram")
+
+
+@pytest.fixture()
+def built_frontend() -> Path:
+    """Skip when the production web bundle has not been built.
+
+    These assertions are about a build output, not about source behaviour, so
+    they only mean something once `npm run build` has run.
+    """
+    dist = PROJECT_ROOT / "frontend" / "dist"
+    if not (dist / "index.html").is_file():
+        pytest.skip("frontend/dist is not built; run `npm run build` in frontend/")
+    return dist
+
+
 def _safe_node_id(value: str) -> str:
     safe = "".join(char if char.isalnum() or char in "._-" else "_" for char in value)
     return safe[-120:] or "test"

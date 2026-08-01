@@ -97,7 +97,7 @@ def test_natural_router_does_not_hijack_generated_journal_notes(text: str):
     assert classify_message(text)["type"] == "journal_entry"
 
 
-async def test_handler_routes_safe_chat_surface_command_through_durable_engine(monkeypatch):
+async def test_handler_routes_safe_chat_surface_command_through_durable_engine(telegram_bot, monkeypatch):
     import thoughtpins.bot.processing as processing
     from thoughtpins.bot import handlers
     from thoughtpins.bot.natural_commands import clear_pending
@@ -121,7 +121,7 @@ async def test_handler_routes_safe_chat_surface_command_through_durable_engine(m
     assert update.message.replies == ["recent ok"]
 
 
-async def test_handler_keeps_legacy_ops_on_command_dispatch(monkeypatch):
+async def test_handler_keeps_legacy_ops_on_command_dispatch(telegram_bot, monkeypatch):
     import thoughtpins.bot.processing as processing
     from thoughtpins.bot import handlers
     from thoughtpins.bot.natural_commands import clear_pending
@@ -145,7 +145,7 @@ async def test_handler_keeps_legacy_ops_on_command_dispatch(monkeypatch):
     assert update.message.replies == ["doctor ok"]
 
 
-async def test_handler_routes_undo_confirmation_flow_to_durable_engine(monkeypatch):
+async def test_handler_routes_undo_confirmation_flow_to_durable_engine(telegram_bot, monkeypatch):
     import thoughtpins.bot.processing as processing
     from thoughtpins.bot import handlers
     from thoughtpins.bot.natural_commands import clear_pending
@@ -175,7 +175,7 @@ async def test_handler_routes_undo_confirmation_flow_to_durable_engine(monkeypat
     assert second.message.replies == ["durable ok"]
 
 
-async def test_handler_saves_generated_journal_examples(monkeypatch):
+async def test_handler_saves_generated_journal_examples(telegram_bot, monkeypatch):
     import thoughtpins.bot.processing as processing
     from thoughtpins.bot import handlers
     from thoughtpins.bot.natural_commands import clear_pending

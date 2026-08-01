@@ -17,7 +17,7 @@ final class ThoughtPinsAPIClientTests: XCTestCase {
             let payload = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
             XCTAssertEqual(payload["authorization_code"] as? String, "one-time-code")
             XCTAssertEqual(payload["id_token"] as? String, "identity-token")
-            return Self.response(for: request, status: 200, body: [
+            return try Self.response(for: request, status: 200, body: [
                 "access_token": "new-access",
                 "refresh_token": "new-refresh",
                 "token_type": "bearer",
@@ -42,7 +42,7 @@ final class ThoughtPinsAPIClientTests: XCTestCase {
     func testLogoutClearsLocalSessionWhenServerIsUnavailable() async throws {
         let store = TestSessionStore(ApiSession(accessToken: "access", refreshToken: "refresh"))
         URLProtocolStub.handler = { request in
-            Self.response(for: request, status: 503, body: [
+            try Self.response(for: request, status: 503, body: [
                 "error": ["code": "maintenance", "message": "Try again later", "request_id": "req-1"]
             ])
         }
@@ -63,7 +63,7 @@ final class ThoughtPinsAPIClientTests: XCTestCase {
     func testErrorUsesEnvelopeMessageInsteadOfReturningTheRawBody() async throws {
         let store = TestSessionStore(ApiSession(accessToken: "access", refreshToken: "refresh"))
         URLProtocolStub.handler = { request in
-            Self.response(for: request, status: 400, body: [
+            try Self.response(for: request, status: 400, body: [
                 "error": [
                     "code": "bad_request",
                     "message": "Safe message",

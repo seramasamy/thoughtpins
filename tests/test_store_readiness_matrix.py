@@ -89,7 +89,7 @@ def test_store_readiness_matrix_writer_outputs_markdown_and_json() -> None:
     assert payload["summary"]["total_requirements"] == 14
 
 
-def test_store_readiness_matrix_check_script_passes() -> None:
+def test_store_readiness_matrix_check_script_passes(built_frontend) -> None:
     result = subprocess.run(
         [sys.executable, "scripts/check_store_readiness_matrix.py", "--self-test"],
         cwd=ROOT,
