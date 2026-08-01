@@ -90,6 +90,10 @@ jobs:
           python scripts/check_native_review_handoff.py
 
       - name: Test
+        env:
+          # Celery refuses to build an app without a broker address. The worker
+          # recovery tests exercise scheduling logic and never connect.
+          CELERY_BROKER_URL: redis://localhost:6379/1
         run: python -m pytest
 
       - name: Migration round trip

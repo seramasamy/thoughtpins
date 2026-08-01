@@ -597,6 +597,16 @@ def test_deep_health_warns_for_optional_local_redis(isolated_db, monkeypatch):
     monkeypatch.setattr(config, "REDIS_URL", "redis://127.0.0.1:1/0")
     monkeypatch.setattr(type(config), "REDIS_URL", "redis://127.0.0.1:1/0")
 
+    # This test is about Redis being optional, so the unrelated checks are
+    # pinned. Otherwise the overall status depends on whatever the machine
+    # happens to have configured: with no .env present, the default local
+    # transcription and vector settings degrade it and the assertion below
+    # fails for a reason that has nothing to do with Redis.
+    from thoughtpins import runtime_health
+
+    for probe in ("llm_health", "vector_health", "article_fetch_health", "transcription_health", "worker_health"):
+        monkeypatch.setattr(runtime_health, probe, lambda: {"status": "ok"})
+
     client = TestClient(app)
     response = client.get("/v1/health/deep")
 

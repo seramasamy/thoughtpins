@@ -27,7 +27,13 @@ def test_backup_restore_smoke_uses_scratch_target(monkeypatch, tmp_path):
         raw = str(path).replace("\\", "/").lstrip("./")
         return root / raw
 
+    # resolve_path has to be patched on the class as well as the instance.
+    # config.database_path is a classmethod that calls cls.resolve_path, so an
+    # instance-only patch left the data root pointing at the real ./data folder:
+    # this test passed on a developer machine by sweeping in whatever happened to
+    # be sitting there, and counted three files on a clean checkout.
     monkeypatch.setattr(backup.config, "resolve_path", resolve_path)
+    monkeypatch.setattr(type(backup.config), "resolve_path", staticmethod(resolve_path))
     monkeypatch.setattr(backup.config, "vault_path", lambda: vault_dir)
     monkeypatch.setattr(backup.config, "reports_path", lambda: reports_dir)
     monkeypatch.setattr(backup.config, "backups_path", lambda: root / "backups")
@@ -39,7 +45,9 @@ def test_backup_restore_smoke_uses_scratch_target(monkeypatch, tmp_path):
     assert backup.sidecar_path(info.backup_path).exists()
     assert backup.checksum_path(info.backup_path).exists()
     assert provenance is not None and len(provenance["sha256"]) == 64
-    assert info.restored_files >= 4
+    # Exactly the three fixture files that are durable user data, plus the
+    # manifest. The qdrant .lock is runtime state and is excluded.
+    assert info.restored_files == 4
     assert set(info.included_roots) == {"data", "vault", "reports"}
     assert info.cleaned_up is True
     assert not info.target_path.exists()

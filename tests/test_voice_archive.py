@@ -377,9 +377,17 @@ def test_deleting_entry_removes_linked_retained_audio(isolated_db, monkeypatch, 
         session.close()
 
 
-def test_voice_fingerprints_are_tenant_scoped():
+def test_voice_fingerprints_are_tenant_scoped(monkeypatch):
+    from thoughtpins.config import config
     from thoughtpins.crypto import fingerprint_bytes
     from thoughtpins.voice_archive import _voice_scope
+
+    # Fingerprinting returns None without a master key, so the test has to
+    # supply one. It took no fixtures, so on a checkout with no configured key
+    # every assertion below was comparing None to None.
+    key = "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
+    monkeypatch.setattr(config, "DATA_ENCRYPTION_KEY", key)
+    monkeypatch.setattr(type(config), "DATA_ENCRYPTION_KEY", key)
 
     content = b"same-recording"
     first = fingerprint_bytes(content, scope=_voice_scope("user-a"))
