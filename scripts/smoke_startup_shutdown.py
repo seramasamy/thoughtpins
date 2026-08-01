@@ -208,7 +208,10 @@ def _shutdown_child(process: subprocess.Popen[str], *, timeout: int) -> dict[str
         return {"signal": "none", "exited": True, "returncode": process.returncode, "forced_kill": False}
     signal_name = "SIGTERM"
     try:
-        if os.name == "nt":
+        # sys.platform rather than os.name: static checkers treat this exact
+        # form as a platform guard and skip the branch entirely when analysing
+        # for another platform, where signal.CTRL_BREAK_EVENT does not exist.
+        if sys.platform == "win32":
             signal_name = "CTRL_BREAK_EVENT"
             process.send_signal(signal.CTRL_BREAK_EVENT)
         else:

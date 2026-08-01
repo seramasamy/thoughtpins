@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from collections.abc import Iterable
 from datetime import date, datetime, timezone
@@ -107,9 +108,23 @@ def _entry_time_label(entry: RawEntry) -> str:
     return time_label
 
 
+_TITLE_WIKILINK_RE = re.compile(r"\[\[([^\]|\n]+)(?:\|([^\]\n]+))?\]\]")
+_TITLE_HEADING_RE = re.compile(r"(?m)^[ \t]*#{1,6}[ \t]*")
+
+
 def _entry_title(entry: RawEntry) -> str:
+    """Build a plain-text label from the start of an entry.
+
+    Text imported from another vault arrives carrying Obsidian syntax. A title
+    is a label, not a place to keep links: a wikilink left here points at a path
+    that only existed in the source vault, so it exports as a broken link and
+    Obsidian offers to create the missing note. A leading heading marker is the
+    same kind of leak, rendering as "# #" once the exporter adds its own.
+    """
     text = maybe_decrypt_text(entry.raw_text)
-    first = " ".join(text.replace("\n", " ").split()[:10])
+    unlinked = _TITLE_WIKILINK_RE.sub(lambda match: (match.group(2) or match.group(1)).strip(), text)
+    plain = _TITLE_HEADING_RE.sub("", unlinked)
+    first = " ".join(plain.replace("\n", " ").split()[:10])
     return first[:90] or f"Entry {entry.id[:8]}"
 
 

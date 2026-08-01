@@ -169,6 +169,10 @@ jobs:
       - name: PostgreSQL tests
         env:
           THOUGHTPINS_TEST_DATABASE_URL: postgresql+psycopg2://thoughtpins:thoughtpins@localhost:5432/thoughtpins_test
+          # Celery refuses to build an app without a broker address. The worker
+          # recovery tests never connect; they exercise scheduling logic and only
+          # need the app to exist.
+          CELERY_BROKER_URL: redis://localhost:6379/1
         run: python -m pytest
 
       - name: PostgreSQL migration and RLS proof

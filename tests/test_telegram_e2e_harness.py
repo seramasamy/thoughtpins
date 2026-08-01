@@ -5,7 +5,9 @@ from fakes.telegram import FakeTelegramContext, FakeTelegramUpdate
 
 
 @pytest.fixture(autouse=True)
-def no_processing(monkeypatch):
+def no_processing(telegram_bot, monkeypatch):
+    # Depends on telegram_bot so the skip happens before this autouse fixture
+    # reaches for thoughtpins.bot.handlers, which imports the telegram package.
     import thoughtpins.bot.processing as processing
     from thoughtpins.bot import handlers
     from thoughtpins.bot.natural_commands import clear_pending

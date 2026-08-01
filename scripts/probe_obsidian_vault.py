@@ -67,7 +67,7 @@ def main() -> int:
                 payload["load_result"] = "launched_obsidian_uri"
             except Exception as exc:
                 payload["load_result"] = f"launch_failed: {exc}"
-        elif protocol_handler and sys.platform.startswith("win"):
+        elif protocol_handler and sys.platform == "win32":
             payload["load_attempted"] = True
             try:
                 os.startfile(_obsidian_uri(vault))
@@ -194,15 +194,19 @@ def _find_obsidian_executable() -> Path | None:
 
 
 def _find_obsidian_protocol_handler() -> str | None:
-    if not sys.platform.startswith("win"):
-        return None
-    try:
-        import winreg
+    # Written as a positive sys.platform test because that is the form static
+    # checkers treat as a platform guard: an early return leaves the Windows-only
+    # body looking like dead code when the check runs on Linux.
+    if sys.platform == "win32":
+        try:
+            import winreg
 
-        with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, r"obsidian\shell\open\command") as key:
-            value, _ = winreg.QueryValueEx(key, "")
-            return str(value)
-    except Exception:
+            with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, r"obsidian\shell\open\command") as key:
+                value, _ = winreg.QueryValueEx(key, "")
+                return str(value)
+        except Exception:
+            return None
+    else:
         return None
 
 
@@ -242,35 +246,38 @@ def _inspect_obsidian_config(vault: Path) -> dict[str, object]:
 
 
 def _obsidian_processes() -> list[dict[str, str]]:
-    if not sys.platform.startswith("win"):
+    # Positive platform test so the Windows-only body is not read as dead
+    # code by a static check running on Linux.
+    if sys.platform == "win32":
+        command = [
+            "powershell",
+            "-NoProfile",
+            "-Command",
+            "Get-Process -Name Obsidian -ErrorAction SilentlyContinue | "
+            "Select-Object Id,ProcessName,Path | ConvertTo-Json -Compress",
+        ]
+        try:
+            completed = subprocess.run(command, text=True, capture_output=True, timeout=10)
+        except Exception:
+            return []
+        text = completed.stdout.strip()
+        if not text:
+            return []
+        try:
+            payload = json.loads(text)
+        except json.JSONDecodeError:
+            return []
+        if isinstance(payload, dict):
+            payload = [payload]
+        if not isinstance(payload, list):
+            return []
+        rows: list[dict[str, str]] = []
+        for item in payload:
+            if isinstance(item, dict):
+                rows.append({key: str(value) for key, value in item.items() if value is not None})
+        return rows
+    else:
         return []
-    command = [
-        "powershell",
-        "-NoProfile",
-        "-Command",
-        "Get-Process -Name Obsidian -ErrorAction SilentlyContinue | "
-        "Select-Object Id,ProcessName,Path | ConvertTo-Json -Compress",
-    ]
-    try:
-        completed = subprocess.run(command, text=True, capture_output=True, timeout=10)
-    except Exception:
-        return []
-    text = completed.stdout.strip()
-    if not text:
-        return []
-    try:
-        payload = json.loads(text)
-    except json.JSONDecodeError:
-        return []
-    if isinstance(payload, dict):
-        payload = [payload]
-    if not isinstance(payload, list):
-        return []
-    rows: list[dict[str, str]] = []
-    for item in payload:
-        if isinstance(item, dict):
-            rows.append({key: str(value) for key, value in item.items() if value is not None})
-    return rows
 
 
 if __name__ == "__main__":

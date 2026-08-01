@@ -236,3 +236,50 @@ def test_key_concepts_do_not_run_across_sentences_or_grab_sentence_starts():
     assert "." not in joined.replace("Ahrens", "")
     assert "Modern" not in concepts
     assert "The Case" not in concepts
+
+
+def test_imported_wikilinks_do_not_leak_into_titles(isolated_db, monkeypatch, tmp_path):
+    """A note imported from another vault must not export broken links.
+
+    Obsidian text arrives carrying [[wikilinks]] that name paths from the source
+    vault. Left in the title they export as links to notes that do not exist
+    here, and a leading heading marker renders as "# #".
+    """
+    from datetime import datetime as _datetime
+
+    from thoughtpins.config import config
+    from thoughtpins.db import RawEntry
+    from thoughtpins.store import get_session
+    from thoughtpins.users import get_or_create_default_user
+    from thoughtpins.vault.markdown import parse_frontmatter
+
+    _set_vault_path(monkeypatch, config, tmp_path / "vault")
+    session = get_session()
+    try:
+        user = get_or_create_default_user(session=session)
+        session.add(
+            RawEntry(
+                user_id=user.id,
+                created_at_utc=_datetime(2026, 3, 14, 16, 0),
+                local_date=_datetime(2026, 3, 14).date(),
+                local_time="16:00",
+                source="obsidian_import",
+                raw_text="# 2026-03-14\n\nLanded in [[Lisbon]] and met [[Priya Raman|Priya]] today.",
+                content_hash=hash_text("imported wikilink entry"),
+                processed_status="completed",
+            )
+        )
+        session.commit()
+        exporter, root = _export(session, user.id, tmp_path)
+
+        note = next((root / "Entries").rglob("*.md"))
+        text = note.read_text(encoding="utf-8")
+        metadata, _ = parse_frontmatter(text)
+
+        assert "[[" not in str(metadata.get("title"))
+        assert "# #" not in text
+        # The wikilink's display text survives as plain words.
+        assert "Lisbon" in str(metadata.get("title"))
+        assert exporter.validation_result is not None and exporter.validation_result.ok
+    finally:
+        session.close()
