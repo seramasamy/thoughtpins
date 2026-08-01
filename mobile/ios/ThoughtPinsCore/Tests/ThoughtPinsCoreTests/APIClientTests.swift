@@ -13,7 +13,7 @@ final class ThoughtPinsAPIClientTests: XCTestCase {
         let session = makeSession()
         URLProtocolStub.handler = { request in
             XCTAssertEqual(request.value(forHTTPHeaderField: "Cache-Control"), "no-store")
-            let body = try XCTUnwrap(request.httpBody)
+            let body = try XCTUnwrap(request.bodyData)
             let payload = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
             XCTAssertEqual(payload["authorization_code"] as? String, "one-time-code")
             XCTAssertEqual(payload["id_token"] as? String, "identity-token")
@@ -154,4 +154,28 @@ private final class URLProtocolStub: URLProtocol {
     }
 
     override func stopLoading() {}
+}
+
+private extension URLRequest {
+    /// The request body as URLProtocol actually receives it.
+    ///
+    /// URLSession converts httpBody into httpBodyStream before handing the
+    /// request to a protocol, so reading httpBody here always returns nil and
+    /// the assertion about the posted payload could never have passed.
+    var bodyData: Data? {
+        if let httpBody { return httpBody }
+        guard let stream = httpBodyStream else { return nil }
+        stream.open()
+        defer { stream.close() }
+        var data = Data()
+        let capacity = 4096
+        let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: capacity)
+        defer { buffer.deallocate() }
+        while stream.hasBytesAvailable {
+            let read = stream.read(buffer, maxLength: capacity)
+            if read <= 0 { break }
+            data.append(buffer, count: read)
+        }
+        return data
+    }
 }
