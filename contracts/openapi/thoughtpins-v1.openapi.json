@@ -515,6 +515,16 @@
             "title": "Environment",
             "type": "string"
           },
+          "invite_request_email": {
+            "default": "",
+            "title": "Invite Request Email",
+            "type": "string"
+          },
+          "invite_required": {
+            "default": false,
+            "title": "Invite Required",
+            "type": "boolean"
+          },
           "legal_document_version": {
             "title": "Legal Document Version",
             "type": "string"
@@ -1473,6 +1483,53 @@
           "entry_id"
         ],
         "title": "IngestResponse",
+        "type": "object"
+      },
+      "InviteRedeemRequest": {
+        "properties": {
+          "code": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "InviteRedeemRequest",
+        "type": "object"
+      },
+      "InviteStatusResponse": {
+        "description": "Whether this account may use the product yet, and how to ask if not.",
+        "properties": {
+          "admitted": {
+            "default": true,
+            "title": "Admitted",
+            "type": "boolean"
+          },
+          "attempts_remaining": {
+            "default": 0,
+            "title": "Attempts Remaining",
+            "type": "integer"
+          },
+          "contact_email": {
+            "default": "",
+            "title": "Contact Email",
+            "type": "string"
+          },
+          "invite_redeemed": {
+            "default": false,
+            "title": "Invite Redeemed",
+            "type": "boolean"
+          },
+          "invite_required": {
+            "default": false,
+            "title": "Invite Required",
+            "type": "boolean"
+          }
+        },
+        "title": "InviteStatusResponse",
         "type": "object"
       },
       "JobResponse": {
@@ -13099,6 +13156,291 @@
           }
         },
         "summary": "Queue a read-only vault import preview"
+      }
+    },
+    "/v1/invites/redeem": {
+      "post": {
+        "operationId": "redeem_invite_v1_invites_redeem_post",
+        "parameters": [
+          {
+            "description": "Stable 8-128 character key for safely retrying an authenticated mutation. Reusing a key with different request content returns 409.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 8,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteRedeemRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Idempotent-Replay": {
+                "description": "True when the response was replayed from a completed mutation.",
+                "schema": {
+                  "enum": [
+                    "true"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "bad_request",
+                    "message": "confirm must equal DELETE",
+                    "request_id": "req_123"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad request."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing or invalid credentials."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Authenticated but forbidden."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found for this user."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict with existing data."
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request body is too large."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Rate limit exceeded."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service temporarily unavailable or maintenance mode."
+          }
+        },
+        "summary": "Redeem Invite"
+      }
+    },
+    "/v1/invites/status": {
+      "get": {
+        "operationId": "invite_status_v1_invites_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "bad_request",
+                    "message": "confirm must equal DELETE",
+                    "request_id": "req_123"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad request."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing or invalid credentials."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Authenticated but forbidden."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found for this user."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict with existing data."
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request body is too large."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request validation failed."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Rate limit exceeded."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service temporarily unavailable or maintenance mode."
+          }
+        },
+        "summary": "Invite Status"
       }
     },
     "/v1/jobs": {

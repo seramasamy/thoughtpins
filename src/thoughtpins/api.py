@@ -3,10 +3,7 @@
 from __future__ import annotations
 
 import json
-import re
-import secrets
 import time
-import uuid
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -17,9 +14,20 @@ from fastapi.responses import JSONResponse
 from loguru import logger
 
 from thoughtpins.api_contracts import COMMON_ERROR_RESPONSES
+from thoughtpins.api_gateway import (
+    _client_ip,
+    _content_length_too_large,
+    _extract_api_key,
+    _is_invite_blocked,
+    _is_maintenance_allowed,
+    _is_public_path,
+    _rate_limit_for_path,
+    _resolve_request_user,
+    _safe_request_id,
+    _security_headers,
+)
 from thoughtpins.api_idempotency_http import call_with_idempotency
 from thoughtpins.api_openapi import install_openapi_contract
-from thoughtpins.api_route_policy import MAINTENANCE_ALWAYS_ALLOWED_PATHS, PUBLIC_PATHS, PUBLIC_PREFIXES
 from thoughtpins.api_routes.account import create_account_router
 from thoughtpins.api_routes.admin import create_admin_router
 from thoughtpins.api_routes.auth import create_auth_router
@@ -32,10 +40,6 @@ from thoughtpins.api_routes.metadata import create_metadata_router
 from thoughtpins.api_routes.public import create_public_router
 from thoughtpins.api_routes.voice import create_voice_router
 from thoughtpins.apple_oauth import exchange_apple_authorization_code, revoke_apple_refresh_token
-from thoughtpins.auth import (
-    authenticate_access_token,
-    decode_access_token,
-)
 from thoughtpins.chat.engine import execute_chat_message
 from thoughtpins.chat.memory_answer import answer_with_llm
 from thoughtpins.config import config
@@ -50,11 +54,6 @@ from thoughtpins.startup_recovery import recover_orphaned_entries as _recover_or
 from thoughtpins.store import get_session, init_db
 from thoughtpins.tenancy import tenant_context
 from thoughtpins.usage import UsageBudgetExceeded
-from thoughtpins.users import (
-    get_or_create_default_user,
-    get_user_by_api_key,
-)
-from thoughtpins.vault.importer import MAX_ARCHIVE_BYTES
 
 _start_time = time.time()
 _REQUEST_COUNTS: dict[tuple[str, str, int], int] = {}
@@ -218,88 +217,6 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
     )
 
 
-def _extract_api_key(request: Request) -> str:
-    auth = request.headers.get("Authorization", "")
-    if auth.lower().startswith("bearer "):
-        return auth.split(" ", 1)[1].strip()
-    return request.headers.get("X-API-Key", "").strip()
-
-
-def _is_public_path(path: str) -> bool:
-    return path in PUBLIC_PATHS or any(path.startswith(prefix) for prefix in PUBLIC_PREFIXES)
-
-
-def _is_maintenance_allowed(request: Request) -> bool:
-    if request.method in {"OPTIONS", "HEAD"}:
-        return True
-    path = request.url.path
-    if path in MAINTENANCE_ALWAYS_ALLOWED_PATHS or any(path.startswith(prefix) for prefix in PUBLIC_PREFIXES):
-        return True
-    if config.MAINTENANCE_ALLOW_READS and request.method == "GET":
-        return True
-    return False
-
-
-def _client_ip(request: Request) -> str | None:
-    forwarded = request.headers.get("X-Forwarded-For", "")
-    if forwarded:
-        return forwarded.split(",", 1)[0].strip()
-    return request.client.host if request.client else None
-
-
-def _safe_request_id(raw: str | None) -> str:
-    if raw:
-        candidate = raw.strip()
-        if 1 <= len(candidate) <= 128 and re.fullmatch(r"[A-Za-z0-9_.:-]+", candidate):
-            return candidate
-    return uuid.uuid4().hex
-
-
-def _content_length_too_large(request: Request) -> bool:
-    raw = request.headers.get("Content-Length")
-    if not raw:
-        return False
-    try:
-        limit = config.MAX_REQUEST_BODY_BYTES
-        if request.url.path in {"/v1/uploads", "/v1/import/obsidian"}:
-            largest_binary = max(MAX_ARCHIVE_BYTES, 25 * 1024 * 1024)
-            base64_json_limit = 4 * ((largest_binary + 2) // 3) + 64 * 1024
-            limit = max(limit, base64_json_limit)
-        return int(raw) > limit
-    except ValueError:
-        return False
-
-
-def _security_headers() -> dict[str, str]:
-    if not config.SECURITY_HEADERS_ENABLED:
-        return {}
-    headers = {
-        "X-Content-Type-Options": "nosniff",
-        "X-Frame-Options": "DENY",
-        "Referrer-Policy": "no-referrer",
-        "Permissions-Policy": "camera=(), microphone=(self), geolocation=()",
-    }
-    if config.is_production():
-        headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    return headers
-
-
-def _rate_limit_for_path(path: str) -> int:
-    if path.startswith("/v1/auth/"):
-        return config.RATE_LIMIT_AUTH_PER_MINUTE
-    if path in {"/v1/entries", "/v1/entries/async", "/v1/uploads", "/v1/import/obsidian", "/ingest"}:
-        return config.RATE_LIMIT_INGEST_PER_MINUTE
-    if path in {"/v1/ask", "/ask", "/v1/chat"}:
-        return config.RATE_LIMIT_LLM_PER_MINUTE
-    if path.startswith("/v1/export") or path.startswith("/export") or path.startswith("/v1/account/export"):
-        return config.RATE_LIMIT_EXPORT_PER_MINUTE
-    if path.startswith("/v1/safety/"):
-        return config.RATE_LIMIT_ACCOUNT_PER_MINUTE
-    if path in {"/v1/me", "/v1/account"}:
-        return config.RATE_LIMIT_ACCOUNT_PER_MINUTE
-    return config.RATE_LIMIT_PER_MINUTE
-
-
 @app.middleware("http")
 async def api_auth_middleware(request: Request, call_next):
     request_id = _safe_request_id(request.headers.get("X-Request-ID"))
@@ -361,18 +278,7 @@ async def api_auth_middleware(request: Request, call_next):
         key = _extract_api_key(request)
         session = get_session()
         try:
-            user = None
-            bearer = request.headers.get("Authorization", "").lower().startswith("bearer ")
-            if bearer and key:
-                user = authenticate_access_token(session, key)
-                payload = decode_access_token(key) if user else None
-                request.state.auth_session_id = str((payload or {}).get("sid") or "") or None
-            if not user and config.API_KEY and key and secrets.compare_digest(key, config.API_KEY):
-                user = get_or_create_default_user(session=session)
-            elif not user and config.ALLOW_USER_API_KEYS and key:
-                user = get_user_by_api_key(key, session=session)
-            elif not user and not config.REQUIRE_API_AUTH:
-                user = get_or_create_default_user(session=session)
+            user = _resolve_request_user(request, session, key)
 
             if not user:
                 return await finish(
@@ -386,6 +292,19 @@ async def api_auth_middleware(request: Request, call_next):
 
             request.state.user_id = user.id
             request.state.user_is_admin = bool(user.is_admin)
+
+            # Private launch. Enforced here rather than per route so a new
+            # endpoint is closed until it is deliberately exempted.
+            if _is_invite_blocked(user, request.url.path):
+                return await finish(
+                    _error_response(
+                        403,
+                        "invite_required",
+                        "Thought Pins is in private testing. Enter an invite code to start.",
+                        request_id,
+                        details={"contact_email": config.INVITE_REQUEST_EMAIL},
+                    )
+                )
 
             rate_key = f"user:{user.id}:{request.url.path}"
             allowed, retry_after = check_rate_limit(rate_key, limit=_rate_limit_for_path(request.url.path))

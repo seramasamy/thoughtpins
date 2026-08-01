@@ -14,6 +14,7 @@ import type {
   EntriesPageResponse,
   EntryResponse,
   IngestResponse,
+  InviteStatusResponse,
   JobsPageResponse,
   JobResponse,
   LegalDocument,
@@ -549,6 +550,16 @@ export const api = {
     return request<{ status: string; count: number }>("/v1/sessions/revoke-others", {
       method: "POST",
       token,
+    });
+  },
+  inviteStatus(token: string) {
+    return request<InviteStatusResponse>("/v1/invites/status", { token });
+  },
+  redeemInvite(token: string, code: string) {
+    return request<InviteStatusResponse>("/v1/invites/redeem", {
+      method: "POST",
+      token,
+      body: { code },
     });
   },
   signInMethods(token: string) {

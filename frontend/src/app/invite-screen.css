@@ -1,0 +1,310 @@
+/* The private-launch wall. Deliberately calmer and more considered than a
+   blocked-access page usually is: for most people this is the first screen
+   Thought Pins ever shows them, and it should read as an invitation rather
+   than a rejection. */
+
+.invite-layout {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Slow warm drift behind the panel. Purely decorative, and it stands down for
+   anyone who has asked for reduced motion. */
+.invite-aurora {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.invite-aurora span {
+  position: absolute;
+  border-radius: var(--radius-pill);
+  filter: blur(70px);
+  opacity: 0.5;
+  animation: invite-drift 22s var(--ease-quiet) infinite alternate;
+}
+
+.invite-aurora span:nth-child(1) {
+  top: -14%;
+  left: -8%;
+  width: 46vmin;
+  height: 46vmin;
+  background: radial-gradient(circle, rgba(232, 97, 43, 0.4), transparent 70%);
+}
+
+.invite-aurora span:nth-child(2) {
+  right: -12%;
+  bottom: -18%;
+  width: 52vmin;
+  height: 52vmin;
+  background: radial-gradient(circle, rgba(88, 116, 101, 0.34), transparent 70%);
+  animation-delay: -8s;
+}
+
+.invite-aurora span:nth-child(3) {
+  top: 32%;
+  right: 18%;
+  width: 30vmin;
+  height: 30vmin;
+  background: radial-gradient(circle, rgba(179, 62, 22, 0.24), transparent 70%);
+  animation-delay: -15s;
+}
+
+@keyframes invite-drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(4%, -5%, 0) scale(1.14);
+  }
+}
+
+.invite-panel {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 18px;
+  width: min(468px, 100%);
+  padding: 30px 30px 22px;
+  animation: tp-rise var(--motion-entrance) var(--ease-quiet) both;
+}
+
+.invite-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 6px;
+  margin: 0;
+  padding: 5px 12px;
+  border: 1px solid var(--tp-line-strong);
+  border-radius: var(--radius-pill);
+  color: var(--tp-action);
+  background: var(--tp-brand-soft);
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.invite-heading {
+  display: grid;
+  gap: 10px;
+}
+
+.invite-heading h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.85rem;
+  font-weight: 500;
+  line-height: 1.18;
+}
+
+.invite-heading h1 em {
+  color: var(--tp-action);
+  font-style: italic;
+}
+
+.invite-heading p {
+  margin: 0;
+  color: var(--tp-ink-soft);
+  line-height: 1.55;
+}
+
+.invite-form {
+  display: grid;
+  gap: 8px;
+}
+
+.invite-form label,
+.invite-request label {
+  color: var(--tp-ink);
+  font-size: 0.86rem;
+  font-weight: 550;
+}
+
+.invite-code-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 46px;
+  gap: 8px;
+}
+
+.invite-code-input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--tp-line-strong);
+  border-radius: var(--radius-button);
+  color: var(--tp-ink);
+  background: var(--tp-surface);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 1.02rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  transition:
+    border-color var(--motion-quick) ease,
+    box-shadow var(--motion-quick) ease;
+}
+
+.invite-code-input::placeholder {
+  color: var(--tp-ink-faint);
+  letter-spacing: 0.14em;
+}
+
+.invite-code-input:focus-visible {
+  border-color: var(--tp-brand);
+  box-shadow: 0 0 0 3px var(--tp-brand-soft);
+  outline: none;
+}
+
+.invite-code-row button {
+  min-width: 0;
+  padding: 0;
+}
+
+.invite-help {
+  color: var(--tp-ink-soft);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.invite-error {
+  margin: 0;
+  color: var(--tp-action);
+  font-size: 0.85rem;
+}
+
+.invite-divider {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  color: var(--tp-ink-faint);
+  font-size: 0.78rem;
+}
+
+.invite-divider::before,
+.invite-divider::after {
+  content: "";
+  height: 1px;
+  background: var(--tp-line);
+}
+
+.invite-request-open {
+  justify-content: center;
+  width: 100%;
+}
+
+.invite-request {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--tp-line);
+  border-radius: var(--radius-card);
+  background: var(--tp-surface-warm);
+  animation: tp-rise var(--motion-standard) var(--ease-quiet) both;
+}
+
+.invite-optional {
+  margin-left: 6px;
+  color: var(--tp-ink-faint);
+  font-size: 0.76rem;
+  font-weight: 400;
+}
+
+.invite-request textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--tp-line-strong);
+  border-radius: var(--radius-button);
+  color: var(--tp-ink);
+  background: var(--tp-surface);
+  font: inherit;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.invite-request textarea:focus-visible {
+  border-color: var(--tp-brand);
+  box-shadow: 0 0 0 3px var(--tp-brand-soft);
+  outline: none;
+}
+
+.invite-mail-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: var(--radius-button);
+  color: #fff;
+  background: var(--tp-charcoal);
+  font-size: 0.92rem;
+  font-weight: 550;
+  text-decoration: none;
+  transition:
+    background-color var(--motion-quick) ease,
+    transform var(--motion-quick) ease;
+}
+
+.invite-mail-button:hover {
+  background: var(--tp-ink);
+}
+
+.invite-mail-button:active {
+  transform: translateY(1px);
+}
+
+.invite-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--tp-line);
+}
+
+.invite-signout,
+.invite-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--tp-ink-soft);
+  font-size: 0.82rem;
+}
+
+.invite-signout {
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.invite-signout:hover {
+  color: var(--tp-ink);
+}
+
+.invite-saved {
+  color: var(--tp-sage);
+}
+
+@media (max-width: 560px) {
+  .invite-panel {
+    padding: 24px 18px 18px;
+  }
+
+  .invite-heading h1 {
+    font-size: 1.6rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .invite-aurora span,
+  .invite-panel,
+  .invite-request {
+    animation: none;
+  }
+}

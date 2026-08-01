@@ -9,13 +9,19 @@ export async function installMockApi(
   mode: MockMode = "local",
   chatDelayMs = 0,
   fixture: "review" | "product" = "review",
-  options: { voiceArchiveEnabled?: boolean } = {},
+  options: {
+    voiceArchiveEnabled?: boolean;
+    inviteRequired?: boolean;
+    inviteAdmitted?: boolean;
+    aiConsentAccepted?: boolean;
+  } = {},
 ) {
   if (mode === "offline") {
     await page.route("**/v1/client-config", async (route) => route.abort("failed"));
     return;
   }
 
+  let inviteAdmitted = Boolean(options.inviteAdmitted);
   let chatPostCount = 0;
   let libraryPostCount = 0;
   let uploadPostCount = 0;
@@ -30,7 +36,9 @@ export async function installMockApi(
   let importancePromptsEnabled = false;
   let lastChatPayload: Record<string, unknown> | null = null;
   let voiceArchiveStatus = voiceArchive(false);
-  const legalAcceptances: Record<string, { version: string; accepted_at_utc: string }> = {};
+  const legalAcceptances: Record<string, { version: string; accepted_at_utc: string }> = options.aiConsentAccepted
+    ? { ai_disclosure: { version: "2026-07-13", accepted_at_utc: now } }
+    : {};
   const chatMessages: Array<Record<string, unknown>> = [];
 
   await page.route("**/v1/**", async (route) => {
@@ -40,7 +48,24 @@ export async function installMockApi(
     const method = request.method();
 
     if (path === "/v1/client-config") {
-      return json(route, clientConfig(mode, Boolean(options.voiceArchiveEnabled)));
+      return json(route, {
+        ...clientConfig(mode, Boolean(options.voiceArchiveEnabled)),
+        invite_required: Boolean(options.inviteRequired),
+        invite_request_email: "invite@thoughtpins.com",
+      });
+    }
+    if (path === "/v1/invites/status") {
+      return json(route, inviteStatus(Boolean(options.inviteRequired), inviteAdmitted));
+    }
+    if (path === "/v1/invites/redeem" && method === "POST") {
+      const submitted = String((request.postDataJSON() as { code?: string } | null)?.code || "")
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "");
+      if (submitted === "ABCDEFGHJKLM") {
+        inviteAdmitted = true;
+        return json(route, inviteStatus(true, true));
+      }
+      return json(route, { error: { code: "invite_required", message: "That code is not valid.", request_id: "req" } }, 403);
     }
     if (path === "/v1/auth/login" && method === "POST") {
       return json(route, { access_token: "test-access", refresh_token: "test-refresh", token_type: "bearer", expires_in: 3600 });
@@ -532,4 +557,14 @@ function json(route: Route, body: unknown, status = 200) {
     contentType: "application/json",
     body: JSON.stringify(body),
   });
+}
+
+function inviteStatus(required: boolean, admitted: boolean) {
+  return {
+    invite_required: required,
+    invite_redeemed: admitted,
+    admitted: !required || admitted,
+    contact_email: "invite@thoughtpins.com",
+    attempts_remaining: 10,
+  };
 }

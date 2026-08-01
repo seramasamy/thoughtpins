@@ -3,6 +3,7 @@ import { api, configureApiSession, type ApiSession } from "./api";
 import { AIConsentScreen } from "./app/AIConsentScreen";
 import { AppShell } from "./app/AppShell";
 import { AuthScreen } from "./app/AuthScreen";
+import { InviteScreen } from "./app/InviteScreen";
 import type { GlobalComposeMode, Notice, View } from "./app/types";
 import { messageFromError } from "./app/types";
 import { LoadingScreen } from "./components/ui";
@@ -17,7 +18,7 @@ import { LibraryView } from "./features/library/LibraryView";
 import { MemoryView } from "./features/memory/MemoryView";
 import { PinsView } from "./features/pins/PinsView";
 import { RecapView } from "./features/recap/RecapView";
-import type { ClientConfigResponse, MeResponse } from "./types";
+import type { ClientConfigResponse, InviteStatusResponse, MeResponse } from "./types";
 
 const SESSION_KEY = "thoughtpins.session.v1";
 
@@ -49,6 +50,8 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [composePending, setComposePending] = useState<GlobalComposeMode | null>(null);
   const [aiConsentState, setAiConsentState] = useState<"loading" | "required" | "accepted">("loading");
+  const [invite, setInvite] = useState<InviteStatusResponse | null>(null);
+  const [inviteState, setInviteState] = useState<"loading" | "resolved">("loading");
 
   const token = session?.accessToken || "";
   const localMode = configLoaded && clientConfig?.auth_required === false && !session;
@@ -140,9 +143,29 @@ export default function App() {
     return () => { mounted = false; };
   }, [configLoaded, legalVersion, localMode, session, token]);
 
+  // Private launch. Asked for on its own rather than folded into /v1/me so the
+  // answer is never cached alongside identity, and so redeeming a code updates
+  // one piece of state.
+  useEffect(() => {
+    let mounted = true;
+    if (!configLoaded) return () => { mounted = false; };
+    if (localMode || !session) {
+      setInvite(null);
+      setInviteState("resolved");
+      return () => { mounted = false; };
+    }
+    setInviteState("loading");
+    api.inviteStatus(token)
+      .then((next) => { if (mounted) setInvite(next); })
+      .catch(() => { if (mounted) setInvite(null); })
+      .finally(() => { if (mounted) setInviteState("resolved"); });
+    return () => { mounted = false; };
+  }, [configLoaded, localMode, session, token]);
+
   const logout = async () => {
     if (session?.refreshToken) await run(() => api.logout(session.refreshToken));
     setSession(null);
+    setInvite(null);
     setView("chat");
   };
 
@@ -181,6 +204,21 @@ export default function App() {
   if (!localMode && aiConsentState === "loading") return <LoadingScreen />;
   if (!localMode && aiConsentState === "required") {
     return <AIConsentScreen clientConfig={clientConfig} busy={busy} onAccept={acceptAIProcessing} onSignOut={logout} />;
+  }
+  if (!localMode && inviteState === "loading") return <LoadingScreen />;
+  // Shown after consent, so the account is fully created and its details kept
+  // before the wall appears. The server enforces this independently; the screen
+  // exists so the person is told what is happening rather than hitting refusals.
+  if (!localMode && invite && invite.invite_required && !invite.admitted) {
+    return (
+      <InviteScreen
+        token={token}
+        clientConfig={clientConfig}
+        status={invite}
+        onAdmitted={(next) => { setInvite(next); void refreshMe(); }}
+        onSignOut={logout}
+      />
+    );
   }
 
   return (

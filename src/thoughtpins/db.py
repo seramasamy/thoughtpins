@@ -52,6 +52,11 @@ class User(Base):
     auth_method = Column(String(32), default="api_key")
     two_factor_enabled = Column(Boolean, default=False)
     two_factor_secret = Column(String(64), nullable=True)
+    # Private-launch admission. Null means the account exists but has not been
+    # let in yet: registration still succeeds and the details are kept, the
+    # product simply stays closed until a code is redeemed.
+    invite_code_id = Column(String(32), nullable=True, index=True)
+    invite_redeemed_at_utc = Column(DateTime, nullable=True)
     preferences_json = Column(JSON, default=dict)
 
     raw_entries = relationship("RawEntry", back_populates="user", cascade="all, delete-orphan")
@@ -675,6 +680,6 @@ class Report(Base):
 # Imported last, after Base and the journal models exist, so the platform tables
 # register on the same metadata. Re-exported here to keep the historical import
 # path (`from thoughtpins.db import LlmUsageEvent`) working for callers.
-from thoughtpins.db_platform import LlmUsageEvent, MagicLinkToken  # noqa: E402,F401
+from thoughtpins.db_platform import InviteCode, LlmUsageEvent, MagicLinkToken  # noqa: E402,F401
 
 __all__ = [name for name in globals() if not name.startswith("_")]

@@ -70,3 +70,26 @@ class LlmUsageEvent(Base):
     request_id = Column(String(64), nullable=True)
 
     user = relationship("User", back_populates="llm_usage_events")
+
+
+class InviteCode(Base):
+    """An admin-issued code that admits an account to the private launch.
+
+    Not tenant data: a code exists before anyone redeems it and may admit
+    several people, so there is no owning user to scope it to. Only the hash is
+    stored, for the same reason refresh tokens are hashed — a leaked database
+    should not hand out working codes.
+    """
+
+    __tablename__ = "invite_codes"
+    __table_args__ = (Index("ix_invite_codes_expires", "expires_at_utc"),)
+
+    id = Column(String(32), primary_key=True, default=_new_id)
+    code_hash = Column(String(128), nullable=False, unique=True, index=True)
+    # A human label so codes can be told apart without knowing the code itself.
+    label = Column(String(128), nullable=True)
+    max_uses = Column(Integer, nullable=False, default=1)
+    used_count = Column(Integer, nullable=False, default=0)
+    created_at_utc = Column(DateTime, default=_utcnow, nullable=False)
+    expires_at_utc = Column(DateTime, nullable=True)
+    revoked_at_utc = Column(DateTime, nullable=True)

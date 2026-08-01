@@ -11,6 +11,20 @@ class AccountDeleteRequest(BaseModel):
     confirm: str = Field(..., description="Must equal DELETE")
 
 
+class InviteRedeemRequest(BaseModel):
+    code: str = Field(..., min_length=1, max_length=64)
+
+
+class InviteStatusResponse(BaseModel):
+    """Whether this account may use the product yet, and how to ask if not."""
+
+    invite_required: bool = False
+    invite_redeemed: bool = False
+    admitted: bool = True
+    contact_email: str = ""
+    attempts_remaining: int = 0
+
+
 class SignInMethodsResponse(BaseModel):
     """What this account can currently sign in with, and how to add a password.
 

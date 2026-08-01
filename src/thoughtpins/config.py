@@ -274,6 +274,12 @@ class Config:
     MAGIC_LINK_ALLOW_REGISTRATION: bool = _env_bool("MAGIC_LINK_ALLOW_REGISTRATION", True)
     MAGIC_LINK_BASE_URL: str = _env("MAGIC_LINK_BASE_URL")
     EMAIL_VERIFICATION_TOKEN_TTL_HOURS: int = _env_int("EMAIL_VERIFICATION_TOKEN_TTL_HOURS", 24)
+
+    # Private launch. Anyone may register; only a redeemed code opens the
+    # product. Defaults on wherever real people can reach the service, so a
+    # deploy that forgets to set it is closed rather than open.
+    INVITE_ONLY: bool = _env_bool("INVITE_ONLY", ENVIRONMENT in {"staging", "production"})
+    INVITE_REQUEST_EMAIL: str = _env("INVITE_REQUEST_EMAIL", "invite@thoughtpins.com")
     REQUIRE_API_AUTH: bool = _env_bool(
         "REQUIRE_API_AUTH",
         ENVIRONMENT in {"staging", "production"},

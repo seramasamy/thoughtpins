@@ -17,6 +17,8 @@ export type ClientConfigResponse = {
   oauth_google_client_id?: string | null;
   oauth_apple_client_id?: string | null;
   magic_link_enabled?: boolean;
+  invite_required?: boolean;
+  invite_request_email?: string;
   voice_archive_enabled: boolean;
   ai_processing: string;
   memory_context_mode: string;
@@ -113,83 +115,6 @@ export type SafetyReportResponse = {
   category: SafetyReportCategory;
   created_at_utc: string | null;
   support_channel: string;
-};
-
-export type DeviceRegistrationRequest = {
-  installation_id: string;
-  platform: "ios" | "android" | "web";
-  device_name?: string | null;
-  app_version?: string | null;
-  build_number?: string | null;
-  os_version?: string | null;
-  locale?: string | null;
-  timezone?: string | null;
-  push_provider?: "apns" | "fcm" | "webpush" | null;
-  push_token?: string | null;
-  notifications_enabled?: boolean;
-  metadata?: Record<string, unknown>;
-};
-
-export type DeviceResponse = Omit<DeviceRegistrationRequest, "push_token" | "metadata"> & {
-  id: string;
-  push_token_present: boolean;
-  notifications_enabled: boolean;
-  created_at_utc: string | null;
-  last_seen_at_utc: string | null;
-  revoked_at_utc: string | null;
-};
-
-export type DevicesPageResponse = {
-  items: DeviceResponse[];
-  total: number;
-};
-
-export type SessionResponse = {
-  id: string;
-  current: boolean;
-  created_at_utc: string | null;
-  expires_at_utc: string | null;
-  revoked_at_utc: string | null;
-  user_agent: string | null;
-  ip_address: string | null;
-};
-
-export type SessionsPageResponse = {
-  items: SessionResponse[];
-  total: number;
-};
-
-export type SignInMethodsResponse = {
-  email: string | null;
-  phone: string | null;
-  password_set: boolean;
-  email_verified: boolean;
-  oauth_providers: string[];
-  magic_link_available: boolean;
-  password_change_requires: "current_password" | "email_code" | "unavailable";
-};
-
-export type PasswordSetRequest = {
-  new_password: string;
-  current_password?: string;
-  code?: string;
-};
-
-export type PasswordSetResponse = {
-  status: string;
-  password_set: boolean;
-  other_sessions_revoked: number;
-};
-
-export type MeResponse = {
-  id: string;
-  email: string | null;
-  phone: string | null;
-  display_name: string | null;
-  is_admin: boolean;
-  auth_method: string;
-  created_at_utc: string | null;
-  last_login_utc: string | null;
 };
 
 export type IngestResponse = {
@@ -348,7 +273,6 @@ export type LibrarySourceResponse = {
   created_at_utc: string | null;
   chunks: number;
 };
-
 
 export type ChatRequest = {
   text: string;
@@ -592,3 +516,18 @@ export type ApiErrorBody = {
     details?: unknown;
   };
 };
+
+// Identity and session contracts live in their own module; re-exported so
+// callers keep importing everything from ./types.
+export type {
+  DeviceRegistrationRequest,
+  DeviceResponse,
+  DevicesPageResponse,
+  SessionResponse,
+  SessionsPageResponse,
+  InviteStatusResponse,
+  SignInMethodsResponse,
+  PasswordSetRequest,
+  PasswordSetResponse,
+  MeResponse,
+} from "./types-account";

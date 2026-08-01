@@ -44,6 +44,10 @@ class ClientConfigResponse(BaseModel):
     oauth_google_client_id: str | None = None
     oauth_apple_client_id: str | None = None
     magic_link_enabled: bool = False
+    # Private launch. Told to the client before sign-in so the sign-up screen can
+    # say what happens next instead of surprising people after they register.
+    invite_required: bool = False
+    invite_request_email: str = ""
     voice_archive_enabled: bool
     ai_processing: str
     memory_context_mode: str
@@ -133,6 +137,8 @@ def create_metadata_router(
             oauth_google_client_id=(config.GOOGLE_OAUTH_CLIENT_IDS[0] if config.GOOGLE_OAUTH_CLIENT_IDS else None),
             oauth_apple_client_id=(config.APPLE_OAUTH_CLIENT_IDS[0] if config.APPLE_OAUTH_CLIENT_IDS else None),
             magic_link_enabled=bool(config.MAGIC_LINK_ENABLED),
+            invite_required=bool(config.INVITE_ONLY),
+            invite_request_email=config.INVITE_REQUEST_EMAIL,
             voice_archive_enabled=config.VOICE_ARCHIVE_ENABLED,
             ai_processing="configured",
             memory_context_mode=config.MEMORY_CONTEXT_MODE,

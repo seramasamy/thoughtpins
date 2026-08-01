@@ -9,11 +9,14 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
+from thoughtpins import invites
 from thoughtpins.api_contracts import (
     AccountDeleteRequest,
     DeviceRegistrationRequest,
     DeviceResponse,
     DevicesPageResponse,
+    InviteRedeemRequest,
+    InviteStatusResponse,
     LegalAcceptanceRequest,
     PasswordSetRequest,
     PasswordSetResponse,
@@ -83,6 +86,45 @@ def create_account_router(
                 "created_at_utc": user.created_at_utc.isoformat() if user.created_at_utc else None,
                 "last_login_utc": user.last_login_utc.isoformat() if user.last_login_utc else None,
             }
+        finally:
+            session.close()
+
+    @router.get("/v1/invites/status", response_model=InviteStatusResponse)
+    async def invite_status(user_id: str = Depends(current_user_dependency)) -> InviteStatusResponse:
+        session = get_session()
+        try:
+            user = session.query(User).filter(User.id == user_id).first()
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            return InviteStatusResponse(**invites.status(user))
+        finally:
+            session.close()
+
+    @router.post("/v1/invites/redeem", response_model=InviteStatusResponse)
+    async def redeem_invite(
+        request_model: InviteRedeemRequest,
+        user_id: str = Depends(current_user_dependency),
+    ) -> InviteStatusResponse:
+        session = get_session()
+        try:
+            user = session.query(User).filter(User.id == user_id).first()
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            try:
+                record = invites.redeem(session, user, request_model.code)
+            except invites.InviteAttemptsExhausted as exc:
+                record_audit_event(session, user_id=user_id, action="invite.redeem_locked")
+                raise HTTPException(status_code=429, detail=str(exc)) from exc
+            except invites.InviteInvalid as exc:
+                record_audit_event(session, user_id=user_id, action="invite.redeem_rejected")
+                raise HTTPException(status_code=403, detail=str(exc)) from exc
+            record_audit_event(
+                session,
+                user_id=user_id,
+                action="invite.redeemed",
+                metadata={"invite_code_id": record.id, "label": record.label or ""},
+            )
+            return InviteStatusResponse(**invites.status(user))
         finally:
             session.close()
 
