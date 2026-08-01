@@ -111,9 +111,7 @@ def _export(session, user_id: str, tmp_path: Path):
     return exporter, Path(exporter._vault)
 
 
-def test_article_topics_link_to_notes_that_exist_and_stay_text_when_they_do_not(
-    isolated_db, monkeypatch, tmp_path
-):
+def test_article_topics_link_to_notes_that_exist_and_stay_text_when_they_do_not(isolated_db, monkeypatch, tmp_path):
     from thoughtpins.config import config
     from thoughtpins.store import get_session
     from thoughtpins.users import get_or_create_default_user

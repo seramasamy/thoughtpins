@@ -787,8 +787,22 @@ async function expectNoComposerNavigationOverlap(page: Page) {
   const composer = page.locator(".global-composer");
   const mobileNavigation = page.locator(".mobile-tabbar");
   if (!(await composer.isVisible()) || !(await mobileNavigation.isVisible())) return;
+  await settleAnimations(page);
   const composerBox = await composer.boundingBox();
   const navigationBox = await mobileNavigation.boundingBox();
   if (!composerBox || !navigationBox) return;
   expect(composerBox.y + composerBox.height).toBeLessThanOrEqual(navigationBox.y + 1);
+}
+
+/** Wait for entrance motion to finish before measuring anything's position.
+ *
+ * The composer rises 10px into place over --motion-entrance. Measuring during
+ * that flight reports it overlapping the tab bar by a few pixels, and by a
+ * different few pixels on every run, so geometry assertions have to read the
+ * settled layout rather than a frame of the animation. */
+async function settleAnimations(page: Page) {
+  await page.waitForFunction(() => {
+    const animations = document.getAnimations();
+    return animations.every((animation) => animation.playState !== "running");
+  });
 }

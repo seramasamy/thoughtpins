@@ -53,11 +53,18 @@ class UsageBudgetExceeded(RuntimeError):
 
 def _load_price_map() -> _PriceMap:
     global _price_map
-    if _price_map is not None:
-        return _price_map
+    # Read the global into a local at each check. The second check is the
+    # double-checked locking idiom and is genuinely reachable, because another
+    # thread can populate the map while this one waits for the lock; reading
+    # through a local keeps that visible to type checkers, which otherwise
+    # narrow the global to None after the first check and call the second dead.
+    cached = _price_map
+    if cached is not None:
+        return cached
     with _price_map_lock:
-        if _price_map is not None:
-            return _price_map
+        cached = _price_map
+        if cached is not None:
+            return cached
         parsed: _PriceMap = {}
         try:
             raw = json.loads(config.LLM_PRICING_JSON or "{}")
@@ -76,7 +83,7 @@ def _load_price_map() -> _PriceMap:
                 if entry:
                     parsed[str(model)] = entry
         _price_map = parsed
-    return _price_map
+    return parsed
 
 
 def _price_for(model: str) -> tuple[float, float]:

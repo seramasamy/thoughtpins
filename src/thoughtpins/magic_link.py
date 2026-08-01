@@ -70,7 +70,7 @@ def _recent_request_count(session: Session, email: str) -> int:
 
 
 def _new_code() -> str:
-    return f"{secrets.randbelow(10 ** CODE_DIGITS):0{CODE_DIGITS}d}"
+    return f"{secrets.randbelow(10**CODE_DIGITS):0{CODE_DIGITS}d}"
 
 
 def normalize_code(value: str) -> str:
@@ -182,9 +182,7 @@ def purge_expired_tokens(session: Session, *, older_than_days: int = 7) -> int:
     """Drop long-dead tokens so the table does not grow without bound."""
     cutoff = _utcnow() - timedelta(days=max(1, older_than_days))
     removed = (
-        session.query(MagicLinkToken)
-        .filter(MagicLinkToken.expires_at_utc < cutoff)
-        .delete(synchronize_session=False)
+        session.query(MagicLinkToken).filter(MagicLinkToken.expires_at_utc < cutoff).delete(synchronize_session=False)
     )
     session.commit()
     return int(removed or 0)

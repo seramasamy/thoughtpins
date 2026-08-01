@@ -107,8 +107,7 @@ def test_every_method_reaches_the_same_account_row(client, magic_link_enabled, i
     link_token = link_response.json()["access_token"]
 
     ids = {
-        client.get("/v1/me", headers=_auth(token)).json()["id"]
-        for token in (password_token, code_token, link_token)
+        client.get("/v1/me", headers=_auth(token)).json()["id"] for token in (password_token, code_token, link_token)
     }
     assert len(ids) == 1
 
@@ -190,9 +189,10 @@ def test_session_alone_cannot_add_a_password(client, magic_link_enabled, issued)
         headers=_auth(token),
     )
     assert response.status_code == 403
-    assert client.post(
-        "/v1/auth/login", json={"email": "nocode@example.com", "password": SECOND_PASSPHRASE}
-    ).status_code == 401
+    assert (
+        client.post("/v1/auth/login", json={"email": "nocode@example.com", "password": SECOND_PASSPHRASE}).status_code
+        == 401
+    )
 
 
 def test_wrong_code_cannot_add_a_password(client, magic_link_enabled, issued):
@@ -245,9 +245,10 @@ def test_google_account_adds_password_with_code_and_keeps_google(client, magic_l
     )
     assert response.status_code == 200, response.text
 
-    assert client.post(
-        "/v1/auth/login", json={"email": "bothways@example.com", "password": SECOND_PASSPHRASE}
-    ).status_code == 200
+    assert (
+        client.post("/v1/auth/login", json={"email": "bothways@example.com", "password": SECOND_PASSPHRASE}).status_code
+        == 200
+    )
     still_google = _sign_in_with_google(client, monkeypatch, "bothways@example.com")
     body = client.get("/v1/account/sign-in-methods", headers=_auth(still_google)).json()
     assert body["oauth_providers"] == ["google"]
@@ -297,12 +298,14 @@ def test_changing_a_password_requires_the_current_one(client, magic_link_enabled
         headers=_auth(token),
     )
     assert accepted.status_code == 200, accepted.text
-    assert client.post(
-        "/v1/auth/login", json={"email": "changer@example.com", "password": FIRST_PASSPHRASE}
-    ).status_code == 401
-    assert client.post(
-        "/v1/auth/login", json={"email": "changer@example.com", "password": SECOND_PASSPHRASE}
-    ).status_code == 200
+    assert (
+        client.post("/v1/auth/login", json={"email": "changer@example.com", "password": FIRST_PASSPHRASE}).status_code
+        == 401
+    )
+    assert (
+        client.post("/v1/auth/login", json={"email": "changer@example.com", "password": SECOND_PASSPHRASE}).status_code
+        == 200
+    )
 
 
 def test_a_code_cannot_stand_in_for_a_known_password(client, magic_link_enabled, issued):
@@ -344,10 +347,13 @@ def test_short_password_is_refused(client, magic_link_enabled, issued):
 def test_setting_a_password_signs_out_other_devices_but_not_this_one(client, magic_link_enabled, issued):
     """A credential change is the moment to evict anyone else holding a session."""
     first = _sign_in_by_code(client, issued, "devices@example.com")
-    other = client.post("/v1/auth/magic-code/consume", json={
-        "email": "devices@example.com",
-        "code": _fresh_code(client, issued, "devices@example.com"),
-    })
+    other = client.post(
+        "/v1/auth/magic-code/consume",
+        json={
+            "email": "devices@example.com",
+            "code": _fresh_code(client, issued, "devices@example.com"),
+        },
+    )
     other_refresh = other.json()["refresh_token"]
 
     code = _fresh_code(client, issued, "devices@example.com")

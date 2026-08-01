@@ -22,13 +22,13 @@ from thoughtpins.auth import (
 )
 from thoughtpins.config import config
 from thoughtpins.db import User
+from thoughtpins.email_delivery import EmailDeliveryError
 from thoughtpins.email_verification import (
     create_email_verification_token,
     is_email_verified,
     mark_email_verified,
     verify_email_token,
 )
-from thoughtpins.email_delivery import EmailDeliveryError
 from thoughtpins.magic_link import (
     MagicLinkInvalid,
     MagicLinkRateLimited,
@@ -37,7 +37,6 @@ from thoughtpins.magic_link import (
     issue_magic_link,
 )
 from thoughtpins.oauth import verify_oauth_id_token
-from thoughtpins.privacy import fingerprint_identifier
 from thoughtpins.oauth_accounts import (
     OAuthAccountError,
     OAuthIdentityConflict,
@@ -45,6 +44,7 @@ from thoughtpins.oauth_accounts import (
     resolve_oauth_user,
     store_refresh_credential,
 )
+from thoughtpins.privacy import fingerprint_identifier
 from thoughtpins.store import get_session
 from thoughtpins.users import (
     get_user_by_email,

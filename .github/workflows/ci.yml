@@ -97,6 +97,14 @@ jobs:
           EMBEDDING_PROVIDER: openai
           OPENAI_API_KEY: ci-embedding-key
           DATA_ENCRYPTION_KEY: __teAEiSx6mPRbwBVXb9-SWJa7b-e0D5d1gtD89EZvI=
+          # VECTOR_MODE defaults to qdrant_local, which production rejects, so the
+          # smoke has to name a remote vector store the way a real deploy does.
+          # These are placeholders: the step validates configuration shape and
+          # never opens a connection.
+          VECTOR_MODE: qdrant_remote
+          QDRANT_URL: https://ci-placeholder.qdrant.example
+          QDRANT_API_KEY: ci-qdrant-key
+          VECTOR_HEALTHCHECK_LIVE: "true"
           PRIVACY_POLICY_URL: https://thoughtpins.com/privacy
           TERMS_URL: https://thoughtpins.com/terms
           SUPPORT_URL: https://thoughtpins.com/support

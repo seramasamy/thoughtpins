@@ -287,9 +287,7 @@ class Config:
     # bound. Tracking and enforcement are separate flags so a deployment can
     # observe real per-user spend before committing to a budget number.
     USAGE_TRACKING_ENABLED: bool = _env_bool("USAGE_TRACKING_ENABLED", True)
-    USAGE_ENFORCEMENT_ENABLED: bool = _env_bool(
-        "USAGE_ENFORCEMENT_ENABLED", ENVIRONMENT in {"staging", "production"}
-    )
+    USAGE_ENFORCEMENT_ENABLED: bool = _env_bool("USAGE_ENFORCEMENT_ENABLED", ENVIRONMENT in {"staging", "production"})
     USAGE_MONTHLY_BUDGET_USD: float = _env_float("USAGE_MONTHLY_BUDGET_USD", 3.00)
     USAGE_BUDGET_WARN_RATIO: float = _env_float("USAGE_BUDGET_WARN_RATIO", 0.8)
     USAGE_GLOBAL_MONTHLY_BUDGET_USD: float = _env_float("USAGE_GLOBAL_MONTHLY_BUDGET_USD", 50.00)

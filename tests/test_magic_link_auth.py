@@ -204,7 +204,10 @@ def test_code_accepts_spaced_input(isolated_db, magic_link_enabled, monkeypatch)
     _, code = issued[0]
 
     spaced = f"{code[:3]} {code[3:]}"
-    assert client.post("/v1/auth/magic-code/consume", json={"email": "spaced@example.com", "code": spaced}).status_code == 200
+    assert (
+        client.post("/v1/auth/magic-code/consume", json={"email": "spaced@example.com", "code": spaced}).status_code
+        == 200
+    )
 
 
 def test_code_brute_force_is_capped(isolated_db, magic_link_enabled, monkeypatch):
@@ -218,10 +221,15 @@ def test_code_brute_force_is_capped(isolated_db, magic_link_enabled, monkeypatch
     wrong = "000000" if code != "000000" else "111111"
 
     for _ in range(5):
-        assert client.post("/v1/auth/magic-code/consume", json={"email": "brute@example.com", "code": wrong}).status_code == 400
+        assert (
+            client.post("/v1/auth/magic-code/consume", json={"email": "brute@example.com", "code": wrong}).status_code
+            == 400
+        )
 
     # The correct code must now be refused too: the attempt budget burned it.
-    assert client.post("/v1/auth/magic-code/consume", json={"email": "brute@example.com", "code": code}).status_code == 400
+    assert (
+        client.post("/v1/auth/magic-code/consume", json={"email": "brute@example.com", "code": code}).status_code == 400
+    )
 
 
 def test_code_is_scoped_to_its_own_address(isolated_db, magic_link_enabled, monkeypatch):

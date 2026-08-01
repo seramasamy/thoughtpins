@@ -90,9 +90,7 @@ def set_password(
     proof = required_proof(user)
 
     if proof == PROOF_UNAVAILABLE:
-        raise CredentialProofUnavailable(
-            "Add a verified email address to this account before setting a password."
-        )
+        raise CredentialProofUnavailable("Add a verified email address to this account before setting a password.")
 
     if proof == PROOF_CURRENT_PASSWORD:
         if not current_password or not verify_password(current_password, user.password_hash):
