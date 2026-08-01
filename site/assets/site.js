@@ -81,6 +81,10 @@ for (const link of document.querySelectorAll("[data-app-link]")) {
   link.href = appHref(link.dataset.appLink || "");
 }
 
+// Only a developer machine ever runs with auth turned off, so the "open test
+// session" affordance is gated on the host rather than on the API's answer.
+const isLocalHost = new Set(["127.0.0.1", "localhost", "[::1]"]).has(window.location.hostname);
+
 async function configureLocalSession() {
   if (!isLocalHost) return;
 
@@ -289,9 +293,16 @@ function setupProductPreview() {
   const root = document.querySelector("[data-product-demo]");
   if (!(root instanceof HTMLElement)) return;
 
-  const tabs = Array.from(root.querySelectorAll("[data-preview-tab]"));
+  // The tabs sit in the section header on this page and inside the demo on the
+  // classic page, so search the whole section rather than only the demo box.
+  const scope = root.closest("section") || document;
+  const tabs = Array.from(scope.querySelectorAll("[data-preview-tab]"));
   const panels = Array.from(root.querySelectorAll("[data-preview-panel]"));
   if (!tabs.length || !panels.length) return;
+
+  // Tells the inline no-module fallback to stop syncing mode to viewport width,
+  // so a resize cannot silently undo the device the visitor picked.
+  root.dataset.previewControlled = "true";
 
   const setMode = (mode, moveFocus = false) => {
     root.dataset.previewMode = mode;
@@ -429,6 +440,8 @@ function setupDemoLive() {
       stop() {
         running = false;
         clear();
+        root.classList.remove("is-live");
+        if (frame) frame.classList.remove("demo-running");
       },
     };
   }
