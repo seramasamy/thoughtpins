@@ -6,6 +6,9 @@ Dockerfile text eol=lf
 *.bat text eol=crlf
 *.ps1 text eol=crlf
 
+# `* text eol=lf` above normalises line endings in every file that is not
+# claimed here, which silently rewrites bytes inside binaries. That is how the
+# Gradle wrapper jar reached CI two bytes short and unopenable.
 *.gif binary
 *.ico binary
 *.jpeg binary
@@ -14,3 +17,30 @@ Dockerfile text eol=lf
 *.webp binary
 *.woff binary
 *.woff2 binary
+
+# Archives and compiled artifacts
+*.jar binary
+*.zip binary
+*.gz binary
+*.tgz binary
+*.class binary
+*.wasm binary
+*.so binary
+*.dylib binary
+*.dll binary
+
+# Fonts, media, and documents
+*.ttf binary
+*.otf binary
+*.eot binary
+*.pdf binary
+*.mp3 binary
+*.mp4 binary
+*.m4a binary
+*.wav binary
+*.webm binary
+
+# Credentials and signing material
+*.p12 binary
+*.keystore binary
+*.jks binary

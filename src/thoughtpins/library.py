@@ -594,7 +594,12 @@ def _extract_document_graph(
     if status != "processed" or not config.LIBRARY_EXTRACT_GRAPH:
         return None
     graph_text = _clean_text(text)[: config.LIBRARY_GRAPH_EXTRACT_MAX_CHARS]
-    if len(graph_text) < config.ARTICLE_MIN_TEXT_CHARS:
+    # ARTICLE_MIN_TEXT_CHARS guards web fetching, where a short result means a
+    # paywall stub or a failed retrieval. It is the wrong bar for text the person
+    # wrote themselves: most notes in a real Obsidian vault, and most pasted
+    # snippets, are a couple of hundred characters, and gating on 500 left every
+    # one of them out of the graph with no people, places, or topics extracted.
+    if len(graph_text) < config.LIBRARY_GRAPH_MIN_TEXT_CHARS:
         return None
     try:
         from thoughtpins.ingestion.extraction import correct_entity_types, extract_from_entry

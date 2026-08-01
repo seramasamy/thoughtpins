@@ -216,6 +216,11 @@ class Config:
     # journal one graph rather than two piles.
     LIBRARY_EXTRACT_GRAPH: bool = _env_bool("LIBRARY_EXTRACT_GRAPH", True)
     LIBRARY_GRAPH_EXTRACT_MAX_CHARS: int = _env_int("LIBRARY_GRAPH_EXTRACT_MAX_CHARS", 12_000)
+    # Deliberately far below ARTICLE_MIN_TEXT_CHARS. That threshold decides
+    # whether a *fetched page* looks like a real article; this one decides
+    # whether saved text is worth extracting from at all. A one-line note about
+    # a person still names that person.
+    LIBRARY_GRAPH_MIN_TEXT_CHARS: int = _env_int("LIBRARY_GRAPH_MIN_TEXT_CHARS", 80)
     MEMORY_HYBRID_KEYWORD_CANDIDATES: int = _env_int("MEMORY_HYBRID_KEYWORD_CANDIDATES", 3000)
     MEMORY_HYBRID_GRAPH_HOPS: int = _env_int("MEMORY_HYBRID_GRAPH_HOPS", 1)
     MEMORY_HYBRID_GRAPH_RESULTS: int = _env_int("MEMORY_HYBRID_GRAPH_RESULTS", 25)

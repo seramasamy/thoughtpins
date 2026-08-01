@@ -32,6 +32,10 @@ dependencies = [
     "rich>=13.0",
     "typer>=0.12",
     "python-dotenv>=1.0",
+    # Imported directly by thoughtpins.utils. It used to arrive only as a
+    # transitive of celery and matplotlib, which live in optional extras, so any
+    # install without those extras could not import the app at all.
+    "python-dateutil>=2.9",
     "PyYAML>=6.0.3",
     "qdrant-client>=1.9",
     "cryptography>=48.0.1",
