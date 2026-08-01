@@ -209,7 +209,12 @@ class Config:
     APIFY_BASE_URL: str = _env("APIFY_BASE_URL", "https://api.apify.com/v2")
     APIFY_READER_ACTOR: str = _env("APIFY_READER_ACTOR")
     APIFY_READER_INPUT_TEMPLATE: str = _env("APIFY_READER_INPUT_TEMPLATE")
-    LIBRARY_EXTRACT_GRAPH: bool = _env_bool("LIBRARY_EXTRACT_GRAPH", False)
+    # A saved article that is not put through extraction becomes an island: it
+    # exports as a note with no links to the people, places, and topics it shares
+    # with the journal. Extraction is one more LLM call per saved source, which
+    # the usage budget already meters, and it is what makes the library and the
+    # journal one graph rather than two piles.
+    LIBRARY_EXTRACT_GRAPH: bool = _env_bool("LIBRARY_EXTRACT_GRAPH", True)
     LIBRARY_GRAPH_EXTRACT_MAX_CHARS: int = _env_int("LIBRARY_GRAPH_EXTRACT_MAX_CHARS", 12_000)
     MEMORY_HYBRID_KEYWORD_CANDIDATES: int = _env_int("MEMORY_HYBRID_KEYWORD_CANDIDATES", 3000)
     MEMORY_HYBRID_GRAPH_HOPS: int = _env_int("MEMORY_HYBRID_GRAPH_HOPS", 1)

@@ -28,6 +28,22 @@ class VaultNoteWriter:
         self._entity_names = entity_names
         self._written = written
 
+    def entity_link_by_name(self, name: str) -> str | None:
+        """Resolve a free-text name to an exported entity note, or None.
+
+        Article topics and concepts arrive as loose strings from reading
+        analysis, not as entity ids. Matching them by name lets a saved article
+        join the same graph as the journal, and returning None when nothing
+        matches keeps the vault free of links that point at no note.
+        """
+        key = " ".join(name.split()).casefold()
+        if not key:
+            return None
+        for entity_id, canonical in self._entity_names.items():
+            if canonical.casefold() == key and entity_id in self._entity_paths:
+                return wikilink(self._entity_paths[entity_id], label=canonical)
+        return None
+
     def entry_entity_links(self, entry: RawEntry | None) -> list[str]:
         if not entry:
             return []

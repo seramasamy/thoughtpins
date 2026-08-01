@@ -41,18 +41,29 @@ REQUIRED_INDEXES = (
     "_System/thoughtpins-vault-manifest.json",
 )
 REQUIRED_V2_VIEWS = tuple(path.as_posix() for path in (*GENERATED_BASES, MEMORY_CANVAS_PATH))
+# Event notes come from two shapes: Event rows and entities typed "event". Only
+# the entity shape carries quotes, so "## Quotes" is required of the entity note
+# types and left optional for "event".
+_ENTITY_SECTIONS = (
+    "## Card",
+    "## Known Attributes",
+    "## Quotes",
+    "## Recent Memories",
+    "## Relationships",
+    "## Source Entries",
+)
 TYPE_REQUIRED_SECTIONS = {
     "home": ("## Start Here", "## Current Counts", "## Open In Obsidian", "## System Boundary"),
     "index": (),
     "daily_journal": ("## Entries", "## Mentioned"),
     "entry": ("## Context", "## Mentioned", "## Memories", "## Original Text"),
-    "person": ("## Card", "## Known Attributes", "## Recent Memories", "## Relationships", "## Source Entries"),
-    "place": ("## Card", "## Known Attributes", "## Recent Memories", "## Relationships", "## Source Entries"),
-    "organization": ("## Card", "## Known Attributes", "## Recent Memories", "## Relationships", "## Source Entries"),
-    "project": ("## Card", "## Known Attributes", "## Recent Memories", "## Relationships", "## Source Entries"),
+    "person": _ENTITY_SECTIONS,
+    "place": _ENTITY_SECTIONS,
+    "organization": _ENTITY_SECTIONS,
+    "project": _ENTITY_SECTIONS,
     "event": ("## Card", "## Known Attributes", "## Recent Memories", "## Relationships", "## Source Entries"),
-    "thing": ("## Card", "## Known Attributes", "## Recent Memories", "## Relationships", "## Source Entries"),
-    "concept": ("## Card", "## Known Attributes", "## Recent Memories", "## Relationships", "## Source Entries"),
+    "thing": _ENTITY_SECTIONS,
+    "concept": _ENTITY_SECTIONS,
     "article": (
         "## Reading Card",
         "## Source",

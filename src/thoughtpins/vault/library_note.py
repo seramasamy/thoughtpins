@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from thoughtpins.db import DocumentSource
@@ -23,11 +24,26 @@ from thoughtpins.vault.markdown import (
 )
 
 
-def render_library_note(document: DocumentSource, related: list[str]) -> tuple[dict[str, Any], str]:
-    """Return metadata and Markdown while honoring the source export policy."""
+def render_library_note(
+    document: DocumentSource,
+    related: list[str],
+    *,
+    link_name: Callable[[str], str | None] | None = None,
+) -> tuple[dict[str, Any], str]:
+    """Return metadata and Markdown while honoring the source export policy.
+
+    `link_name` resolves a topic or concept to an exported note. Topics that
+    match a note become wikilinks, so a saved article sits in the same graph as
+    the journal entries that touch the same subject; topics with no note stay
+    plain text rather than pointing nowhere.
+    """
     analysis = document.metadata_json.get("reading_analysis", {}) if isinstance(document.metadata_json, dict) else {}
-    topics = _plain_list_items(_string_list(analysis.get("topics", [])))
-    concepts = _plain_list_items(_string_list(analysis.get("key_concepts", [])))
+    raw_topics = _string_list(analysis.get("topics", []))
+    raw_concepts = _string_list(analysis.get("key_concepts", []))
+    topics = _linked_list_items(raw_topics, link_name)
+    concepts = _linked_list_items(raw_concepts, link_name)
+    subject_links = sorted({item for item in (*topics, *concepts) if item.startswith("[[")})
+    related = sorted(set(related) | set(subject_links))
     metadata = _metadata(
         note_id=f"document-{document.id}",
         note_type="article" if document.source_type in {"url", "article"} else "document",
@@ -99,6 +115,14 @@ def render_library_note(document: DocumentSource, related: list[str]) -> tuple[d
     elif document.processing_error:
         lines.extend(["", "## Retrieval Note", escape_wikilink_tokens(document.processing_error)])
     return metadata, "\n".join(lines)
+
+
+def _linked_list_items(items: list[str], link_name: Callable[[str], str | None] | None) -> list[str]:
+    rendered: list[str] = []
+    for item in _plain_list_items(items):
+        link = link_name(item) if link_name else None
+        rendered.append(link or item)
+    return rendered
 
 
 __all__ = ["render_library_note"]

@@ -17,10 +17,8 @@ from thoughtpins.source_policy import export_policy_for_source
 from thoughtpins.store import get_session
 from thoughtpins.vault.bases import GENERATED_BASES, write_vault_bases
 from thoughtpins.vault.canvas import MEMORY_CANVAS_PATH, write_memory_canvas
+from thoughtpins.vault.entity_note import render_entity_note
 from thoughtpins.vault.export_format import (
-    _attribute_lines,
-    _date_only,
-    _entity_note_type,
     _entity_stat_bucket,
     _entry_date,
     _entry_datetime,
@@ -529,64 +527,25 @@ class VaultExporter:
             relationships=entity_relationships,
             events=events,
         )
-        metadata = _metadata(
-            note_id=f"entity-{entity.id}",
-            note_type=_entity_note_type(entity.type),
-            title=portable_name,
-            created=_iso(first_seen),
-            updated=_iso(last_seen),
-            source="thoughtpins_memory",
-            tags=["thoughtpins", "entity", _entity_note_type(entity.type)],
+        metadata, body = render_entity_note(
+            entity,
+            portable_name=portable_name,
+            memories=entity_memories,
+            mention_count=len(entity_mentions),
+            relationship_count=len(entity_relationships),
             aliases=aliases,
-            thoughtpins_id=entity.id,
-            related=related + source_links[:20],
-        )
-        metadata.update(
-            {
-                "memory_count": len(entity_memories),
-                "mention_count": len(entity_mentions),
-                "relationship_count": len(entity_relationships),
-                "first_seen": _date_only(first_seen),
-                "last_seen": _date_only(last_seen),
-                "confidence": entity_public_confidence(
-                    entity_mentions=entity_mentions,
-                    memories=entity_memories,
-                    relationships=entity_relationships,
-                ),
-            }
-        )
-        attr_lines = _attribute_lines(entity, public_entry_ids)
-        memory_lines = [f"- {escape_wikilink_tokens(memory.text)}" for memory in entity_memories[:25]]
-        relationship_lines = self._note_writer.relationship_lines(entity, entity_relationships[:40])
-        card = _markdown_table(
-            [
-                ("Type", entity.type),
-                ("Memories", len(entity_memories)),
-                ("Mentions", len(entity_mentions)),
-                ("Relationships", len(entity_relationships)),
-                ("First seen", _date_only(first_seen)),
-                ("Last seen", _date_only(last_seen)),
-            ]
-        )
-        body = "\n".join(
-            [
-                f"# {safe_markdown_heading(portable_name)}",
-                "",
-                "## Card",
-                card,
-                "",
-                "## Known Attributes",
-                "\n".join(attr_lines) if attr_lines else "- No attributes recorded yet.",
-                "",
-                "## Recent Memories",
-                "\n".join(memory_lines) if memory_lines else "- No memories recorded yet.",
-                "",
-                "## Relationships",
-                "\n".join(relationship_lines) if relationship_lines else "- No relationships recorded yet.",
-                "",
-                "## Source Entries",
-                markdown_list(source_links[:30]),
-            ]
+            related=related,
+            source_links=source_links,
+            relationship_lines=self._note_writer.relationship_lines(entity, entity_relationships[:40]),
+            first_seen=first_seen,
+            last_seen=last_seen,
+            confidence=entity_public_confidence(
+                entity_mentions=entity_mentions,
+                memories=entity_memories,
+                relationships=entity_relationships,
+            ),
+            public_entry_ids=public_entry_ids,
+            link_name=self._note_writer.entity_link_by_name,
         )
         self._note_writer.write_note(rel, metadata, body)
 
@@ -693,5 +652,5 @@ class VaultExporter:
             self._note_writer.entry_link(document.raw_entry_id) if document.raw_entry_id in self._entry_paths else None
         )
         related = entity_links + ([source_entry_link] if source_entry_link else [])
-        metadata, body = render_library_note(document, related)
+        metadata, body = render_library_note(document, related, link_name=self._note_writer.entity_link_by_name)
         self._note_writer.write_note(rel, metadata, body)

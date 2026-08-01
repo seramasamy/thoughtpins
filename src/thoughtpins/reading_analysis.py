@@ -9,6 +9,8 @@ from urllib.parse import urlparse
 
 _WORD_RE = re.compile(r"[A-Za-z][A-Za-z0-9&'.-]{2,}")
 _PROPER_NOUN_RE = re.compile(r"\b[A-Z][A-Za-z0-9&'.-]*(?:\s+[A-Z][A-Za-z0-9&'.-]*){0,3}\b")
+_SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
+_LEADING_ARTICLES = {"a", "an", "the"}
 _STOPWORDS = {
     "about",
     "after",
@@ -39,6 +41,10 @@ _STOPWORDS = {
     "source",
     "their",
     "there",
+    "than",
+    "that",
+    "them",
+    "then",
     "these",
     "thing",
     "this",
@@ -146,8 +152,7 @@ def extract_key_concepts(title: str, text: str, *, limit: int = 16) -> list[str]
     concepts: list[str] = []
     seen: set[str] = set()
 
-    for match in _PROPER_NOUN_RE.finditer(sample):
-        phrase = _clean_text(match.group(0)).strip(".,;: ")
+    for phrase in _proper_noun_phrases(sample):
         if _concept_is_useful(phrase, seen):
             seen.add(phrase.lower())
             concepts.append(phrase)
@@ -177,6 +182,36 @@ def extract_key_concepts(title: str, text: str, *, limit: int = 16) -> list[str]
         if len(concepts) >= limit:
             break
     return concepts
+
+
+def _proper_noun_phrases(sample: str) -> list[str]:
+    """Yield capitalized phrases that look like names rather than sentence starts.
+
+    Scanning the whole sample at once let a match run across a full stop, which
+    produced entries like "Atomic Notes. Atomic". Scanning sentence by sentence
+    keeps each candidate inside one sentence, and a phrase sitting at the very
+    start of a sentence is only kept when it is more than a single word, since
+    the first word of any sentence is capitalized by grammar rather than by
+    being somebody's name.
+    """
+    phrases: list[str] = []
+    for sentence in _SENTENCE_SPLIT_RE.split(sample):
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+        for match in _PROPER_NOUN_RE.finditer(sentence):
+            phrase = _clean_text(match.group(0)).strip(".,;: ")
+            if not phrase:
+                continue
+            if match.start() == 0:
+                words = phrase.split()
+                if words and words[0].lower() in _LEADING_ARTICLES:
+                    words = words[1:]
+                    phrase = " ".join(words)
+                if len(words) < 2:
+                    continue
+            phrases.append(phrase)
+    return phrases
 
 
 def _concept_is_useful(phrase: str, seen: set[str]) -> bool:
