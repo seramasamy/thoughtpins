@@ -67,12 +67,12 @@ function setupTheme() {
 
 setupTheme();
 
-const localHosts = new Set(["127.0.0.1", "localhost", "[::1]"]);
-const isLocalHost = localHosts.has(window.location.hostname);
-const appBase = isLocalHost ? "/app/" : "https://app.thoughtpins.com/app/";
-
+// The backend serves the web app at /app on whichever host it is reached
+// through, so link to it on the current origin. Pointing at a fixed subdomain
+// broke every sign-up and log-in link in production, because that subdomain was
+// part of a planned multi-host layout that was never provisioned.
 function appHref(mode) {
-  const url = new URL(appBase, window.location.origin);
+  const url = new URL("/app/", window.location.origin);
   if (mode) url.searchParams.set("auth", mode);
   return url.toString();
 }
