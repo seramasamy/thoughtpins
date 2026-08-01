@@ -72,3 +72,24 @@ commission. Worth deciding before building any of it.
 Run free with enforcement on and watch real spend for a while first. The right
 cap is an observation, not a guess, and if typical use lands far below $5 the
 paid tiers may not be needed at all.
+
+## Private launch (invite only)
+
+`INVITE_ONLY` defaults on in staging and production. Registration stays open —
+accounts are created and their details kept — but nothing that reads or writes
+memory works until a code is redeemed. Data rights are never gated: a waiting
+account can still read, export, change sign-in details, and delete itself.
+
+Issue codes with `scripts/create_invite_code.py`. Against production, point
+`DATABASE_URL` at Railway's `DATABASE_PUBLIC_URL` (the internal hostname does not
+resolve from a laptop):
+
+```
+python scripts/create_invite_code.py --label "friends" --uses 1 --count 5
+python scripts/create_invite_code.py --list
+python scripts/create_invite_code.py --revoke <id>
+```
+
+Only the hash is stored, so a code cannot be shown again after minting. Ending
+the private launch is one variable: set `INVITE_ONLY=false` and everyone who
+already registered is admitted, with no migration and no data change.
