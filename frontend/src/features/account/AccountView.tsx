@@ -1,10 +1,11 @@
-import { Activity, AlertCircle, Archive, BookOpen, Download, Plus, RefreshCw, ShieldCheck, Trash2, User } from "lucide-react";
+import { Activity, AlertCircle, Archive, BookOpen, Download, KeyRound, Plus, RefreshCw, ShieldCheck, Trash2, User } from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { api } from "../../api";
 import type { ScreenProps } from "../../app/types";
 import type { AccountExportResponse, DeviceResponse, MeResponse, PreferencesResponse, PreferencesUpdateRequest } from "../../types";
 import type { SessionResponse } from "../../types";
 import { IconButton, KeyValue, Panel, SecondaryButton, StatusPill } from "../../components/ui";
+import { SignInMethodsPanel } from "./SignInMethodsPanel";
 import { VaultTransferPanel } from "./VaultTransferPanel";
 import { VoiceArchivePanel } from "./VoiceArchivePanel";
 import { applyThemeMode, THEME_MODES, useTheme, type ThemeMode } from "../../core/theme";
@@ -160,7 +161,12 @@ export function AccountView({ token, me, run, logout, localMode, legalVersion, v
         </AccountSection>
       </div>
 
-      <div className="module-grid">
+      <div className={`module-grid${localMode ? "" : " two-pane"}`}>
+        {!localMode && (
+          <AccountSection icon={<KeyRound size={18} />} title="How you sign in" detail="Password, emailed code, and linked providers.">
+            <SignInMethodsPanel token={token} run={run} />
+          </AccountSection>
+        )}
         <AccountSection
           icon={<ShieldCheck size={18} />}
           title="Sessions"

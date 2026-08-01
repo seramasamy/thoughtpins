@@ -25,6 +25,7 @@ from thoughtpins.db import User
 from thoughtpins.email_verification import (
     create_email_verification_token,
     is_email_verified,
+    mark_email_verified,
     verify_email_token,
 )
 from thoughtpins.email_delivery import EmailDeliveryError
@@ -436,7 +437,7 @@ def create_auth_router(
         # Receiving the link or code proves control of the inbox, which is what
         # email verification asks for; record it so verification-gated logins are
         # not blocked afterwards.
-        _mark_email_verified(user)
+        mark_email_verified(user)
         user.last_login_utc = _utcnow()
         tokens = issue_token_pair(
             session,
@@ -586,16 +587,6 @@ def _normalize_email_address(value: str | None) -> str | None:
     if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", value):
         raise ValueError("Invalid email address")
     return value
-
-
-def _mark_email_verified(user: User) -> None:
-    """Record inbox control proven by opening a magic link."""
-    prefs = dict(user.preferences_json or {})
-    verification = dict(prefs.get("email_verification") or {})
-    verification["verified"] = True
-    verification.pop("token_hash", None)
-    prefs["email_verification"] = verification
-    user.preferences_json = prefs
 
 
 def _client_ip(request: Request) -> str | None:

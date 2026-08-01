@@ -23,6 +23,8 @@ import type {
   MemoryCardDetailResponse,
   MemoryCardsResponse,
   MeResponse,
+  PasswordSetRequest,
+  PasswordSetResponse,
   PreferencesResponse,
   PreferencesUpdateRequest,
   ReportResponse,
@@ -30,6 +32,7 @@ import type {
   SafetyReportResponse,
   SessionResponse,
   SessionsPageResponse,
+  SignInMethodsResponse,
   StatsResponse,
   TokenResponse,
   UploadDestination,
@@ -546,6 +549,16 @@ export const api = {
     return request<{ status: string; count: number }>("/v1/sessions/revoke-others", {
       method: "POST",
       token,
+    });
+  },
+  signInMethods(token: string) {
+    return request<SignInMethodsResponse>("/v1/account/sign-in-methods", { token });
+  },
+  setPassword(token: string, body: PasswordSetRequest) {
+    return request<PasswordSetResponse>("/v1/account/password", {
+      method: "POST",
+      token,
+      body,
     });
   },
   jobs(token: string, status = "", page = 1, limit = 20) {

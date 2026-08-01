@@ -43,6 +43,21 @@ def is_email_verified(user: User) -> bool:
     return bool(verification.get("verified"))
 
 
+def mark_email_verified(user: User) -> None:
+    """Record inbox control proven some other way than the verification token.
+
+    Opening a magic link, entering an emailed code, or arriving through a
+    provider that vouches for the address all demonstrate the same thing the
+    token does, so they all land here.
+    """
+    prefs = _prefs(user)
+    verification = dict(prefs.get("email_verification") or {})
+    verification["verified"] = True
+    verification.pop("token_hash", None)
+    prefs["email_verification"] = verification
+    user.preferences_json = prefs
+
+
 def verify_email_token(user: User, token: str) -> bool:
     prefs = _prefs(user)
     verification = dict(prefs.get("email_verification") or {})

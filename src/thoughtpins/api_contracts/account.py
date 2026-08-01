@@ -11,6 +11,50 @@ class AccountDeleteRequest(BaseModel):
     confirm: str = Field(..., description="Must equal DELETE")
 
 
+class SignInMethodsResponse(BaseModel):
+    """What this account can currently sign in with, and how to add a password.
+
+    `password_change_requires` is the server's decision, not a hint: an account
+    that already has a password proves itself with that password, and one that
+    has never had a password proves control of its inbox with a fresh emailed
+    code instead. Without that second path, anyone holding a borrowed session on
+    a link-only account could quietly give themselves a permanent credential.
+    """
+
+    email: str | None = None
+    phone: str | None = None
+    password_set: bool = False
+    email_verified: bool = False
+    oauth_providers: list[str] = Field(default_factory=list)
+    magic_link_available: bool = False
+    password_change_requires: str = Field(..., pattern="^(current_password|email_code|unavailable)$")
+
+
+class PasswordSetRequest(BaseModel):
+    new_password: str = Field(..., min_length=12, max_length=256)
+    current_password: str | None = Field(default=None, max_length=256)
+    code: str | None = Field(
+        default=None,
+        max_length=16,
+        description="Six-digit code from a fresh sign-in email. Required when the account has no password yet.",
+    )
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, value: str) -> str:
+        if value.strip() != value:
+            raise ValueError("Password must not start or end with whitespace")
+        if len(value) < 12:
+            raise ValueError("Password must be at least 12 characters")
+        return value
+
+
+class PasswordSetResponse(BaseModel):
+    status: str = "ok"
+    password_set: bool = True
+    other_sessions_revoked: int = 0
+
+
 class LegalAcceptanceRequest(BaseModel):
     document: str = Field(..., pattern="^(privacy|terms|ai_disclosure)$")
     version: str = Field(..., min_length=1, max_length=32)

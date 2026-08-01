@@ -159,6 +159,28 @@ export type SessionsPageResponse = {
   total: number;
 };
 
+export type SignInMethodsResponse = {
+  email: string | null;
+  phone: string | null;
+  password_set: boolean;
+  email_verified: boolean;
+  oauth_providers: string[];
+  magic_link_available: boolean;
+  password_change_requires: "current_password" | "email_code" | "unavailable";
+};
+
+export type PasswordSetRequest = {
+  new_password: string;
+  current_password?: string;
+  code?: string;
+};
+
+export type PasswordSetResponse = {
+  status: string;
+  password_set: boolean;
+  other_sessions_revoked: number;
+};
+
 export type MeResponse = {
   id: string;
   email: string | null;

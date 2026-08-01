@@ -15,10 +15,13 @@ from thoughtpins.api_contracts import (
     DeviceResponse,
     DevicesPageResponse,
     LegalAcceptanceRequest,
+    PasswordSetRequest,
+    PasswordSetResponse,
     SafetyReportRequest,
     SafetyReportResponse,
     SessionResponse,
     SessionsPageResponse,
+    SignInMethodsResponse,
 )
 from thoughtpins.api_preferences import (
     PreferencesResponse,
@@ -30,6 +33,12 @@ from thoughtpins.apple_oauth import revoke_apple_refresh_token
 from thoughtpins.audit import record_audit_event
 from thoughtpins.auth import hash_refresh_token
 from thoughtpins.config import config
+from thoughtpins.credentials import (
+    CredentialProofRequired,
+    CredentialProofUnavailable,
+    set_password,
+    sign_in_methods,
+)
 from thoughtpins.crypto import encrypt_for_storage
 from thoughtpins.data_lifecycle import DataDeletionUnavailable, delete_user_data, export_user_data
 from thoughtpins.db import AppDevice, AuthSession, ChatMessage, DocumentSource, RawEntry, SafetyReport, User
@@ -74,6 +83,58 @@ def create_account_router(
                 "created_at_utc": user.created_at_utc.isoformat() if user.created_at_utc else None,
                 "last_login_utc": user.last_login_utc.isoformat() if user.last_login_utc else None,
             }
+        finally:
+            session.close()
+
+    @router.get("/v1/account/sign-in-methods", response_model=SignInMethodsResponse)
+    async def get_sign_in_methods(user_id: str = Depends(current_user_dependency)) -> SignInMethodsResponse:
+        session = get_session()
+        try:
+            user = session.query(User).filter(User.id == user_id).first()
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            return SignInMethodsResponse(**sign_in_methods(session, user))
+        finally:
+            session.close()
+
+    @router.post("/v1/account/password", response_model=PasswordSetResponse)
+    async def set_account_password(
+        request_model: PasswordSetRequest,
+        user_id: str = Depends(current_user_dependency),
+        current_session_id: str | None = Depends(current_session_dependency),
+    ) -> PasswordSetResponse:
+        session = get_session()
+        try:
+            user = session.query(User).filter(User.id == user_id).first()
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            had_password = bool(user.password_hash)
+            try:
+                revoked = set_password(
+                    session,
+                    user,
+                    new_password=request_model.new_password,
+                    current_password=request_model.current_password,
+                    code=request_model.code,
+                    current_auth_session_id=current_session_id,
+                )
+            except CredentialProofUnavailable as exc:
+                raise HTTPException(status_code=409, detail=str(exc)) from exc
+            except CredentialProofRequired as exc:
+                record_audit_event(
+                    session,
+                    user_id=user_id,
+                    action="auth.password_set_rejected",
+                    metadata={"had_password": had_password},
+                )
+                raise HTTPException(status_code=403, detail=str(exc)) from exc
+            record_audit_event(
+                session,
+                user_id=user_id,
+                action="auth.password_changed" if had_password else "auth.password_added",
+                metadata={"other_sessions_revoked": revoked},
+            )
+            return PasswordSetResponse(status="ok", password_set=True, other_sessions_revoked=revoked)
         finally:
             session.close()
 
