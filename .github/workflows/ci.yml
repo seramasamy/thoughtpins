@@ -125,6 +125,13 @@ jobs:
           QDRANT_URL: https://ci-placeholder.qdrant.example
           QDRANT_API_KEY: ci-qdrant-key
           VECTOR_HEALTHCHECK_LIVE: "true"
+          # Production transcribes through a hosted provider; the default is
+          # local, which needs the voice extra and the whisper model that CI
+          # deliberately does not install. Mirror the real deployment.
+          TRANSCRIPTION_PROVIDER: hosted
+          TRANSCRIPTION_API_KEY: ci-transcription-key
+          TRANSCRIPTION_BASE_URL: https://api.openai.com/v1
+          TRANSCRIPTION_MODEL: whisper-1
           PRIVACY_POLICY_URL: https://thoughtpins.com/privacy
           TERMS_URL: https://thoughtpins.com/terms
           SUPPORT_URL: https://thoughtpins.com/support
