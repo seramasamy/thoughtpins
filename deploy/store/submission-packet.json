@@ -171,7 +171,7 @@
                                    "evidence":  [
                                                     "scripts/check_public_export.py",
                                                     "scripts/app_store_compliance_check.py",
-                                                    "..\\thoughtpins-founder-telegram-adapter\\README.md"
+                                                    "scripts/check_web_review_harness.py"
                                                 ]
                                },
                                {
