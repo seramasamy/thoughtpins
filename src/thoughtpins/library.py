@@ -622,12 +622,31 @@ def _extract_document_graph(
             session, raw, extraction, document.local_date or local_today(), raw_text=extraction_input
         )
         _auto_link_entities_to_memories(session, raw.id)
+        # Journal ingestion scores every entity it touches, but this path did
+        # not, so anyone a saved source introduced stayed at zero importance no
+        # matter how often they appeared. Importing a vault made that obvious:
+        # a person with three mentions and thirteen memories ranked below one
+        # with four mentions and four, purely because the second happened to
+        # arrive through a journal entry.
+        _refresh_document_entity_salience(session, raw)
         raw.processed_status = "completed"
         return stats
     except Exception as exc:
         logger.warning("Document graph extraction skipped for {}: {}", document.id, str(exc)[:200])
         raw.processing_error = raw.processing_error or f"Document graph extraction skipped: {str(exc)[:200]}"
         return {"skipped": True, "error": str(exc)[:200]}
+
+
+def _refresh_document_entity_salience(session: Session, raw: RawEntry) -> None:
+    """Rank the entities a saved source introduced, never failing the ingest."""
+    try:
+        from thoughtpins.memory.salience_store import entity_ids_for_entry, refresh_entity_salience
+
+        entity_ids = entity_ids_for_entry(session, raw.id)
+        if entity_ids:
+            refresh_entity_salience(session, user_id=raw.user_id, entity_ids=entity_ids)
+    except Exception as exc:  # noqa: BLE001 - ranking is derived, the source is the record
+        logger.warning("Document entity salience refresh skipped for entry {}: {}", raw.id, str(exc)[:200])
 
 
 def _mirror_document_to_graph_backend(
