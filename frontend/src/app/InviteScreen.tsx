@@ -1,7 +1,7 @@
 import { ArrowRight, Check, Loader2, LogOut, Mail, Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api } from "../api";
-import type { ClientConfigResponse, InviteStatusResponse } from "../types";
+import type { InviteStatusResponse } from "../types";
 import { BrandMark, PrimaryButton, SecondaryButton } from "../components/ui";
 import "./invite-screen.css";
 
@@ -9,13 +9,11 @@ const CODE_LENGTH = 12;
 
 export function InviteScreen({
   token,
-  clientConfig,
   status,
   onAdmitted,
   onSignOut,
 }: {
   token: string;
-  clientConfig: ClientConfigResponse | null;
   status: InviteStatusResponse | null;
   onAdmitted: (next: InviteStatusResponse) => void;
   onSignOut: () => Promise<void>;
@@ -25,19 +23,24 @@ export function InviteScreen({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showRequest, setShowRequest] = useState(false);
+  const [requested, setRequested] = useState(false);
 
-  const contact = status?.contact_email || clientConfig?.invite_request_email || "invite@thoughtpins.com";
   const normalized = useMemo(() => code.toUpperCase().replace(/[^A-Z0-9]/g, ""), [code]);
   const ready = normalized.length >= 4 && !busy;
   const locked = (status?.attempts_remaining ?? 1) <= 0;
 
-  const mailto = useMemo(() => {
-    const subject = "Thought Pins invite request";
-    const body = note.trim()
-      ? `${note.trim()}\n\n— sent from the Thought Pins private launch page`
-      : "I would like an invite code for Thought Pins.";
-    return `mailto:${contact}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  }, [contact, note]);
+  const askForInvite = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.requestInvite(token, note.trim());
+      setRequested(true);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not send that just now.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const submit = async () => {
     if (!ready) return;
@@ -111,7 +114,7 @@ export function InviteScreen({
           </div>
           <span className="invite-help" id="invite-code-help">
             {locked
-              ? "Too many attempts on this account. Email us and we will sort it out."
+              ? "Too many attempts on this account. Request an invite below and we will sort it out."
               : `${normalized.length}/${CODE_LENGTH} characters. Dashes and spacing do not matter.`}
           </span>
           {error && <p className="invite-error" role="alert">{error}</p>}
@@ -119,7 +122,17 @@ export function InviteScreen({
 
         <div className="invite-divider" role="separator"><span>or</span></div>
 
-        {!showRequest ? (
+        {requested ? (
+          <div className="invite-request invite-requested" role="status">
+            <p className="invite-requested-title">
+              <Check size={16} aria-hidden="true" /> You&apos;re on the list
+            </p>
+            <span className="invite-help">
+              We have your request and your account is held for you. You&apos;ll get a code by email when a
+              place opens up. Asking again won&apos;t move you up, so there&apos;s nothing else to do.
+            </span>
+          </div>
+        ) : !showRequest ? (
           <SecondaryButton type="button" className="invite-request-open" onClick={() => setShowRequest(true)}>
             <Mail size={16} /> I don&apos;t have a code
           </SecondaryButton>
@@ -136,11 +149,11 @@ export function InviteScreen({
               maxLength={600}
               placeholder="A line about what you would use it for, if you like."
             />
-            <a className="invite-mail-button" href={mailto}>
-              <Mail size={16} /> Email {contact}
-            </a>
+            <PrimaryButton type="button" className="invite-request-send" disabled={busy} onClick={() => void askForInvite()}>
+              {busy ? <Loader2 className="spin" size={16} /> : <Mail size={16} />} Request an invite
+            </PrimaryButton>
             <span className="invite-help">
-              This opens your email app with the message ready. Nothing is sent from this page.
+              Sent straight to us from here — no email app needed. The note is optional.
             </span>
           </div>
         )}

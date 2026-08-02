@@ -54,6 +54,9 @@ export async function installMockApi(
         invite_request_email: "invite@thoughtpins.com",
       });
     }
+    if (path === "/v1/invites/request" && method === "POST") {
+      return json(route, { status: "received", note: (request.postDataJSON() as { note?: string } | null)?.note || null, requested_at_utc: now });
+    }
     if (path === "/v1/invites/status") {
       return json(route, inviteStatus(Boolean(options.inviteRequired), inviteAdmitted));
     }

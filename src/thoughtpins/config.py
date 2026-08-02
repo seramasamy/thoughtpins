@@ -280,6 +280,16 @@ class Config:
     # deploy that forgets to set it is closed rather than open.
     INVITE_ONLY: bool = _env_bool("INVITE_ONLY", ENVIRONMENT in {"staging", "production"})
     INVITE_REQUEST_EMAIL: str = _env("INVITE_REQUEST_EMAIL", "invite@thoughtpins.com")
+    # Where invite digests go. Left empty, requests still queue and are readable
+    # from the admin route and the CLI; nothing is emailed anywhere.
+    INVITE_NOTIFY_EMAIL: str = _env("INVITE_NOTIFY_EMAIL")
+    # Two independent ceilings on how often the operator is written to. Neither
+    # depends on how many requests arrive, so a flood of requests cannot become
+    # a flood of mail.
+    INVITE_DIGEST_MIN_INTERVAL_MINUTES: int = _env_int("INVITE_DIGEST_MIN_INTERVAL_MINUTES", 720)
+    INVITE_DIGEST_MAX_PER_DAY: int = _env_int("INVITE_DIGEST_MAX_PER_DAY", 2)
+    # Prefixes operator notifications so they can be filtered on arrival.
+    EMAIL_SUBJECT_PREFIX: str = _env("EMAIL_SUBJECT_PREFIX", "[THOUGHTPINS]")
     REQUIRE_API_AUTH: bool = _env_bool(
         "REQUIRE_API_AUTH",
         ENVIRONMENT in {"staging", "production"},

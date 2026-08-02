@@ -23,7 +23,13 @@ def test_backend_models_decode_shared_fixtures() -> None:
 
 def test_first_party_clients_expose_cursor_and_idempotency_contracts() -> None:
     sources = {
-        "web": (ROOT / "frontend" / "src" / "api.ts").read_text(encoding="utf-8"),
+        # The web client is split into endpoints and the transport beneath
+        # them; these contracts are about the client's behaviour, not which
+        # of the two files a given line sits in.
+        "web": (
+            (ROOT / "frontend" / "src" / "api.ts").read_text(encoding="utf-8")
+            + (ROOT / "frontend" / "src" / "api-transport.ts").read_text(encoding="utf-8")
+        ),
         "web-types": (ROOT / "frontend" / "src" / "types.ts").read_text(encoding="utf-8"),
         "ios": (
             ROOT / "mobile" / "ios" / "ThoughtPinsCore" / "Sources" / "ThoughtPinsCore" / "APIClient.swift"

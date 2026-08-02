@@ -89,3 +89,9 @@ export type MeResponse = {
   created_at_utc: string | null;
   last_login_utc: string | null;
 };
+
+export type InviteRequestResponse = {
+  status: string;
+  note: string | null;
+  requested_at_utc: string | null;
+};

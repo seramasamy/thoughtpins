@@ -525,6 +525,7 @@ export type {
   DevicesPageResponse,
   SessionResponse,
   SessionsPageResponse,
+  InviteRequestResponse,
   InviteStatusResponse,
   SignInMethodsResponse,
   PasswordSetRequest,

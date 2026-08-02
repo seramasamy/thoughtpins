@@ -213,7 +213,6 @@ export default function App() {
     return (
       <InviteScreen
         token={token}
-        clientConfig={clientConfig}
         status={invite}
         onAdmitted={(next) => { setInvite(next); void refreshMe(); }}
         onSignOut={logout}

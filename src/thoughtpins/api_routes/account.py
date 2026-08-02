@@ -9,13 +9,15 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from thoughtpins import invites
+from thoughtpins import invite_requests, invites
 from thoughtpins.api_contracts import (
     AccountDeleteRequest,
     DeviceRegistrationRequest,
     DeviceResponse,
     DevicesPageResponse,
     InviteRedeemRequest,
+    InviteRequestResponse,
+    InviteRequestSubmission,
     InviteStatusResponse,
     LegalAcceptanceRequest,
     PasswordSetRequest,
@@ -125,6 +127,32 @@ def create_account_router(
                 metadata={"invite_code_id": record.id, "label": record.label or ""},
             )
             return InviteStatusResponse(**invites.status(user))
+        finally:
+            session.close()
+
+    @router.post("/v1/invites/request", response_model=InviteRequestResponse)
+    async def request_invite(
+        request_model: InviteRequestSubmission,
+        user_id: str = Depends(current_user_dependency),
+    ) -> InviteRequestResponse:
+        """Join the queue. Never mails anyone directly.
+
+        The operator is written to on a schedule with a ceiling, so however many
+        requests arrive, the amount of mail does not change.
+        """
+        session = get_session()
+        try:
+            user = session.query(User).filter(User.id == user_id).first()
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            record = invite_requests.submit(session, user, request_model.note)
+            record_audit_event(session, user_id=user_id, action="invite.requested")
+            invite_requests.maybe_send_digest(session)
+            return InviteRequestResponse(
+                status="received",
+                note=record.note,
+                requested_at_utc=record.created_at_utc.isoformat() if record.created_at_utc else None,
+            )
         finally:
             session.close()
 

@@ -168,12 +168,20 @@ def main() -> int:
         ],
     )
     _check_file_markers(
-        FRONTEND / "src" / "api.ts",
+        FRONTEND / "src" / "api-transport.ts",
         failures,
         cache,
         [
             _req("request ID propagation", "X-Request-ID"),
             _req("network maintenance/offline envelope", "network_unavailable"),
+            _req("idempotency keys", "Idempotency-Key"),
+        ],
+    )
+    _check_file_markers(
+        FRONTEND / "src" / "api.ts",
+        failures,
+        cache,
+        [
             _req("session refresh", "/v1/auth/refresh"),
             _req("client config", "/v1/client-config"),
             _req("email/phone register", "/v1/auth/register"),

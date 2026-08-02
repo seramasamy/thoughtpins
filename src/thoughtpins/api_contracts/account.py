@@ -15,6 +15,23 @@ class InviteRedeemRequest(BaseModel):
     code: str = Field(..., min_length=1, max_length=64)
 
 
+class InviteRequestSubmission(BaseModel):
+    note: str | None = Field(default=None, max_length=600)
+
+
+class InviteRequestResponse(BaseModel):
+    """What the person asking sees back.
+
+    Deliberately says nothing about queue position or how many others are
+    waiting: that is operator information, and guessing at it would only invite
+    people to resubmit.
+    """
+
+    status: str = "received"
+    note: str | None = None
+    requested_at_utc: str | None = None
+
+
 class InviteStatusResponse(BaseModel):
     """Whether this account may use the product yet, and how to ask if not."""
 

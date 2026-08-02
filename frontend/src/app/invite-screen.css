@@ -230,30 +230,19 @@
   outline: none;
 }
 
-.invite-mail-button {
+.invite-request-send {
+  justify-content: center;
+  width: 100%;
+}
+
+.invite-requested-title {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
-  min-height: 46px;
-  padding: 0 18px;
-  border-radius: var(--radius-button);
-  color: #fff;
-  background: var(--tp-charcoal);
-  font-size: 0.92rem;
-  font-weight: 550;
-  text-decoration: none;
-  transition:
-    background-color var(--motion-quick) ease,
-    transform var(--motion-quick) ease;
-}
-
-.invite-mail-button:hover {
-  background: var(--tp-ink);
-}
-
-.invite-mail-button:active {
-  transform: translateY(1px);
+  margin: 0;
+  color: var(--tp-sage);
+  font-size: 0.95rem;
+  font-weight: 600;
 }
 
 .invite-footer {

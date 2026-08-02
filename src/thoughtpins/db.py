@@ -680,6 +680,6 @@ class Report(Base):
 # Imported last, after Base and the journal models exist, so the platform tables
 # register on the same metadata. Re-exported here to keep the historical import
 # path (`from thoughtpins.db import LlmUsageEvent`) working for callers.
-from thoughtpins.db_platform import InviteCode, LlmUsageEvent, MagicLinkToken  # noqa: E402,F401
+from thoughtpins.db_platform import InviteCode, InviteRequest, LlmUsageEvent, MagicLinkToken  # noqa: E402,F401
 
 __all__ = [name for name in globals() if not name.startswith("_")]

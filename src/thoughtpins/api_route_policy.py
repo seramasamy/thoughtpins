@@ -84,6 +84,7 @@ INVITE_EXEMPT_PATHS = frozenset(
         "/v1/me",
         "/v1/invites/status",
         "/v1/invites/redeem",
+        "/v1/invites/request",
         "/v1/preferences",
         "/v1/legal/acceptances",
         "/v1/legal/documents",

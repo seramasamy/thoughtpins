@@ -93,3 +93,30 @@ class InviteCode(Base):
     created_at_utc = Column(DateTime, default=_utcnow, nullable=False)
     expires_at_utc = Column(DateTime, nullable=True)
     revoked_at_utc = Column(DateTime, nullable=True)
+
+
+class InviteRequest(Base):
+    """Somebody asking to be let into the private launch.
+
+    Kept as a queue rather than mailed straight through. A request costs the
+    operator nothing until they read it, which means a flood of them cannot
+    reach their personal inbox, and the address that would have received them
+    never has to exist publicly.
+    """
+
+    __tablename__ = "invite_requests"
+    __table_args__ = (
+        Index("ix_invite_requests_user_status", "user_id", "status"),
+        Index("ix_invite_requests_status_created", "status", "created_at_utc"),
+    )
+
+    id = Column(String(32), primary_key=True, default=_new_id)
+    user_id = Column(String(32), ForeignKey("users.id"), nullable=False, index=True)
+    note = Column(String(1000), nullable=True)
+    status = Column(String(16), nullable=False, default="pending", index=True)
+    created_at_utc = Column(DateTime, default=_utcnow, nullable=False)
+    updated_at_utc = Column(DateTime, default=_utcnow, nullable=False)
+    # When this request was included in a digest. Also the throttle: the newest
+    # value across the table says when the operator was last written to, so no
+    # separate scheduler state is needed.
+    notified_at_utc = Column(DateTime, nullable=True, index=True)

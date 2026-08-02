@@ -95,20 +95,31 @@ test.describe("Private launch invite gate", () => {
     await expect(redeem).toBeEnabled();
   });
 
-  test("asking for an invite builds a mail link, with the note optional", async ({ page }) => {
+  test("asking for an invite is sent from the page, with the note optional", async ({ page }) => {
     await signedIn(page);
     await installMockApi(page, "auth", 0, "review", { aiConsentAccepted: true, inviteRequired: true });
     await page.goto("/app/");
 
     await page.getByRole("button", { name: /don't have a code/i }).click();
-    const mailLink = page.getByRole("link", { name: /invite@thoughtpins\.com/ });
+    // No personal address is shown anywhere on the page.
+    await expect(page.getByText(/@thoughtpins\.com/)).toHaveCount(0);
 
-    // Optional: the link works before anything is typed.
-    await expect(mailLink).toHaveAttribute("href", /^mailto:invite@thoughtpins\.com\?subject=/);
+    // The note is optional: the request works without typing anything.
+    await page.getByRole("button", { name: /Request an invite/i }).click();
+    await expect(page.getByText(/You're on the list/)).toBeVisible();
+  });
 
+  test("a note can be added to the request", async ({ page }) => {
+    await signedIn(page);
+    await installMockApi(page, "auth", 0, "review", { aiConsentAccepted: true, inviteRequired: true });
+    await page.goto("/app/");
+
+    await page.getByRole("button", { name: /don't have a code/i }).click();
     await page.getByLabel(/Add a note/).fill("I keep a lot of notes and would love to try this.");
-    const href = await mailLink.getAttribute("href");
-    expect(href).toContain(encodeURIComponent("I keep a lot of notes"));
+    await page.getByRole("button", { name: /Request an invite/i }).click();
+    await expect(page.getByText(/You're on the list/)).toBeVisible();
+    // Asking again is not offered, so the queue cannot be shouted into.
+    await expect(page.getByRole("button", { name: /Request an invite/i })).toHaveCount(0);
   });
 
   test("the wall is absent once the private launch is over", async ({ page }) => {
