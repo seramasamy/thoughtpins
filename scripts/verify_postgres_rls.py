@@ -409,6 +409,24 @@ def _insert_fixture_rows(conn, ids: dict[str, tuple[str, str]], user_a: str, use
     conn.execute(
         text(
             """
+            INSERT INTO invite_requests (
+                id, user_id, note, status, created_at_utc, updated_at_utc
+            )
+            VALUES
+              (:invreq_a, :user_a, 'rls probe', 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+              (:invreq_b, :user_b, 'rls probe', 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            """
+        ),
+        {
+            "invreq_a": ids["invite_requests"][0],
+            "invreq_b": ids["invite_requests"][1],
+            "user_a": user_a,
+            "user_b": user_b,
+        },
+    )
+    conn.execute(
+        text(
+            """
             INSERT INTO llm_usage_events (
                 id, user_id, created_at_utc, provider, model, operation,
                 prompt_tokens, completion_tokens, total_tokens, cost_usd
@@ -614,6 +632,7 @@ def main() -> int:
         "vault_import_sessions": (f"vlt_a_{suffix}", f"vlt_b_{suffix}"),
         "voice_assets": (f"voc_a_{suffix}", f"voc_b_{suffix}"),
         "llm_usage_events": (f"usg_a_{suffix}", f"usg_b_{suffix}"),
+        "invite_requests": (f"inv_a_{suffix}", f"inv_b_{suffix}"),
     }
 
     admin_engine = get_engine()
