@@ -362,15 +362,20 @@ def get_all_users_month_spend(session: Session) -> list[dict[str, Any]]:
     Iterates tenants explicitly instead of issuing one cross-tenant aggregate:
     the per-user query stays RLS-correct with no elevated database role, and a
     solo-operator install has few enough users for this to be trivially fast.
+
+    Each tenant gets its own session. The RLS variable is applied when a
+    transaction begins, so a nested tenant context inside a request that already
+    has one open never reaches PostgreSQL, and every row read would have come
+    from the calling account rather than the tenant asked for.
     """
     from thoughtpins.db import User
-    from thoughtpins.tenancy import tenant_context
+    from thoughtpins.store import tenant_session
 
     rows: list[dict[str, Any]] = []
     users = session.query(User.id, User.email, User.is_admin).filter(User.deleted_at_utc.is_(None)).all()
     for user_id, email, is_admin in users:
-        with tenant_context(user_id):
-            spend = get_user_month_spend_usd(user_id, session=session)
+        with tenant_session(user_id) as scoped:
+            spend = get_user_month_spend_usd(user_id, session=scoped)
         if spend <= 0:
             continue
         rows.append(

@@ -247,13 +247,20 @@ def test_requesting_requires_being_signed_in(client, invite_only):
 
 
 def _rewind_notifications(*, minutes: int) -> None:
-    """Age every notification stamp so the throttle sees time having passed."""
-    from thoughtpins.db import InviteRequest
+    """Age the operator ledger so the throttle sees time having passed.
+
+    The throttle reads operator_notifications, not the requests themselves:
+    request rows are tenant scoped and cannot be counted across accounts from
+    inside a request.
+    """
+    from thoughtpins.db import InviteRequest, OperatorNotification
     from thoughtpins.store import get_session
 
     session = get_session()
     try:
         shift = timedelta(minutes=minutes)
+        for record in session.query(OperatorNotification).all():
+            record.sent_at_utc = record.sent_at_utc - shift
         for record in session.query(InviteRequest).filter(InviteRequest.notified_at_utc.isnot(None)).all():
             record.notified_at_utc = record.notified_at_utc - shift
         session.commit()
@@ -295,3 +302,52 @@ def test_deleting_an_account_takes_its_request_with_it(client, invite_only, sent
         assert session.query(InviteRequest).count() == 0
     finally:
         session.close()
+
+
+def test_the_throttle_does_not_depend_on_reading_other_tenants_rows(client, invite_only, sent):
+    """The bug this guards against only appeared in production.
+
+    The RLS tenant is applied when a transaction begins, so a nested tenant
+    context inside a request never reaches PostgreSQL. Counting past digests by
+    scanning invite_requests therefore saw only the requesting account, every
+    newcomer looked like the first, and each arrival sent another email. The
+    throttle now reads a non-tenant ledger, which cannot be scoped away.
+    """
+    from thoughtpins.db import InviteRequest, OperatorNotification
+    from thoughtpins.store import get_session
+
+    for index in range(5):
+        token = _register(client, f"tenantwalk{index}@example.com")
+        _ask(client, token, "please")
+
+    assert len(sent) == 1
+
+    session = get_session()
+    try:
+        # One ledger row per email, regardless of how many accounts asked.
+        assert session.query(OperatorNotification).count() == 1
+        assert session.query(InviteRequest).count() == 5
+    finally:
+        session.close()
+
+
+def test_the_operator_queue_reads_every_tenant(client, invite_only, sent):
+    """Reading the queue from inside a request must not return only the reader."""
+    from thoughtpins.db import User
+    from thoughtpins.store import get_session
+
+    for index in range(3):
+        token = _register(client, f"queued{index}@example.com")
+        _ask(client, token, f"reason {index}")
+
+    operator = _register(client, "reader@example.com")
+    session = get_session()
+    try:
+        user = session.query(User).filter(User.email == "reader@example.com").first()
+        user.is_admin = True
+        session.commit()
+    finally:
+        session.close()
+
+    body = client.get("/v1/admin/invite-requests", headers=_auth(operator)).json()
+    assert body["pending"] == 3, body

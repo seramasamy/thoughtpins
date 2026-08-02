@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.engine import Engine
@@ -170,3 +171,27 @@ def _ensure_columns(engine: Engine) -> None:
             for column_name, column_sql in columns.items():
                 if column_name not in existing:
                     conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_sql}")
+
+
+@contextmanager
+def tenant_session(user_id: str) -> Iterator[Session]:
+    """A session whose transaction really is scoped to this tenant.
+
+    The tenant variable is applied by an ``after_begin`` hook, which fires once
+    when a transaction opens. Nesting ``tenant_context`` inside a request that
+    already has an open transaction therefore changes the context variable but
+    never reaches PostgreSQL, so the queries keep running as the original user
+    and quietly return that user's rows instead of the requested tenant's.
+
+    Opening a fresh session inside the context makes the hook fire with the
+    tenant that was asked for. Operator-facing code that walks tenants has to
+    use this; on SQLite there is no row-level security and it behaves the same.
+    """
+    from thoughtpins.tenancy import tenant_context
+
+    with tenant_context(user_id):
+        session = get_session()
+        try:
+            yield session
+        finally:
+            session.close()

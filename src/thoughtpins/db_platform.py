@@ -120,3 +120,21 @@ class InviteRequest(Base):
     # value across the table says when the operator was last written to, so no
     # separate scheduler state is needed.
     notified_at_utc = Column(DateTime, nullable=True, index=True)
+
+
+class OperatorNotification(Base):
+    """One message sent to the operator, and when.
+
+    Not tenant data: it records that the person running the service was
+    written to, which belongs to no user. It exists so the send throttle can be
+    answered with a single query instead of a walk across every tenant — a walk
+    that cannot see other tenants' rows from inside a request anyway.
+    """
+
+    __tablename__ = "operator_notifications"
+    __table_args__ = (Index("ix_operator_notifications_kind_sent", "kind", "sent_at_utc"),)
+
+    id = Column(String(32), primary_key=True, default=_new_id)
+    kind = Column(String(32), nullable=False)
+    sent_at_utc = Column(DateTime, default=_utcnow, nullable=False)
+    item_count = Column(Integer, nullable=False, default=0)
