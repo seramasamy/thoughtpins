@@ -307,6 +307,13 @@ def _detect_paywall(text: str) -> bool:
 
 
 def _is_restricted_fetch_domain(value: str) -> bool:
+    # The personal offline build may retrieve from publishers the hosted service
+    # will not, because its operator holds subscriptions to them and is reading
+    # their own material. Config.validate_startup refuses to boot a staging or
+    # production deployment with this on, so the public service cannot reach
+    # this branch however it is configured.
+    if config.ARTICLE_ALLOW_RESTRICTED_DOMAINS and not config.is_shared_deployment():
+        return False
     parsed = urlparse(value if "://" in (value or "") else f"https://{value or ''}")
     host = (parsed.hostname or "").strip().lower().rstrip(".")
     if not host:

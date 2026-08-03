@@ -4,14 +4,23 @@ from __future__ import annotations
 
 import importlib.util
 import ipaddress
-import os
 from pathlib import Path
-from typing import Iterable
 from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Re-exported: tests and a few modules import these from thoughtpins.config.
+from thoughtpins.config_env import (  # noqa: F401
+    _env,
+    _env_any,
+    _env_bool,
+    _env_float,
+    _env_int,
+    _env_int_list,
+    _env_str_list,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -25,58 +34,6 @@ def graph_backend_problems(provider: str, shadow_enabled: bool) -> list[str]:
         "External graph backends are evaluation-only until tenant-scoped account deletion is verified; "
         "use GRAPH_PROVIDER=internal_sql and GRAPH_SHADOW_ENABLED=false in production."
     ]
-
-
-def _env(key: str, default: str = "") -> str:
-    return os.getenv(key, default).strip()
-
-
-def _env_any(keys: Iterable[str], default: str = "") -> str:
-    for key in keys:
-        value = _env(key)
-        if value:
-            return value
-    return default
-
-
-def _env_int(key: str, default: int) -> int:
-    try:
-        return int(os.getenv(key, str(default)))
-    except (TypeError, ValueError):
-        return default
-
-
-def _env_float(key: str, default: float) -> float:
-    try:
-        return float(os.getenv(key, str(default)))
-    except (TypeError, ValueError):
-        return default
-
-
-def _env_bool(key: str, default: bool = False) -> bool:
-    val = os.getenv(key, "").strip().lower()
-    if val in ("true", "1", "yes", "on"):
-        return True
-    if val in ("false", "0", "no", "off"):
-        return False
-    return default
-
-
-def _env_int_list(key: str) -> list[int]:
-    values: list[int] = []
-    for raw in _env(key).split(","):
-        raw = raw.strip()
-        if not raw:
-            continue
-        try:
-            values.append(int(raw))
-        except ValueError:
-            continue
-    return values
-
-
-def _env_str_list(key: str) -> list[str]:
-    return [value.strip() for value in _env(key).split(",") if value.strip()]
 
 
 def _llm_provider() -> str:
@@ -187,6 +144,11 @@ class Config:
     ARTICLE_MAX_FETCH_BYTES: int = _env_int("ARTICLE_MAX_FETCH_BYTES", 3_000_000)
     ARTICLE_MIN_TEXT_CHARS: int = _env_int("ARTICLE_MIN_TEXT_CHARS", 500)
     ARTICLE_USER_AGENT: str = _env("ARTICLE_USER_AGENT", "ThoughtPins/0.2 local memory reader")
+    # Personal offline builds only. Lets retrieval reach publishers the hosted
+    # service refuses, for an operator reading material they subscribe to.
+    # validate_startup rejects this outside local development, so the public
+    # service cannot enable it by configuration or by accident.
+    ARTICLE_ALLOW_RESTRICTED_DOMAINS: bool = _env_bool("ARTICLE_ALLOW_RESTRICTED_DOMAINS", False)
     ARTICLE_RESTRICTED_DOMAINS: list[str] = [
         domain.strip().lower()
         for domain in _env(
@@ -403,6 +365,15 @@ class Config:
 
     @classmethod
     def is_production(cls) -> bool:
+        return cls.ENVIRONMENT in {"staging", "production"}
+
+    @classmethod
+    def is_shared_deployment(cls) -> bool:
+        """Whether this instance serves anyone other than its operator.
+
+        Distinct from is_production only in intent: retrieval permissions turn
+        on who the software is acting for, not on how the box is configured.
+        """
         return cls.ENVIRONMENT in {"staging", "production"}
 
     @classmethod
@@ -625,6 +596,11 @@ class Config:
             (cls.MEMORY_CONTEXT_MODE not in {"smart", "full"}, "MEMORY_CONTEXT_MODE must be smart or full."),
             (cls.MEMORY_CONTEXT_MAX_CHARS < 20_000, "MEMORY_CONTEXT_MAX_CHARS must be at least 20000."),
             (cls.TELEGRAM_TEST_MODE, "TELEGRAM_TEST_MODE must be false outside local development."),
+            (
+                cls.ARTICLE_ALLOW_RESTRICTED_DOMAINS,
+                "ARTICLE_ALLOW_RESTRICTED_DOMAINS must be false outside local development: "
+                "publisher access limits apply to any deployment serving other people.",
+            ),
             (cls.ENABLE_FOUNDER_MODE, "ENABLE_FOUNDER_MODE must be false outside local development."),
             (
                 cls.ENABLE_TELEGRAM_BOT and not cls.TELEGRAM_ALLOWED_USER_IDS,
