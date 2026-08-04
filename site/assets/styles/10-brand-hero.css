@@ -100,8 +100,18 @@
 }
 
 /* Back to the modern (lab) landing page — stays visible at every breakpoint,
-   mirroring the "Classic" pill on the modern page's nav. */
+   mirroring the "Classic" pill on the modern page's nav.
+
+   inline-flex, not the default inline: an inline box ignores height and
+   min-height, so the label sat high inside the pill (padding is applied around
+   a line-height-tall content box, and the glyphs sit above its centre) and the
+   44px touch target set for coarse pointers silently did nothing. The theme
+   toggle beside it was already inline-flex, which is why only this one looked
+   off. */
 .header-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 7px 13px;
   border: 1px solid var(--tp-line);
   border-radius: 999px;

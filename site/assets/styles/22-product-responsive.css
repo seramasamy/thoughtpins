@@ -110,7 +110,12 @@
   object-fit: contain;
 }
 
+/* The screenshot sets the frame's height, and the live demo is absolutely
+   positioned over it — so this min-height is what stops the scene being given
+   a stage too short to stand on. Below it the capture letterboxes against its
+   own background rather than the frame collapsing. */
 .product-app-capture-desktop {
+  min-height: 500px;
   aspect-ratio: 1440 / 1000;
   object-fit: contain;
   object-position: top center;

@@ -33,15 +33,67 @@
   opacity: 0;
 }
 
+/* Every metric that decides whether the scene fits its frame lives here, so
+   the compact variant is one block of values rather than a parallel set of
+   selectors. Two things need it: the phone scene, and the desktop scene when
+   a phone is what is actually rendering it. */
 .dl-app {
+  --dl-font: 15px;
+  --dl-title: 19px;
+  --dl-body: 14px;
+  --dl-topbar-pad: 14px 24px 11px;
+  --dl-thread-pad: 22px 24px 14px;
+  --dl-thread-gap: 12px;
+  --dl-msg-pad: 11px 15px;
+  --dl-note-pad: 12px 16px;
+  --dl-composer-margin: 0 24px 20px;
+  --dl-composer-pad: 11px 14px;
+  --dl-composer-font: 13px;
+  --dl-send: 28px;
+  --dl-note-lines: 99;
+  --dl-reply-lines: 99;
+
   display: grid;
   grid-template-columns: 62px minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto;
   width: 100%;
   height: 100%;
-  font-size: 15px;
+  font-size: var(--dl-font);
   line-height: 1.5;
   color: var(--tp-ink);
+}
+
+.dl-app-compact {
+  --dl-font: 12px;
+  --dl-title: 15px;
+  --dl-body: 12px;
+  --dl-topbar-pad: 10px 14px 8px;
+  --dl-thread-pad: 16px 16px 10px;
+  --dl-thread-gap: 9px;
+  --dl-msg-pad: 9px 12px;
+  --dl-note-pad: 10px 12px;
+  --dl-composer-margin: 0 14px 10px;
+  --dl-composer-pad: 9px 12px;
+  --dl-composer-font: 11px;
+  --dl-send: 24px;
+  --dl-note-lines: 2;
+  --dl-reply-lines: 6;
+}
+
+/* The scripted answer is written for a wide thread. In a small one it would be
+   thirteen lines and push the rest of the conversation out of the frame, so it
+   is clamped — the point of the vignette is that an answer arrives with its
+   sources attached, not that you read all of it. */
+.dl-note p,
+.dl-reply-body > p:first-child {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--dl-reply-lines);
+  overflow: hidden;
+}
+
+.dl-note p {
+  -webkit-line-clamp: var(--dl-note-lines);
 }
 
 /* Mini navigation rail */
@@ -100,7 +152,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 14px 24px 11px;
+  padding: var(--dl-topbar-pad);
   border-bottom: 1px solid var(--tp-line);
   background: var(--tp-surface);
 }
@@ -112,7 +164,7 @@
 
 .dl-topbar strong {
   font-family: var(--font-display);
-  font-size: 19px;
+  font-size: var(--dl-title);
   font-weight: 580;
 }
 
@@ -139,12 +191,22 @@
   background: var(--tp-sage);
 }
 
+/* Anchored to the bottom, and it clips its own overflow.
+
+   This row is `minmax(0, 1fr)`, so it is allowed to be shorter than the
+   conversation inside it. Centring an overflowing column overflows in *both*
+   directions at once, which is how the thread ended up painted over the topbar
+   above and the composer below on narrow screens. Ending the thread at the
+   bottom pushes any excess off the top, where `overflow: hidden` removes it —
+   and where a chat log is supposed to lose its oldest lines anyway. */
 .dl-thread {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 12px;
-  padding: 22px 24px 14px;
+  justify-content: flex-end;
+  gap: var(--dl-thread-gap);
+  min-height: 0;
+  overflow: hidden;
+  padding: var(--dl-thread-pad);
   transition: opacity 320ms var(--ease-quiet);
 }
 
@@ -155,7 +217,7 @@
 /* The older note the conversation returns to */
 .dl-note {
   align-self: stretch;
-  padding: 12px 16px;
+  padding: var(--dl-note-pad);
   border: 1px solid var(--tp-line);
   border-left: 3px solid var(--tp-brand);
   border-radius: 8px;
@@ -172,7 +234,7 @@
 }
 
 .dl-note p {
-  font-size: 14px;
+  font-size: var(--dl-body);
   color: var(--tp-ink-soft);
 }
 
@@ -183,7 +245,7 @@
 
 .dl-msg {
   max-width: 78%;
-  padding: 11px 15px;
+  padding: var(--dl-msg-pad);
   border-radius: 8px;
   opacity: 0;
   transform: translateY(8px);
@@ -290,7 +352,7 @@
 }
 
 .dl-reply-body p {
-  font-size: 14px;
+  font-size: var(--dl-body);
 }
 
 .dl-reply-links {
@@ -326,8 +388,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 0 24px 20px;
-  padding: 11px 14px;
+  margin: var(--dl-composer-margin);
+  padding: var(--dl-composer-pad);
   border: 1px solid var(--tp-line);
   border-radius: 9px;
   background: var(--tp-surface);
@@ -336,7 +398,7 @@
 .dl-composer-hint {
   flex: 1;
   color: var(--tp-ink-soft);
-  font-size: 13px;
+  font-size: var(--dl-composer-font);
 }
 
 .dl-cicon {
@@ -348,8 +410,8 @@
 }
 
 .dl-send {
-  width: 28px;
-  height: 28px;
+  width: var(--dl-send);
+  height: var(--dl-send);
   border-radius: 50%;
   background: var(--tp-action);
   transition: transform 220ms var(--ease-settle), box-shadow 220ms var(--ease-quiet);
@@ -360,43 +422,11 @@
   box-shadow: 0 0 0 4px rgba(179, 62, 22, 0.18);
 }
 
-/* Mobile scene: no rail, no topbar, bottom tab bar */
+/* Mobile scene: no rail, no topbar, bottom tab bar. Its type and spacing come
+   from .dl-app-compact, which the markup applies alongside this class. */
 .dl-app-mobile {
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto auto;
-  font-size: 12px;
-}
-
-.dl-app-mobile .dl-thread {
-  padding: 16px 16px 10px;
-  gap: 9px;
-}
-
-.dl-app-mobile .dl-msg {
-  padding: 9px 12px;
-}
-
-.dl-app-mobile .dl-note {
-  padding: 10px 12px;
-}
-
-.dl-app-mobile .dl-note p,
-.dl-app-mobile .dl-reply-body p {
-  font-size: 12px;
-}
-
-.dl-app-mobile .dl-composer {
-  margin: 0 14px 10px;
-  padding: 9px 12px;
-}
-
-.dl-app-mobile .dl-composer-hint {
-  font-size: 11px;
-}
-
-.dl-app-mobile .dl-send {
-  width: 24px;
-  height: 24px;
 }
 
 .dl-tabs {
@@ -443,8 +473,31 @@
   }
 }
 
-@media (max-width: 680px) {
+/* A narrow window rendering the *desktop* scene.
+
+   The browser frame keeps its wide aspect ratio, so below laptop widths the
+   scene gets a fraction of the height it was drawn for while its text wraps to
+   many more lines. Scaling the whole scene down would make it unreadable — the
+   Mobile tab exists for legibility — so it reflows instead: phone metrics, no
+   nav rail, and a bounded conversation. 900px is where the untouched scene
+   stops fitting its own frame. */
+@media (max-width: 900px) {
   .dl-app:not(.dl-app-mobile) {
+    --dl-font: 12px;
+    --dl-title: 15px;
+    --dl-body: 12px;
+    --dl-topbar-pad: 10px 14px 8px;
+    --dl-thread-pad: 16px 16px 10px;
+    --dl-thread-gap: 9px;
+    --dl-msg-pad: 9px 12px;
+    --dl-note-pad: 10px 12px;
+    --dl-composer-margin: 0 14px 10px;
+    --dl-composer-pad: 9px 12px;
+    --dl-composer-font: 11px;
+    --dl-send: 24px;
+    --dl-note-lines: 2;
+    --dl-reply-lines: 6;
+
     grid-template-columns: minmax(0, 1fr);
   }
 

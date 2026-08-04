@@ -1,0 +1,148 @@
+/* ------------------------------------------------------------------
+   Mounting the shared product demo on the modern landing page
+
+   The scene itself lives in styles/23-demo-live.css and is used by both
+   landing pages. This file is only the surround the modern page puts around
+   it — the browser window, the phone shell, and the light-UI token remap that
+   lets an app built for paper render inside a dark page.
+   ------------------------------------------------------------------ */
+
+.lab-demo {
+  width: min(1160px, calc(100% - 48px));
+  margin-inline: auto;
+
+  /* The scene renders the app's light UI inside this dark page */
+  --tp-canvas: #f8f8f6;
+  --tp-surface: #ffffff;
+  --tp-surface-warm: #fcfbf9;
+  --tp-ink: #221d16;
+  --tp-ink-soft: #6b6459;
+  --tp-ink-faint: #948c7f;
+  --tp-line: #e6e2dd;
+  --tp-line-strong: #d5cfc7;
+  --tp-brand: #e8612b;
+  --tp-action: #b33e16;
+  --tp-brand-soft: #fbe9dd;
+  --tp-sage: #587465;
+  --tp-charcoal: #26211b;
+  --tp-chip-orange-ink: #a13713;
+  --tp-chip-orange-bg: #fbe9dd;
+  --ease-quiet: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
+  --font-display: "Newsreader Variable", "Iowan Old Style", Georgia, serif;
+}
+
+.lab-demo-panel[hidden] {
+  display: none !important;
+}
+
+.lab-frame {
+  overflow: hidden;
+  border: 1px solid var(--lab-line);
+  border-radius: 14px;
+  background: var(--tp-canvas);
+  box-shadow: 0 34px 90px rgba(0, 0, 0, 0.5);
+}
+
+.lab-frame-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--tp-line);
+  background: var(--tp-surface);
+}
+
+.lab-frame-bar i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--tp-line-strong);
+}
+
+.lab-frame-bar span {
+  margin-left: 10px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  color: var(--tp-ink-soft);
+  background: var(--tp-canvas);
+  font-size: 11px;
+}
+
+.lab-frame-screen {
+  position: relative;
+  aspect-ratio: 1440 / 780;
+}
+
+/* Below this width the window shape is dropped and a floor takes over: the
+   ratio would leave ~210px of stage for a scene that needs more than twice
+   that even at compact metrics.
+
+   The two must not be set together. With width auto, an aspect-ratio box whose
+   height gets pushed up by min-height solves the ratio backwards and widens
+   itself to match — 500px tall became 923px wide inside a 392px column. */
+@media (max-width: 900px) {
+  .lab-frame-screen {
+    aspect-ratio: auto;
+    min-height: 530px;
+  }
+}
+
+.lab-phone {
+  width: min(340px, 84vw);
+  margin-inline: auto;
+  padding: 12px;
+  border: 1px solid var(--lab-line);
+  border-radius: 44px;
+  background: var(--tp-charcoal);
+  box-shadow: 0 34px 90px rgba(0, 0, 0, 0.5);
+}
+
+.lab-phone-speaker {
+  width: 72px;
+  height: 5px;
+  margin: 2px auto 10px;
+  border-radius: 999px;
+  background: rgba(245, 241, 234, 0.22);
+}
+
+/* 390/780 rather than 390/700: closer to a real handset, and on a 320px
+   viewport the shorter shape left the conversation about ten pixels taller
+   than the screen it was playing on. */
+.lab-phone-screen {
+  position: relative;
+  overflow: hidden;
+  border-radius: 32px;
+  aspect-ratio: 390 / 780;
+  background: var(--tp-canvas);
+}
+
+.lab-demo-caption {
+  margin-top: 16px;
+  color: var(--lab-faint);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Reduced motion / no-JS: show the full conversation statically */
+@media (prefers-reduced-motion: reduce) {
+  .lab-demo .demo-live {
+    display: block;
+  }
+
+  .lab-demo .demo-live[data-dl-phase="reset"] .dl-thread,
+  .lab-demo .dl-thread {
+    opacity: 1 !important;
+  }
+
+  .lab-demo .dl-msg,
+  .lab-demo .dl-reply {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .lab-demo .dl-caret {
+    display: none;
+  }
+}
+
