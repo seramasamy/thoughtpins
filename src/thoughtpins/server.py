@@ -17,6 +17,7 @@ from loguru import logger
 
 from thoughtpins.api import _recover_orphaned_entries
 from thoughtpins.backup import create_backup
+from thoughtpins.branding import print_banner
 from thoughtpins.config import config
 from thoughtpins.logging_config import setup_logging
 from thoughtpins.store import init_db
@@ -91,9 +92,8 @@ def main() -> None:
     api_only = "--api-only" in sys.argv
     bot_only = "--bot-only" in sys.argv
 
-    logger.info("=" * 50)
+    print_banner(config.API_VERSION)
     logger.info("Thought Pins Server v{}", config.API_VERSION)
-    logger.info("=" * 50)
 
     logger.info("Initializing database")
     init_db()
