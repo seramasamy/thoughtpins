@@ -15,10 +15,9 @@ import uuid
 from fastapi import Request
 
 from thoughtpins.api_route_policy import (
-    MAINTENANCE_ALWAYS_ALLOWED_PATHS,
-    PUBLIC_PATHS,
-    PUBLIC_PREFIXES,
     is_invite_exempt_path,
+    is_maintenance_allowed_path,
+    is_public_path,
 )
 from thoughtpins.auth import authenticate_access_token, decode_access_token
 from thoughtpins.config import config
@@ -35,7 +34,7 @@ def _extract_api_key(request: Request) -> str:
 
 
 def _is_public_path(path: str) -> bool:
-    return path in PUBLIC_PATHS or any(path.startswith(prefix) for prefix in PUBLIC_PREFIXES)
+    return is_public_path(path)
 
 
 def _resolve_request_user(request: Request, session, key: str | None):
@@ -75,8 +74,7 @@ def _is_invite_blocked(user, path: str) -> bool:
 def _is_maintenance_allowed(request: Request) -> bool:
     if request.method in {"OPTIONS", "HEAD"}:
         return True
-    path = request.url.path
-    if path in MAINTENANCE_ALWAYS_ALLOWED_PATHS or any(path.startswith(prefix) for prefix in PUBLIC_PREFIXES):
+    if is_maintenance_allowed_path(request.url.path):
         return True
     if config.MAINTENANCE_ALLOW_READS and request.method == "GET":
         return True

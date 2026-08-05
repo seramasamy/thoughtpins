@@ -53,3 +53,38 @@ def test_pages_are_html_not_an_api_envelope(client: TestClient) -> None:
     for path in ("/privacy", "/account/delete/"):
         response = client.get(path)
         assert "text/html" in response.headers.get("content-type", ""), path
+
+
+# ------------------------------------------------------------------- the gate
+#
+# Registering the route is only half of it. The auth middleware decides before
+# routing whether a request needs credentials, and it matched the path string
+# exactly — so a registered /privacy/ still answered 401. These assert the gate,
+# not the router.
+
+
+@pytest.mark.parametrize("path", [p for p in PUBLIC_PATHS if p != "/"])
+def test_the_auth_gate_treats_both_url_forms_as_public(path: str) -> None:
+    from thoughtpins.api_route_policy import is_public_path
+
+    assert is_public_path(path), path
+    assert is_public_path(f"{path}/"), f"{path}/"
+
+
+@pytest.mark.parametrize("path", [p for p in PUBLIC_PATHS if p != "/"])
+def test_both_url_forms_survive_maintenance(path: str) -> None:
+    """A policy page must stay readable while the service is down."""
+    from thoughtpins.api_route_policy import is_maintenance_allowed_path
+
+    assert is_maintenance_allowed_path(f"{path}/"), f"{path}/"
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["/v1/entries", "/v1/chat", "/v1/entries/", "/v1/admin/usage", "/v1/library", "/v1/graph/"],
+)
+def test_normalising_the_slash_did_not_open_anything_else(path: str) -> None:
+    """The point of the allowlist is that everything absent from it is closed."""
+    from thoughtpins.api_route_policy import is_public_path
+
+    assert not is_public_path(path), path

@@ -103,9 +103,32 @@ INVITE_EXEMPT_PATHS = frozenset(
 INVITE_EXEMPT_PREFIXES = ("/v1/sessions/",)
 
 
+def normalize_path(path: str) -> str:
+    """/privacy and /privacy/ are the same page and must be judged the same.
+
+    Without this the gate matched the exact string, so a policy URL pasted with
+    a trailing slash missed the allowlist and fell through to the authenticated
+    API — a privacy policy answering 401. /classic had been worked around by
+    listing both spellings; normalising means the next entry cannot need that.
+    """
+    return path.rstrip("/") or "/"
+
+
+def is_public_path(path: str) -> bool:
+    """Whether this path is reachable without any credentials."""
+    return normalize_path(path) in PUBLIC_PATHS or any(path.startswith(prefix) for prefix in PUBLIC_PREFIXES)
+
+
+def is_maintenance_allowed_path(path: str) -> bool:
+    """Whether this path still answers while the service is in maintenance."""
+    return normalize_path(path) in MAINTENANCE_ALWAYS_ALLOWED_PATHS or any(
+        path.startswith(prefix) for prefix in PUBLIC_PREFIXES
+    )
+
+
 def is_invite_exempt_path(path: str) -> bool:
     """Whether this path stays open to an account that has not been admitted."""
-    normalized = path.rstrip("/") or "/"
+    normalized = normalize_path(path)
     if normalized in INVITE_EXEMPT_PATHS or path in INVITE_EXEMPT_PATHS:
         return True
     return any(path.startswith(prefix) for prefix in INVITE_EXEMPT_PREFIXES)
