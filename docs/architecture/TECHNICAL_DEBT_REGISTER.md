@@ -111,10 +111,25 @@ test. Each is now covered by a test asserting the property, not the fix.
   dominant line in this deployment's hosting cost, so the bound is
   load-bearing rather than defensive.
 
+- **Retry without backoff or jitter.** The LLM client paused a constant
+  interval between attempts. Against a provider returning 429 that is the wrong
+  shape twice: the delay never widens, and every concurrent worker returns to
+  the wire at the same instant, so one rate-limit event reconverges into the
+  next. Now exponential with full jitter, capped at 8s so a doubling delay
+  cannot become a multi-minute stall. Tested for bounds, for growth, and for
+  the herd actually spreading across the window rather than clustering.
+
 Structural result: `memory/search.py::search` fell from cyclomatic complexity
 30 to 3 by separating orchestration from the eight channel collectors, and the
 nineteen ranking coefficients are now declared and bounded in one validated
 dataclass instead of a third of them sitting as literals inside the scorer.
+
+Checked and found already correct, recorded so the next audit can skip them:
+outbound HTTP carries explicit timeouts; there are no mutable default
+arguments anywhere in the tree; vector retrieval enforces tenancy twice, at the
+index and again when the hit is re-read through the tenant-scoped SQL query.
+The remaining unbounded module state is confined to the founder Telegram
+adapter, where an approved-user allowlist bounds it in practice.
 
 ## Closed Or Controlled Items
 

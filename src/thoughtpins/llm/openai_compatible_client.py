@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+import random
 import re
 import threading
+import time
 from typing import Any, Optional
 
 from loguru import logger
@@ -13,6 +15,27 @@ from openai import OpenAI
 from thoughtpins.config import config
 from thoughtpins.tenancy import get_current_tenant_id
 from thoughtpins.usage import ensure_budget_available, record_llm_usage
+
+# Retry pacing. The ceiling keeps a doubling delay from turning one slow
+# request into a multi-minute stall for the caller waiting on it.
+_RETRY_BASE_SECONDS = 0.25
+_RETRY_MAX_SECONDS = 8.0
+
+
+def _retry_delay_seconds(attempt: int, *, rng: random.Random | None = None) -> float:
+    """Exponential backoff with full jitter.
+
+    The delay used to be a constant, which is the wrong shape twice over. A
+    provider returning 429 needs progressively more room, not the same pause
+    repeated; and a fixed delay puts every concurrent worker back on the wire
+    at the same instant, so a rate-limit event reconverges into the next one.
+
+    Full jitter — a uniform draw from [0, backoff] rather than backoff itself —
+    is what actually decorrelates the retries. Halving the herd is not the
+    point; spreading it flat across the window is.
+    """
+    ceiling = min(_RETRY_MAX_SECONDS, _RETRY_BASE_SECONDS * (2**max(0, attempt)))
+    return (rng or random).uniform(0.0, ceiling)
 
 
 def _record_provider_usage(response: Any, *, operation: str, requested_model: str) -> None:
@@ -159,10 +182,9 @@ class OpenAICompatibleLLMClient:
             if content.strip():
                 return content
             if attempt < total_attempts - 1:
-                import time
-
-                time.sleep(min(2, max(0.1, config.LLM_TIMEOUT_SECONDS / 30)))
-                logger.debug("Empty response, retrying...")
+                delay = _retry_delay_seconds(attempt)
+                logger.debug("Retrying in {:.2f}s (attempt {})", delay, attempt + 1)
+                time.sleep(delay)
 
         if last_error is not None:
             raise last_error
