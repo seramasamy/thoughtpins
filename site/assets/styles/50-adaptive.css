@@ -750,22 +750,46 @@
 }
 
 /* ---------------- Touch targets ----------------
-   Coarse-pointer only: the legal-page and classic-page navigation are text
-   links around 20px tall, which is comfortable with a cursor and awkward with
-   a thumb. Padding raises the hit area toward the 44px platform guidance
-   without changing type size or layout rhythm. */
+   Coarse-pointer only. Most of these are text links around 20px tall, which is
+   comfortable under a cursor and awkward under a thumb. The hit area grows to
+   the 44px platform floor; type size and visual rhythm do not change.
+
+   Links inside prose are deliberately excluded — a sentence is read, and
+   inflating every inline link would wreck the line spacing around it. */
 @media (pointer: coarse) {
   .nav a,
   .header-links a,
-  .text-action {
+  .text-action,
+  .page-toc a,
+  .footer-column a,
+  .footer-bottom a,
+  .arrow-link {
     display: inline-flex;
     align-items: center;
     min-height: 44px;
   }
 
+  /* Short labels ("App", "Log in") clear 44px in height but not in width.
+     Negative margin absorbs the padding so only the target grows. */
+  .nav a,
+  .footer-column a,
+  .footer-bottom a {
+    padding-inline: 8px;
+    margin-inline: -8px;
+  }
+
+  /* Taller rows would otherwise stretch the footer; tightening the gap by the
+     same amount keeps the pitch — and the density — exactly as designed. */
+  .footer-column {
+    gap: 7px;
+  }
+
   .site-brand,
   .header-back,
-  .theme-toggle {
+  .theme-toggle,
+  .button-small,
+  .preview-tab,
+  .skip-link {
     min-height: 44px;
   }
 
@@ -773,25 +797,9 @@
     width: 44px;
   }
 
-  .footer-column a,
-  .footer-bottom a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 40px;
-  }
-}
-
-@media (pointer: coarse) {
-  /* Table-of-contents entries are discrete chips rather than prose. */
-  .page-toc a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-  }
-}
-
-@media (pointer: coarse) {
-  .button-small {
-    min-height: 44px;
+  /* A heading's permalink only appears on hover, which a touch device has no
+     way to produce. It is unreachable weight here. */
+  .anchor-link {
+    display: none;
   }
 }

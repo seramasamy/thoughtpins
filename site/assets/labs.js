@@ -240,7 +240,12 @@ async function setupConstellation() {
   if (reduceMotion.addEventListener) reduceMotion.addEventListener("change", play);
 }
 
-/* ---------------- Week horizontal scrubber ---------------- */
+/* ---------------- Week horizontal scrubber ----------------
+   Two ways to move the same strip. With a cursor it is scrubbed by page
+   scroll against a tall runway, which reads as film. With a thumb the CSS
+   turns it into a snap carousel, and driving a transform on top of that would
+   fight the finger — so here we only follow the track and report where it is.
+   The progress bar is filled either way. */
 function setupWeekScrub() {
   const wrap = document.querySelector("[data-week-wrap]");
   const track = document.querySelector("[data-week-track]");
@@ -248,9 +253,19 @@ function setupWeekScrub() {
   if (!wrap || !track) return;
   if (reduceMotion.matches) return;
 
+  const swipeable = window.matchMedia("(max-width: 760px)");
   let raf = 0;
+
   function update() {
     raf = 0;
+    if (swipeable.matches) {
+      // The carousel owns its own position; read it, never set it.
+      track.style.transform = "";
+      const travel = track.scrollWidth - track.clientWidth;
+      const p = travel > 0 ? Math.max(0, Math.min(1, track.scrollLeft / travel)) : 0;
+      if (bar) bar.style.width = `${Math.max(p * 100, 4).toFixed(2)}%`;
+      return;
+    }
     const rect = wrap.getBoundingClientRect();
     const runway = wrap.offsetHeight - window.innerHeight;
     const p = runway > 0 ? Math.max(0, Math.min(1, -rect.top / runway)) : 0;
@@ -258,12 +273,16 @@ function setupWeekScrub() {
     track.style.transform = `translate3d(${(-p * Math.max(0, overflow)).toFixed(1)}px, 0, 0)`;
     if (bar) bar.style.width = `${(p * 100).toFixed(2)}%`;
   }
+
   function onScroll() {
     if (!raf) raf = window.requestAnimationFrame(update);
   }
+
   update();
   window.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("resize", onScroll);
+  track.addEventListener("scroll", onScroll, { passive: true });
+  swipeable.addEventListener("change", update);
 }
 
 /* ---------------- Marquee: duplicate content for a seamless loop ---------------- */

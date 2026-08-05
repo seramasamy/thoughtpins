@@ -95,6 +95,18 @@
   line-height: 1.72;
 }
 
+/* Headings and lists carried their own margins; paragraphs did not, so two of
+   them in a row rendered as one unbroken slab. Spacing the joins rather than
+   the elements keeps a paragraph from adding a gap under the last one in a
+   section. */
+.page p + p,
+.page p + ul,
+.page p + ol,
+.page ul + p,
+.page ol + p {
+  margin-top: 17px;
+}
+
 .page li strong {
   color: var(--tp-ink);
 }

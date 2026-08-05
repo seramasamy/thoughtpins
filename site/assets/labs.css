@@ -104,8 +104,34 @@ button:focus-visible {
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   padding: 18px 28px;
-  background: linear-gradient(rgba(23, 18, 16, 0.86), rgba(23, 18, 16, 0));
   transition: opacity 240ms ease;
+}
+
+/* A scrim that fades out with the bar rather than under it.
+
+   The gradient alone reached full transparency at the bottom of the nav, so
+   anything scrolling past showed straight through the wordmark and headings
+   read as two overlapping texts. Blurring and dimming the backdrop keeps the
+   nav legible over any section; masking the whole layer means the treatment
+   ends where the bar does, with no hard edge.
+
+   Absolutely positioned so it stays out of the grid it sits inside. */
+.lab-nav::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(23, 18, 16, 0.94), rgba(23, 18, 16, 0.72));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  -webkit-mask-image: linear-gradient(#000 58%, transparent);
+  mask-image: linear-gradient(#000 58%, transparent);
+  pointer-events: none;
+}
+
+.lab-brand,
+.lab-nav-links,
+.lab-nav-actions {
+  position: relative;
 }
 
 .lab-nav-faded {
@@ -288,18 +314,23 @@ button:focus-visible {
   transform: translateY(-2px);
 }
 
+/* Underlined with text-decoration rather than a bottom border: on touch this
+   link grows to a 44px hit area, and a border would draw itself at the bottom
+   of that box, leaving the rule floating twelve pixels under the words. */
 .lab-quiet {
   color: var(--lab-soft);
   font-size: 14.5px;
   font-weight: 600;
-  text-decoration: none;
-  border-bottom: 1px solid var(--lab-line);
-  transition: color 160ms ease, border-color 160ms ease;
+  text-decoration: underline;
+  text-decoration-color: var(--lab-line);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 6px;
+  transition: color 160ms ease, text-decoration-color 160ms ease;
 }
 
 .lab-quiet:hover {
   color: var(--lab-ink);
-  border-color: var(--lab-apricot);
+  text-decoration-color: var(--lab-apricot);
 }
 
 .lab-scroll-hint {
@@ -310,7 +341,7 @@ button:focus-visible {
   align-items: center;
   gap: 10px;
   color: var(--lab-faint);
-  font-size: 11.5px;
+  font-size: 12px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   transform: translateX(-50%);
@@ -702,7 +733,7 @@ button:focus-visible {
 .lab-labs-tag {
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 /* ---------------- Responsive ---------------- */
@@ -734,6 +765,47 @@ button:focus-visible {
 
   .lab-week-head {
     margin-bottom: 30px;
+  }
+
+  /* The week reads as a filmstrip you scrub by scrolling the page. That is a
+     cursor idea: with a thumb you would swipe the cards, and swiping did
+     nothing while 340vh of vertical runway moved them sideways instead.
+
+     On touch it becomes what it looks like — a carousel you flick — and the
+     runway collapses to a single screen, which also removes about 2,600px of
+     dead scroll from the page. labs.js leaves the transform alone here and
+     drives the progress bar from the track's own position. */
+  .lab-week {
+    height: auto;
+  }
+
+  .lab-week-sticky {
+    position: static;
+    height: auto;
+    padding: 76px 0;
+    overflow: visible;
+  }
+
+  .lab-track {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-left: 24px;
+    padding-right: 24px;
+    /* Stops a flick at the end of the strip becoming a browser back-swipe. */
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .lab-track::-webkit-scrollbar {
+    display: none;
+  }
+
+  .lab-card {
+    scroll-snap-align: start;
+  }
+
+  .lab-progress {
+    margin-top: 34px;
   }
 
   .lab-keep {
@@ -873,8 +945,15 @@ button:focus-visible {
     min-height: 44px;
   }
 
+  /* padding-block alone left these at 41px, and short labels ("Terms") were
+     only 34px wide. Negative margin absorbs the horizontal padding so the row
+     keeps its 20px gap while each target reaches the platform floor. */
   .lab-footer a {
-    padding-block: 10px;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding-inline: 8px;
+    margin-inline: -8px;
   }
 
   .lab-preview-tabs .preview-tab {

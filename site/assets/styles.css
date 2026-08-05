@@ -1,12 +1,12 @@
 /* Imports carry the same ?v= as styles.css itself. Without it the CDN keeps
    serving cached sub-stylesheets after a release, so edits below never reach
    anyone who has visited before. Bump these together with the page links. */
-@import "/assets/styles/00-foundations.css?v=20260803-mobile-1";
-@import "/assets/styles/10-brand-hero.css?v=20260803-mobile-1";
-@import "/assets/styles/20-product-preview.css?v=20260803-mobile-1";
-@import "/assets/styles/21-product-frame.css?v=20260803-mobile-1";
-@import "/assets/styles/22-product-responsive.css?v=20260803-mobile-1";
-@import "/assets/styles/23-demo-live.css?v=20260803-mobile-1";
-@import "/assets/styles/30-workflow-footer.css?v=20260803-mobile-1";
-@import "/assets/styles/40-legal.css?v=20260803-mobile-1";
-@import "/assets/styles/50-adaptive.css?v=20260803-mobile-1";
+@import "/assets/styles/00-foundations.css?v=20260804-mobile-2";
+@import "/assets/styles/10-brand-hero.css?v=20260804-mobile-2";
+@import "/assets/styles/20-product-preview.css?v=20260804-mobile-2";
+@import "/assets/styles/21-product-frame.css?v=20260804-mobile-2";
+@import "/assets/styles/22-product-responsive.css?v=20260804-mobile-2";
+@import "/assets/styles/23-demo-live.css?v=20260804-mobile-2";
+@import "/assets/styles/30-workflow-footer.css?v=20260804-mobile-2";
+@import "/assets/styles/40-legal.css?v=20260804-mobile-2";
+@import "/assets/styles/50-adaptive.css?v=20260804-mobile-2";
