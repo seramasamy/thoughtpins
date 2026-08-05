@@ -62,7 +62,7 @@ def run_checks() -> tuple[list[str], list[str]]:
     if config.APP_NAME != "Thought Pins":
         failures.append("APP_NAME should be 'Thought Pins'.")
     _check_data_inventory(ROOT / "deploy" / "store" / "data-safety-inventory.json", failures)
-    _check_public_routes(paths["public route"], failures)
+    _check_public_routes(failures)
     _check_maintenance_contract(paths, failures)
     _check_oauth_parity(warnings, failures)
     _check_production_settings(warnings, failures)
@@ -91,7 +91,7 @@ def _check_required_files(paths: dict[str, Path], failures: list[str]) -> None:
             failures.append(f"Missing {label}: {path.relative_to(ROOT)}")
 
 
-def _check_public_routes(public_route: Path, failures: list[str]) -> None:
+def _check_public_routes(failures: list[str]) -> None:
     try:
         routes = discover_api_routes(ROOT)
     except RouteDiscoveryError as exc:
@@ -99,12 +99,25 @@ def _check_public_routes(public_route: Path, failures: list[str]) -> None:
         routes = set()
     if ("DELETE", "/v1/me") not in routes:
         failures.append("In-app account deletion endpoint /v1/me is missing.")
-    if not _contains(public_route, '@router.get("/account/delete"'):
-        failures.append("Public web account deletion page is missing.")
-    if not _contains(public_route, '@router.get("/privacy"'):
-        failures.append("Public privacy page is missing.")
-    if not _contains(public_route, '@router.get("/ai-disclosure"'):
-        failures.append("Public AI disclosure page is missing.")
+
+    # These pages are registered with include_in_schema=False, so they never
+    # appear in the OpenAPI-derived route set above. Ask the router itself
+    # rather than grepping for a decorator: the reviewer-facing requirement is
+    # that the path answers, not that it was spelled a particular way.
+    from thoughtpins.api_routes.public import create_public_router
+
+    published = {getattr(route, "path", "") for route in create_public_router().routes}
+    for path, label in (
+        ("/account/delete", "Public web account deletion page"),
+        ("/privacy", "Public privacy page"),
+        ("/ai-disclosure", "Public AI disclosure page"),
+    ):
+        if path not in published:
+            failures.append(f"{label} is missing.")
+        # A store reviewer or crawler that appends a slash must not be handed
+        # the authenticated catch-all instead of the policy.
+        elif f"{path}/" not in published:
+            failures.append(f"{label} does not answer its trailing-slash form.")
 
 
 def _check_maintenance_contract(paths: dict[str, Path], failures: list[str]) -> None:

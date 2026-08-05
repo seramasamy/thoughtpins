@@ -42,6 +42,25 @@ def create_public_router() -> APIRouter:
             return _file_response(file_path, cache_control="public, max-age=300")
         return _public_html_page(title, fallback_body)
 
+    def public_page(*paths: str):
+        """Register a page under each path and its trailing-slash twin.
+
+        These are the URLs in PRIVACY_POLICY_URL, TERMS_URL, and
+        ACCOUNT_DELETION_URL — the ones store reviewers open, crawlers follow,
+        and people paste with a stray slash. Registered bare only, the slashed
+        form fell through to the authenticated catch-all and answered a legal
+        page request with 401 JSON. Registering both here means the next page
+        added cannot reintroduce that.
+        """
+
+        def decorate(endpoint):
+            for path in paths:
+                for form in (path.rstrip("/"), path.rstrip("/") + "/"):
+                    router.get(form, include_in_schema=False)(endpoint)
+            return endpoint
+
+        return decorate
+
     @router.get("/")
     async def root():
         return site_page_or_fallback(
@@ -53,7 +72,7 @@ def create_public_router() -> APIRouter:
             """,
         )
 
-    @router.get("/privacy", include_in_schema=False)
+    @public_page("/privacy")
     async def privacy_page():
         return site_page_or_fallback(
             "privacy.html",
@@ -67,7 +86,7 @@ def create_public_router() -> APIRouter:
             """,
         )
 
-    @router.get("/terms", include_in_schema=False)
+    @public_page("/terms")
     async def terms_page():
         return site_page_or_fallback(
             "terms.html",
@@ -79,7 +98,7 @@ def create_public_router() -> APIRouter:
             """,
         )
 
-    @router.get("/support", include_in_schema=False)
+    @public_page("/support")
     async def support_page():
         return site_page_or_fallback(
             "support.html",
@@ -90,8 +109,7 @@ def create_public_router() -> APIRouter:
             """,
         )
 
-    @router.get("/account/delete", include_in_schema=False)
-    @router.get("/delete-account", include_in_schema=False)
+    @public_page("/account/delete", "/delete-account")
     async def account_delete_page():
         return site_page_or_fallback(
             Path("account") / "delete" / "index.html",
@@ -103,7 +121,7 @@ def create_public_router() -> APIRouter:
             """,
         )
 
-    @router.get("/ai-disclosure", include_in_schema=False)
+    @public_page("/ai-disclosure")
     async def ai_disclosure_page():
         return site_page_or_fallback(
             "ai-disclosure.html",
@@ -114,7 +132,7 @@ def create_public_router() -> APIRouter:
             """,
         )
 
-    @router.get("/security", include_in_schema=False)
+    @public_page("/security")
     async def security_page():
         return site_page_or_fallback(
             "security.html",
