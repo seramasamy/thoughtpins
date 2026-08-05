@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 import threading
+from collections import OrderedDict
 from typing import Optional
 
 from loguru import logger
@@ -13,9 +14,49 @@ from sqlalchemy.orm import Session
 from thoughtpins.db import Entity
 from thoughtpins.utils import ENTITY_TYPES
 
-# Thread-safe cache: (surface_name_lower, candidate_name_lower, context_hash) -> canonical | None
-_resolution_cache: dict[tuple[str, str, int], Optional[str]] = {}
+_ResolutionKey = tuple[str, str, int]
+
+# Memoises "does this surface name mean this existing entity, in this passage".
+#
+# The context hash is part of the key on purpose: "Apple" resolves differently
+# in an entry about fruit than one about a laptop, so a context-free answer
+# would be wrong rather than merely stale. The consequence is that entries do
+# not share entries' answers, and the cache mostly earns its keep within a
+# single entry's resolution pass.
+#
+# That makes the bound load-bearing rather than defensive. Keyed by passage,
+# an unbounded dict in a Celery worker grows for the life of the process and
+# never releases — and worker memory is the dominant line in this deployment's
+# hosting cost. LRU because the useful entries are the ones from the passage
+# currently being resolved.
+_RESOLUTION_CACHE_MAX_ENTRIES = 4096
+_resolution_cache: OrderedDict[_ResolutionKey, Optional[str]] = OrderedDict()
 _cache_lock = threading.Lock()
+
+
+def _cache_get(key: _ResolutionKey) -> Optional[str]:
+    """Read a memoised resolution, refreshing its recency."""
+    with _cache_lock:
+        if key not in _resolution_cache:
+            return None
+        _resolution_cache.move_to_end(key)
+        return _resolution_cache[key]
+
+
+def _cache_put(key: _ResolutionKey, value: Optional[str]) -> None:
+    """Record a resolution, evicting the least recently used if full."""
+    with _cache_lock:
+        _resolution_cache[key] = value
+        _resolution_cache.move_to_end(key)
+        while len(_resolution_cache) > _RESOLUTION_CACHE_MAX_ENTRIES:
+            _resolution_cache.popitem(last=False)
+
+
+def resolution_cache_size() -> int:
+    """Current entry count. Exposed so the bound can be asserted in tests."""
+    with _cache_lock:
+        return len(_resolution_cache)
+
 
 _ENTITY_TYPE_ALIASES = {
     "human": "person",
@@ -362,8 +403,7 @@ Only JSON. No commentary."""
                 # Cache the result
                 for e in existing_entities:
                     if e.canonical_name.lower() == target.lower():
-                        with _cache_lock:
-                            _resolution_cache[(name.lower(), e.canonical_name.lower(), ctx_hash)] = e.canonical_name
+                        _cache_put((name.lower(), e.canonical_name.lower(), ctx_hash), e.canonical_name)
             else:
                 resolved[name] = None  # explicitly NEW
 
@@ -418,9 +458,7 @@ def resolve_entity(
     if entity_type != "person" and raw_text and all_entities:
         # Check cache first (thread-safe read)
         for ent in all_entities:
-            cache_key = (surface_name.lower(), ent.canonical_name.lower(), ctx_hash)
-            with _cache_lock:
-                cached = _resolution_cache.get(cache_key)
+            cached = _cache_get((surface_name.lower(), ent.canonical_name.lower(), ctx_hash))
             if cached == ent.canonical_name:
                 _add_alias(ent, surface_name)
                 return ent, False

@@ -1,6 +1,6 @@
 # Technical Debt Register
 
-Last reviewed: 2026-07-21
+Last reviewed: 2026-08-05
 
 This register is intentionally candid. A production codebase with no technical
 debt is not a credible claim. Thought Pins uses tests and architecture fitness
@@ -84,6 +84,37 @@ code signing, archive validation, TestFlight upload, VoiceOver, or device tests.
   when signing inputs are absent.
 - Exit: complete the signed Mac runbook, retain archive/device evidence outside
   source control, and update the handoff only after those artifacts pass.
+
+## Closed In The 2026-08-05 Retrieval Pass
+
+Four defects found by auditing the retrieval path rather than by a failing
+test. Each is now covered by a test asserting the property, not the fix.
+
+- **Non-deterministic candidate identity.** Graph evidence was keyed on
+  Python's builtin `hash()` of the fact text, which is salted per interpreter.
+  The same fact carried a different identity in the API than in the worker and
+  a different one on each run, quietly invalidating the replayable-ablation
+  property the ranking module documents. Now a BLAKE2b digest, with a test that
+  spawns fresh interpreters to confirm agreement and a second test guarding the
+  premise so the rationale can be revisited rather than cargo-culted.
+- **Session leak on the failure path.** `memory.search` closed a session it
+  owned only on the success path, so any raising channel leaked the connection
+  under exactly the load that matters. Ownership is now a context manager.
+- **Failure isolation applied to one channel of eight.** Only vector retrieval
+  was guarded; every other provider could fail the whole query. Each channel is
+  now individually absorbed, and fewer candidates is the worst case.
+- **Unbounded resolution memo in a long-lived worker.** The entity-resolution
+  cache keyed on a hash of the passage — correct, since "Apple" resolves
+  differently per context, but it makes keys effectively unique per entry, so
+  the dict grew for the life of the process and never released. Now LRU-bounded
+  at 4,096 entries, with concurrent-writer coverage. Worker memory is the
+  dominant line in this deployment's hosting cost, so the bound is
+  load-bearing rather than defensive.
+
+Structural result: `memory/search.py::search` fell from cyclomatic complexity
+30 to 3 by separating orchestration from the eight channel collectors, and the
+nineteen ranking coefficients are now declared and bounded in one validated
+dataclass instead of a third of them sitting as literals inside the scorer.
 
 ## Closed Or Controlled Items
 

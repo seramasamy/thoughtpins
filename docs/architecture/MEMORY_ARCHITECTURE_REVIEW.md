@@ -125,6 +125,35 @@ penalty. Stars remain preference signals and are dampened when a candidate does
 not answer the explicit social facets or named person in the query. Detailed evidence and
 limitations are in `SOCIAL_EPISODIC_RELEVANCE.md`.
 
+## Retrieval Invariants
+
+Three properties the retrieval stage is expected to hold. Each is enforced in
+code and asserted in `tests/test_search_resilience.py` rather than assumed.
+
+**Candidate identity is deterministic.** The same corpus and query produce the
+same candidate identities on every process and every run. This is a
+prerequisite for the ablation story above: an evaluation that replays one
+candidate pool under several ranking policies cannot compare runs if the
+identities move. Graph evidence carries no row of its own, so its identity is a
+BLAKE2b digest of the fact text. It previously used Python's builtin `hash()`,
+which is salted per interpreter — the same fact had one identity in the API,
+another in the worker, and another on the next run.
+
+**A channel is an optimisation, not a dependency.** Eight independent channels
+propose candidates. Any one failing — an unreachable vector service, a graph
+query that times out — costs recall for that query and nothing else. Previously
+only the vector channel was guarded, so an unavailable provider anywhere else
+raised through the whole search.
+
+**Every ranking coefficient is declared and bounded.** All nineteen live in
+`RankingWeights`, validated on construction against per-coefficient upper
+bounds that encode intent: each bound is the point past which that term could
+overturn retrieval evidence on its own. Structural priors were previously bare
+literals inside the scoring function, which left roughly a third of the model's
+hyperparameters invisible to an ablation and unvalidated. Adding a coefficient
+without a declared bound now fails construction rather than silently skipping
+validation.
+
 ## Graph Backend
 
 The internal SQL graph remains authoritative. Graphiti is already available as a shadow adapter and should be promoted only if the same tenant-scoped evaluation set shows a measurable recall gain without weakening deletion, temporal correction, provenance, or operational reliability. A graph product is not automatically a better memory product; the deciding evidence is end-to-end recall quality and lifecycle correctness.

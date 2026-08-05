@@ -9,7 +9,7 @@ again or changing tenant-scoped retrieval behavior.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, fields, replace
 from datetime import date
 
 from thoughtpins.importance import importance_bonus
@@ -39,6 +39,12 @@ class RankingWeights:
     Retrieval evidence remains dominant. Personal importance and social
     structure are constrained to breaking close ties rather than manufacturing
     relevance that candidate generation did not find.
+
+    Every number the scoring function multiplies by lives here, including the
+    small structural priors. Scattering some of them as literals inside
+    :func:`_calibrated_score` would leave half the model's hyperparameters
+    unvalidated and invisible to an ablation, which is exactly the failure mode
+    the bounds below exist to prevent.
     """
 
     base: float = 0.68
@@ -53,7 +59,33 @@ class RankingWeights:
     social_utility: float = 0.15
     factualization_penalty: float = 0.035
 
+    # Agreement between independent retrievers, saturating: the second channel
+    # that finds a candidate is strong evidence, the fifth adds little. Capped
+    # so consensus can break a tie but never outrank the evidence itself.
+    consensus_scale: float = 0.018
+    consensus_cap: float = 0.045
+
+    # A retrieved document was deliberately saved to be read again, and a graph
+    # hit survived entity resolution. Both are weak positive priors.
+    document_kind_prior: float = 0.015
+    graph_prior: float = 0.015
+
+    # Neutral points for the two salience signals. A candidate at its neutral
+    # value contributes nothing, so the priors shift ranking only when the
+    # signal actually departs from the population default.
+    contextual_salience_neutral: float = 0.5
+    memory_type_salience_neutral: float = 0.70
+
+    # Stated importance is a preference signal, not a truth score. On a socially
+    # specific question it is gated by how well the candidate matches the people
+    # asked about, with floors so a strong personal rating is damped rather than
+    # erased.
+    importance_gate_floor: float = 0.05
+    identity_match_floor: float = 0.25
+
     def __post_init__(self) -> None:
+        # Upper bounds encode intent, not arithmetic: each is the point past
+        # which that term could overturn retrieval evidence on its own.
         limits = {
             "base": 1.0,
             "lexical": 0.5,
@@ -66,11 +98,24 @@ class RankingWeights:
             "temporal_query": 0.2,
             "social_utility": 0.3,
             "factualization_penalty": 0.15,
+            "consensus_scale": 0.1,
+            "consensus_cap": 0.15,
+            "document_kind_prior": 0.1,
+            "graph_prior": 0.1,
+            "contextual_salience_neutral": 1.0,
+            "memory_type_salience_neutral": 1.0,
+            "importance_gate_floor": 1.0,
+            "identity_match_floor": 1.0,
         }
         for field_name, upper_bound in limits.items():
             value = getattr(self, field_name)
             if not math.isfinite(value) or not 0.0 <= value <= upper_bound:
                 raise ValueError(f"{field_name} weight must be between 0 and {upper_bound}")
+        if set(limits) != {f.name for f in fields(self)}:
+            # A new coefficient added without a bound would silently skip
+            # validation, so the mismatch is a programming error, not input.
+            missing = {f.name for f in fields(self)} - set(limits)
+            raise AssertionError(f"ranking coefficients without a declared bound: {sorted(missing)}")
 
 
 DEFAULT_RANKING_WEIGHTS = RankingWeights()
@@ -192,16 +237,21 @@ def _calibrated_score(
     raw_lexical = _lexical_signal(evidence, analysis)
     raw_phrase = _phrase_score(evidence, analysis)
     raw_proximity = _proximity_score(_token_sequence(evidence), analysis.tokens)
-    raw_consensus = min(0.045, math.log1p(len(result.retrieval_sources)) * 0.018)
+    raw_consensus = min(
+        weights.consensus_cap,
+        math.log1p(len(result.retrieval_sources)) * weights.consensus_scale,
+    )
     raw_temporal = _temporal_salience(result.local_date, as_of_date)
     raw_temporal_query = temporal_window_match(
         result.local_date,
         parse_temporal_window(analysis.raw, as_of=as_of_date),
     )
-    raw_kind_prior = 0.015 if result.source_kind == "document" else 0.0
-    raw_graph_prior = 0.015 if any("graph" in source for source in result.retrieval_sources) else 0.0
+    raw_kind_prior = weights.document_kind_prior if result.source_kind == "document" else 0.0
+    raw_graph_prior = weights.graph_prior if any("graph" in source for source in result.retrieval_sources) else 0.0
     raw_importance = importance_bonus(result.user_importance)
-    contextual_salience = result.entry_salience if result.entry_salience is not None else 0.5
+    contextual_salience = (
+        result.entry_salience if result.entry_salience is not None else weights.contextual_salience_neutral
+    )
     memory_prior = memory_type_salience(result.memory_type)
     social_intent = analyze_social_query(analysis.raw)
     social = score_social_evidence(result, social_intent)
@@ -218,11 +268,22 @@ def _calibrated_score(
     importance_query_gate = (
         1.0
         if social_intent.social_focus == 0.0
-        else max(0.05, social.intent_coverage * max(0.25, social.identity_match))
+        else max(
+            weights.importance_gate_floor,
+            social.intent_coverage * max(weights.identity_match_floor, social.identity_match),
+        )
     )
     explicit_importance = raw_importance * importance_query_gate if policy.salience_priors else 0.0
-    contextual_delta = (contextual_salience - 0.5) * weights.contextual_salience if policy.salience_priors else 0.0
-    memory_delta = (memory_prior - 0.70) * weights.memory_type_salience if policy.salience_priors else 0.0
+    contextual_delta = (
+        (contextual_salience - weights.contextual_salience_neutral) * weights.contextual_salience
+        if policy.salience_priors
+        else 0.0
+    )
+    memory_delta = (
+        (memory_prior - weights.memory_type_salience_neutral) * weights.memory_type_salience
+        if policy.salience_priors
+        else 0.0
+    )
     social_bonus = (
         social_intent.social_focus * weights.social_utility * social.utility if policy.social_evidence else 0.0
     )

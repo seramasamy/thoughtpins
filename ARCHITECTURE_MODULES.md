@@ -46,9 +46,17 @@ as thin adapters.
   contract.
 - `memory/`: retrieval, hybrid ranking, graph backends, vector stores,
   maintenance, reset, audit, and eval harnesses.
+- `memory/search.py`: candidate generation only. Each channel is a `_collect_*`
+  function that proposes into a shared map; the orchestrator absorbs any one of
+  them failing, because a channel is an optimisation and not a dependency.
+  Candidate identity must be deterministic across processes — derive it from
+  content with a stable digest, never `hash()`, or replayable evaluation and
+  any cache keyed on a candidate break silently.
 - `memory/ranking.py`: pure candidate scoring and reranking policies. A ranking
   policy can be replayed over a fixed candidate pool, which makes ablation
-  results reproducible without provider or database variance.
+  results reproducible without provider or database variance. Every coefficient
+  belongs in `RankingWeights` with a declared upper bound; a literal left inside
+  the scorer is a hyperparameter hidden from ablation and validation.
 - `memory/social_relevance.py`: deterministic query-facet and social-scene
   features, including attribution and factualization-risk handling.
 - `memory/evidence_plan.py`: compact provenance-aware response planning between

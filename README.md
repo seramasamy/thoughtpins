@@ -11,7 +11,7 @@
 [![CI](https://github.com/seramasamy/thoughtpins/actions/workflows/ci.yml/badge.svg)](https://github.com/seramasamy/thoughtpins/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-e8612b)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.13-3776ab)](.python-version)
-[![Tests](https://img.shields.io/badge/tests-609-587465)](tests/)
+[![Tests](https://img.shields.io/badge/tests-664-587465)](tests/)
 [![Code of Conduct](https://img.shields.io/badge/contributor-covenant-6b6459)](CODE_OF_CONDUCT.md)
 
 **A memory layer for real life.** Write naturally, bring in what you read,<br>
@@ -56,7 +56,7 @@ marketing claim.
 | **No ads, no tracking, no resale** | There is no advertising profile, no public feed, and no analytics SDK. The release contract is machine-checked. [`commerce-policy.json`](deploy/store/commerce-policy.json) · [`check_free_launch.py`](scripts/check_free_launch.py) |
 | **It doesn't steal articles** | Link capture reads public text with a normal request. It never impersonates a crawler, strips auth, or defeats access controls. Gated publishers stay metadata-only. [`article_parsing.py`](src/thoughtpins/article_parsing.py) |
 
-Backed by **609 tests**, **28 machine-enforced quality gates**, and CI across Python,
+Backed by **664 tests**, **28 machine-enforced quality gates**, and CI across Python,
 PostgreSQL, web, Android, and iOS.
 
 ## How it works
@@ -126,7 +126,7 @@ frontend/             React web client (served at /app)
 mobile/               iOS and Android shells
 alembic/versions/     25 migrations, RLS policies included
 scripts/              28 check_*.py gates, operational tooling
-tests/                609 tests across 106 files
+tests/                664 tests across 110 files
 docs/                 architecture, operations, product, release
 site/                 the marketing site at thoughtpins.com
 ```
