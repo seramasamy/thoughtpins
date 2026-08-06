@@ -60,16 +60,28 @@ Telegram module. That is precisely the risk this item names, and it is already
 half-admitted in the code: the function's own docstring says it generates a
 reply "for any product surface".
 
-- Evidence: `chat/engine.py` lines 14, 218, 306 import from `thoughtpins.bot`.
-- Why it survived: the architecture gate checks that core does not import
-  transport adapters, but `bot/` is not currently declared as one, so the
-  violation passes silently. The gate needs the declaration as much as the
-  code needs the move.
-- Exit: move `generate_conversation_reply` and
-  `build_conversation_memory_context` — with the conversation cache they read —
-  into `thoughtpins.chat`, leave re-exports in `bot/commands.py` for the
-  adapter, then declare `bot/` a transport adapter so the direction is enforced
-  rather than remembered.
+- Evidence, measured rather than estimated: bringing `src/thoughtpins/chat`
+  under the dependency rule surfaced **ten** forbidden imports across four
+  modules, not the single one first suspected.
+  - `chat/actions.py` → `bot.journal_commands`, `bot.natural_commands`,
+    `bot.profile_commands`, `bot.style_memory`, `founder.ops`
+  - `chat/engine.py` → `bot` (reply generation)
+  - `chat/memory_answer.py` → `bot.personality`, `bot.style_memory`
+  - `chat/models.py`, `chat/store.py` → `bot.natural_commands`
+- Why it survived: the rule already forbade `thoughtpins.bot`, but its `paths`
+  list covered `memory`, `ingestion`, `vault`, `llm` and `reports` — not
+  `chat`. The engine that serves every surface was the one core package
+  nobody was checking.
+- Contained as of 2026-08-06: `chat` is now inside the rule and all ten
+  imports are declared exceptions carrying this item's number. New violations
+  fail the gate — verified by adding one and watching the count rise — and the
+  gate rejects an exception that stops matching, so the list cannot rot into
+  permission.
+- Exit: move personality, writing style, and natural-command routing into
+  `thoughtpins.chat` — they are product concepts filed under a transport by
+  history, not by design — leave re-exports in `bot/` for the adapter, and
+  delete each exception as its import disappears. The conversation cache is
+  already correctly placed in `chat/conversation_state.py`, so no state moves.
 - Deliberately not attempted in the same pass that found it: the move relocates
   module-level cache state shared by several call sites, and shipping that
   half-done would put every chat reply at risk to close a documentation item.
