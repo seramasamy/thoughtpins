@@ -7,6 +7,13 @@ Keep a Changelog, and the project uses semantic versioning for public releases.
 
 ### Added
 
+- Edit and resend a chat turn. Rewinding a conversation discards the replies
+  below it, as in any chat product; because a rewound turn may have saved a
+  journal entry, retired turns are marked rather than deleted and any entries
+  they wrote are reported so the interface can say what it kept.
+- A private-launch invite wall with a throttled request queue and digest.
+- Startup refuses voice retention on a shared deployment whose archive path is
+  not durable, so consent to keep a recording cannot outlive the disk it is on.
 - Public, content-minimal `/ready` and `/v1/health/ready` probes with bounded
   dependency evaluation and `503` fail-closed semantics for load balancers.
 - Repeatable PostgreSQL logical dump/restore and authenticated multi-tenant
@@ -41,7 +48,31 @@ Keep a Changelog, and the project uses semantic versioning for public releases.
   and a repository-wide cyclomatic-complexity ceiling of 30, with no
   grandfathered exceptions.
 
+### Fixed
+
+- Graph evidence carried a process-dependent identity, derived from Python's
+  salted `hash()`. Candidate identity is now a content digest, which is what
+  makes replaying an evaluation across runs meaningful.
+- `memory.search` released a session only on the success path, and guarded only
+  one of its eight retrieval channels against provider failure.
+- The entity-resolution memo grew without bound in long-lived workers.
+- LLM retries paused a constant interval, so a rate-limited provider was met
+  with unchanging pressure and every worker returned to the wire together. Now
+  exponential with full jitter.
+- Public legal pages answered `401` when their URL carried a trailing slash,
+  including the account-deletion page reached by people who cannot sign in.
+- The mobile landing pages: an unswipeable card scrubber, a header that printed
+  over headings, legal prose with no paragraph spacing, and touch targets
+  between 23px and 41px.
+
 ### Changed
+
+- Reranking derives query interpretation once per request instead of once per
+  candidate, roughly halving rerank latency with byte-identical output.
+- All nineteen ranking coefficients are declared and bounded in one validated
+  structure; adding one without a bound now fails construction.
+
+#### Earlier in this cycle
 
 - Replaced the worker image's inherited API health probe with process-and-broker
   health checks and made Compose worker concurrency configurable.

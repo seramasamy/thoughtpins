@@ -7,6 +7,7 @@ import type { ChatMessageResponse, ChatResponse, UploadIngestResponse } from "..
 import { formatConversationDay, formatConversationTime } from "../../components/format";
 import { ChatGlyph, IconButton, PrimaryButton, SecondaryButton } from "../../components/ui";
 import { confirmationIntent } from "./confirmation";
+import { KeptEntryNotice } from "./KeptEntryNotice";
 import { MessageEditor } from "./MessageEditor";
 import { submitFormOnEnter } from "../../components/keyboard";
 
@@ -424,6 +425,8 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
             </article>
           </Fragment>
         ))}
+
+        <KeptEntryNotice count={keptEntryCount} onDismiss={() => setKeptEntryCount(0)} />
 
         {(busy || thinkingHandoff) && (
           <div className={`chat-message-row assistant thinking-row${!busy && thinkingHandoff ? " is-leaving" : ""}`} role="status" aria-live="polite" aria-label={busyLabel} aria-hidden={!busy || undefined}>

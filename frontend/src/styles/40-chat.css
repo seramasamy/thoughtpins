@@ -659,3 +659,27 @@
     transition: none;
   }
 }
+
+/* Told once, plainly, and dismissible. The entry is not an error and not a
+   pending task — it is writing the person still has, mentioned so that
+   discovering it later is never a surprise. */
+.chat-kept-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 4px 0 2px;
+  padding: 11px 14px;
+  border: 1px solid var(--tp-line);
+  border-radius: 8px;
+  background: var(--tp-surface-warm);
+  color: var(--tp-ink-soft);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.chat-kept-notice p {
+  flex: 1 1 16rem;
+  margin: 0;
+}
