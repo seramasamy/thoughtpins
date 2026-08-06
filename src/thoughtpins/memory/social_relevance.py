@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from functools import cache
 from typing import Any, Mapping
 
 from thoughtpins.memory.search_types import SearchResult
@@ -164,8 +165,21 @@ def score_social_evidence(result: SearchResult, intent: SocialQueryIntent) -> So
     )
 
 
+@cache
+def _no_query_intent() -> SocialQueryIntent:
+    """The intent of asking nothing, which is what facet extraction scores against.
+
+    Facets describe what a candidate *contains*, so the query side is empty and
+    the answer is a constant — but re-parsing that empty query cost more than
+    the facet extraction it set up. Computed on first use rather than at import,
+    because the parser it calls is defined further down this module.
+    """
+    return analyze_social_query("")
+
+
 def candidate_facets(result: SearchResult) -> frozenset[str]:
-    return score_social_evidence(result, analyze_social_query("")).facets
+    """Which social facets this candidate carries, independent of any query."""
+    return score_social_evidence(result, _no_query_intent()).facets
 
 
 def _candidate_facets(

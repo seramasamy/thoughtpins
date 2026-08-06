@@ -145,6 +145,17 @@ query that times out — costs recall for that query and nothing else. Previousl
 only the vector channel was guarded, so an unavailable provider anywhere else
 raised through the whole search.
 
+**Rerank cost is linear in candidates, not quadratic in passes.** Reranking
+touches each candidate several times — scoring, diversification, then each
+coverage repair — and query interpretation and a candidate's own facets are
+invariant across all of them. Deriving them inside those loops made rerank
+latency roughly double what the work required. A rerank-scoped context computes
+the query interpretation once and memoises facets per candidate: measured 2.1x
+faster at 30 candidates, 1.9x at 120, and 2.5x at 400, with byte-identical
+selection and scores. Correctness is asserted against direct recomputation
+rather than assumed, because a cache that quietly disagrees with the function
+it replaces is a ranking change wearing a performance change's clothes.
+
 **Every ranking coefficient is declared and bounded.** All nineteen live in
 `RankingWeights`, validated on construction against per-coefficient upper
 bounds that encode intent: each bound is the point past which that term could

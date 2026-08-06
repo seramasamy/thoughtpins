@@ -9,7 +9,7 @@ again or changing tenant-scoped retrieval behavior.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, fields, replace
+from dataclasses import dataclass, field, fields, replace
 from datetime import date
 
 from thoughtpins.importance import importance_bonus
@@ -25,11 +25,16 @@ from thoughtpins.memory.search_analysis import (
 )
 from thoughtpins.memory.search_types import QueryAnalysis, SearchResult
 from thoughtpins.memory.social_relevance import (
+    SocialQueryIntent,
     analyze_social_query,
     candidate_facets,
     score_social_evidence,
 )
-from thoughtpins.memory.temporal_relevance import parse_temporal_window, temporal_window_match
+from thoughtpins.memory.temporal_relevance import (
+    TemporalWindow,
+    parse_temporal_window,
+    temporal_window_match,
+)
 
 
 @dataclass(frozen=True)
@@ -151,6 +156,48 @@ class RankingPolicy:
 DEFAULT_RANKING_POLICY = RankingPolicy()
 
 
+@dataclass
+class _RankingContext:
+    """Everything a rerank needs that does not vary per candidate.
+
+    Reranking touches each candidate several times: once to score, then again
+    in diversification and each coverage repair. Query interpretation and a
+    candidate's own facets are invariant across those passes, so computing them
+    inside the loops meant re-deriving the same answers tens of times per
+    query. This holds them once.
+
+    Not frozen: ``facets`` memoises on access. It is created per rerank call and
+    never shared between them, so the mutation stays local to one query.
+    """
+
+    analysis: QueryAnalysis
+    as_of_date: date
+    social_intent: SocialQueryIntent
+    temporal_window: TemporalWindow | None
+    _facets: dict[str, frozenset[str]] = field(default_factory=dict)
+
+    @classmethod
+    def build(cls, query: str, as_of_date: date) -> _RankingContext:
+        analysis = _analyze_query(query)
+        return cls(
+            analysis=analysis,
+            as_of_date=as_of_date,
+            social_intent=analyze_social_query(analysis.raw),
+            temporal_window=parse_temporal_window(analysis.raw, as_of=as_of_date),
+        )
+
+    def facets(self, candidate: SearchResult) -> frozenset[str]:
+        """This candidate's social facets, derived at most once per rerank."""
+        cached = self._facets.get(candidate.memory_id)
+        if cached is None:
+            cached = candidate_facets(candidate)
+            self._facets[candidate.memory_id] = cached
+        return cached
+
+    def requested_facets(self) -> set[str]:
+        return set(self.social_intent.facets)
+
+
 def rerank_results(
     results: list[SearchResult],
     *,
@@ -162,26 +209,25 @@ def rerank_results(
     """Fuse retrieval channels and select a compact evidence set."""
     if not results or limit <= 0:
         return []
-    analysis = _analyze_query(query)
-    reference_date = as_of_date or date.today()
+    context = _RankingContext.build(query, as_of_date or date.today())
     for result in results:
-        result.score = _calibrated_score(result, analysis, policy, reference_date)
+        result.score = _calibrated_score(result, context, policy)
 
     ranked = sorted(results, key=lambda result: (result.score, result.local_date), reverse=True)
-    adaptive_skip = policy.adaptive_diversity and not _needs_diversification(ranked, analysis)
+    adaptive_skip = policy.adaptive_diversity and not _needs_diversification(ranked, context)
     if policy.diversity_lambda is None or adaptive_skip:
         selected = ranked[:limit]
         if not policy.aspect_coverage:
-            return _ensure_narrative_coverage(selected, ranked, analysis, policy)
+            return _ensure_narrative_coverage(selected, ranked, context, policy)
         token_cache = {
             candidate.memory_id: _tokens(f"{candidate.text} {candidate.evidence_text}") for candidate in ranked
         }
-        selected = _ensure_query_aspect_coverage(selected, ranked, token_cache, analysis, limit)
-        return _ensure_narrative_coverage(selected, ranked, analysis, policy)
-    return _maximal_marginal_relevance(ranked, limit, analysis, policy)
+        selected = _ensure_query_aspect_coverage(selected, ranked, token_cache, context, limit)
+        return _ensure_narrative_coverage(selected, ranked, context, policy)
+    return _maximal_marginal_relevance(ranked, limit, context, policy)
 
 
-def _needs_diversification(candidates: list[SearchResult], analysis: QueryAnalysis) -> bool:
+def _needs_diversification(candidates: list[SearchResult], context: _RankingContext) -> bool:
     """Use coverage repair only when the pool contains distinct evidence views."""
     retrieval_channels = {source for candidate in candidates for source in candidate.retrieval_sources}
     if len(retrieval_channels) > 1:
@@ -190,13 +236,11 @@ def _needs_diversification(candidates: list[SearchResult], analysis: QueryAnalys
     if len(set(source_keys)) < len(source_keys):
         return True
 
-    requested = set(analyze_social_query(analysis.raw).facets)
+    requested = context.requested_facets()
     if not requested:
         return False
     facet_profiles = {
-        frozenset(candidate_facets(candidate) & requested)
-        for candidate in candidates
-        if candidate_facets(candidate) & requested
+        matched for candidate in candidates if (matched := frozenset(context.facets(candidate) & requested))
     }
     return len(facet_profiles) > 1
 
@@ -226,11 +270,11 @@ def clone_candidates_for_rerank(results: list[SearchResult]) -> list[SearchResul
 
 def _calibrated_score(
     result: SearchResult,
-    analysis: QueryAnalysis,
+    context: _RankingContext,
     policy: RankingPolicy,
-    as_of_date: date,
 ) -> float:
     weights = policy.weights
+    analysis = context.analysis
     base = min(1.0, max(0.0, result.score))
     raw_rrf = _reciprocal_rank_fusion(result.source_ranks)
     evidence = build_ranking_evidence(result)
@@ -241,11 +285,8 @@ def _calibrated_score(
         weights.consensus_cap,
         math.log1p(len(result.retrieval_sources)) * weights.consensus_scale,
     )
-    raw_temporal = _temporal_salience(result.local_date, as_of_date)
-    raw_temporal_query = temporal_window_match(
-        result.local_date,
-        parse_temporal_window(analysis.raw, as_of=as_of_date),
-    )
+    raw_temporal = _temporal_salience(result.local_date, context.as_of_date)
+    raw_temporal_query = temporal_window_match(result.local_date, context.temporal_window)
     raw_kind_prior = weights.document_kind_prior if result.source_kind == "document" else 0.0
     raw_graph_prior = weights.graph_prior if any("graph" in source for source in result.retrieval_sources) else 0.0
     raw_importance = importance_bonus(result.user_importance)
@@ -253,7 +294,7 @@ def _calibrated_score(
         result.entry_salience if result.entry_salience is not None else weights.contextual_salience_neutral
     )
     memory_prior = memory_type_salience(result.memory_type)
-    social_intent = analyze_social_query(analysis.raw)
+    social_intent = context.social_intent
     social = score_social_evidence(result, social_intent)
 
     lexical = raw_lexical if policy.lexical_evidence else 0.0
@@ -379,7 +420,7 @@ def _temporal_salience(local_date: str, as_of_date: date) -> float:
 def _maximal_marginal_relevance(
     candidates: list[SearchResult],
     limit: int,
-    analysis: QueryAnalysis,
+    context: _RankingContext,
     policy: RankingPolicy,
 ) -> list[SearchResult]:
     if len(candidates) <= limit:
@@ -392,15 +433,14 @@ def _maximal_marginal_relevance(
         candidate.memory_id: _tokens(f"{candidate.text} {candidate.evidence_text}") for candidate in candidates
     }
     lambda_score = policy.diversity_lambda if policy.diversity_lambda is not None else 1.0
-    social_intent = analyze_social_query(analysis.raw)
-    requested_facets = set(social_intent.facets)
+    requested_facets = context.requested_facets()
     covered_facets: set[str] = set()
 
     while remaining and len(selected) < limit:
         if not selected:
             first = remaining.pop(0)
             selected.append(first)
-            covered_facets.update(candidate_facets(first))
+            covered_facets.update(context.facets(first))
             continue
         best_index = 0
         best_score = float("-inf")
@@ -410,7 +450,7 @@ def _maximal_marginal_relevance(
             )
             mmr_score = (lambda_score * candidate.score) - ((1 - lambda_score) * similarity)
             if policy.narrative_coverage and requested_facets:
-                marginal_facets = (candidate_facets(candidate) & requested_facets) - covered_facets
+                marginal_facets = (context.facets(candidate) & requested_facets) - covered_facets
                 # Explicitly requested scene facets deserve meaningful capacity.
                 # The bonus is still bounded and applies only after candidate
                 # generation has established baseline relevance.
@@ -424,18 +464,18 @@ def _maximal_marginal_relevance(
                 best_score = mmr_score
         chosen = remaining.pop(best_index)
         selected.append(chosen)
-        covered_facets.update(candidate_facets(chosen))
+        covered_facets.update(context.facets(chosen))
 
     if not policy.aspect_coverage:
-        return _ensure_narrative_coverage(selected, all_candidates, analysis, policy)
-    selected = _ensure_query_aspect_coverage(selected, all_candidates, token_cache, analysis, limit)
-    return _ensure_narrative_coverage(selected, all_candidates, analysis, policy)
+        return _ensure_narrative_coverage(selected, all_candidates, context, policy)
+    selected = _ensure_query_aspect_coverage(selected, all_candidates, token_cache, context, limit)
+    return _ensure_narrative_coverage(selected, all_candidates, context, policy)
 
 
 def _ensure_narrative_coverage(
     selected: list[SearchResult],
     candidates: list[SearchResult],
-    analysis: QueryAnalysis,
+    context: _RankingContext,
     policy: RankingPolicy,
 ) -> list[SearchResult]:
     """Repair a result set that missed an explicitly requested scene facet.
@@ -447,24 +487,24 @@ def _ensure_narrative_coverage(
     """
     if not policy.narrative_coverage or len(selected) < 2:
         return selected
-    requested = set(analyze_social_query(analysis.raw).facets)
+    requested = context.requested_facets()
     if not requested:
         return selected
 
     selected_ids = {item.memory_id for item in selected}
     repairs = 0
     while repairs < min(3, len(selected) - 1):
-        current_coverage = set().union(*(candidate_facets(item) for item in selected)) & requested
+        current_coverage = set().union(*(context.facets(item) for item in selected)) & requested
         missing = requested - current_coverage
         if not missing:
             break
         best: tuple[float, int, SearchResult] | None = None
         for candidate in candidates:
-            if candidate.memory_id in selected_ids or not (candidate_facets(candidate) & missing):
+            if candidate.memory_id in selected_ids or not (context.facets(candidate) & missing):
                 continue
             for index in range(1, len(selected)):
                 trial = [*selected[:index], candidate, *selected[index + 1 :]]
-                trial_coverage = set().union(*(candidate_facets(item) for item in trial)) & requested
+                trial_coverage = set().union(*(context.facets(item) for item in trial)) & requested
                 gain = len(trial_coverage) - len(current_coverage)
                 score_loss = max(0.0, selected[index].score - candidate.score)
                 objective = (0.16 * gain) - score_loss
@@ -484,10 +524,11 @@ def _ensure_query_aspect_coverage(
     selected: list[SearchResult],
     candidates: list[SearchResult],
     token_cache: dict[str, set[str]],
-    analysis: QueryAnalysis,
+    context: _RankingContext,
     limit: int,
 ) -> list[SearchResult]:
     """Reserve limited capacity for distinctive, otherwise-missed query terms."""
+    analysis = context.analysis
     if len(selected) < 2 or len(analysis.tokens) < 2:
         return selected
 
