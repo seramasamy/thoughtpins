@@ -15,13 +15,19 @@ checklist does not push code or create a remote repository.
 
 ## Public Export
 
-- [ ] Run `python scripts/check_public_export.py`.
-- [ ] Run `python scripts/forbidden_scan.py`.
-- [ ] Generate the public export from the allowlisted source tree, not by
+- [x] Run `python scripts/check_public_export.py`.
+- [x] Run `python scripts/forbidden_scan.py`.
+- [x] Generate the public export from the allowlisted source tree, not by
   uploading the working folder. Use
   `python scripts/create_public_export.py --force`.
-- [ ] Verify `.env`, databases, vaults, reports, logs, backups, screenshots with
+  Verified 2026-08-06: 808 files, 5.6 MB,
+  sha256 `bee4486956fdc6223ce87599cf3285759ebbcb4e8b7f6aef6d3a257deb1d6dc5`.
+- [x] Verify `.env`, databases, vaults, reports, logs, backups, screenshots with
   private data, local signing records, and `founder/private/` are absent.
+  Verified against the extracted archive, not the working tree: no `.env`
+  (only the four `.env.example` templates), no database, backup, report or
+  private founder file, and no credential-shaped string. The one pattern hit
+  is `PROOF_CURRENT_PASSWORD = "current_password"`, a constant name.
 - [ ] Inspect the exported archive on a second machine before creating Git
   history.
 - [ ] Initialize Git inside the sanitized export, not inside a folder containing
@@ -35,7 +41,7 @@ checklist does not push code or create a remote repository.
 - [ ] Android tests/build pass from the checked-in Gradle wrapper.
 - [ ] iOS generation and unsigned simulator build pass on current Xcode.
 - [ ] Dependency and secret scans pass on the exact exported tree.
-- [ ] Architecture budget passes and the debt register matches reality.
+- [x] Architecture budget passes and the debt register matches reality.
 
 ## Community Surface
 
@@ -44,6 +50,9 @@ checklist does not push code or create a remote repository.
 - [x] Issue/PR templates request reproduction, privacy-safe logs, and tests.
 - [ ] Private vulnerability reporting is enabled before public issues are open.
 - [ ] Branch protection requires test, web, Android, iOS-source, and secret gates.
+  Blocked while private: GitHub restricts protected branches to Pro or public
+  repositories. It is free the moment the repository is published, and CI now
+  enforces 26 gates rather than 11, so there is something worth requiring.
 - [ ] Generated files and local evidence remain excluded from releases.
 
 ## Store Separation

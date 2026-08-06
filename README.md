@@ -57,7 +57,9 @@ marketing claim.
 | **No ads, no tracking, no resale** | There is no advertising profile, no public feed, and no analytics SDK. The release contract is machine-checked. [`commerce-policy.json`](deploy/store/commerce-policy.json) · [`check_free_launch.py`](scripts/check_free_launch.py) |
 | **It doesn't steal articles** | Link capture reads public text with a normal request. It never impersonates a crawler, strips auth, or defeats access controls. Gated publishers stay metadata-only. [`article_parsing.py`](src/thoughtpins/article_parsing.py) |
 
-Backed by **703 tests**, **28 machine-enforced quality gates**, and CI across Python,
+Backed by **703 tests** and **26 quality gates that run on every push** — architecture
+and complexity ratchets, tenant-isolation checks, supply-chain and secret scans, web
+accessibility and responsive contracts, and store-readiness packets — across Python,
 PostgreSQL, web, Android, and iOS.
 
 ## How it works
@@ -127,7 +129,7 @@ frontend/             React web client (served at /app)
 mobile/               iOS and Android shells
 alembic/versions/     26 migrations, RLS policies included
 scripts/              28 check_*.py gates, operational tooling
-tests/                703 tests across 115 files
+tests/                703 tests across 114 files
 docs/                 architecture, operations, product, release
 site/                 the marketing site at thoughtpins.com
 ```
