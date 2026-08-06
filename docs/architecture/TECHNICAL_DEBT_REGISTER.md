@@ -32,10 +32,12 @@ and legacy routes despite the presence of `api_routes/`.
   families, and leave only app construction, middleware registration, and
   dependency wiring.
 
-The reviewer pass moved memory-card schemas and projections into
-`api_memory_cards.py`, removing roughly 400 physical lines from this adapter.
-It also moved account-preference resolution into `api_preferences.py`. The
-remaining 519-line adapter is ratcheted at its current size.
+**Closed 2026-08-06.** Response mapping moved to `api_errors.py`, which was
+the last thing in the file the exit condition did not allow. What remains is
+app construction, exception handlers, middleware, dependency wiring, and
+in-process metric counters — zero routes, zero schemas. The module is 364
+lines, down from 519, and the ratchet is tightened to match rather than left
+slack for future growth.
 
 ### TD-002: Telegram Compatibility Adapter
 
@@ -49,12 +51,28 @@ modules.
 - Exit: extract context packaging and conversation compatibility, then leave
   command registration and thin response formatting.
 
-The 2026-07-13 reviewer pass extracted bounded conversation persistence,
-degraded-mode replies, context budgeting, and portable-vault projection into
-`thoughtpins.chat`. Local cache persistence now uses atomic replacement, and
-memory reset no longer imports a Telegram transport module. Compatibility
-re-exports remain while downstream scripts migrate. The remaining 542-line
-adapter is ratcheted at its reduced size.
+**Restated 2026-08-06 after auditing the imports rather than the line count.**
+The size is a symptom; the actual defect is dependency direction.
+`chat/engine.py` — core, serving the web and native clients — imports
+`generate_conversation_reply` from `bot/commands.py`, a transport adapter.
+Every web chat reply is currently produced by a function that lives in the
+Telegram module. That is precisely the risk this item names, and it is already
+half-admitted in the code: the function's own docstring says it generates a
+reply "for any product surface".
+
+- Evidence: `chat/engine.py` lines 14, 218, 306 import from `thoughtpins.bot`.
+- Why it survived: the architecture gate checks that core does not import
+  transport adapters, but `bot/` is not currently declared as one, so the
+  violation passes silently. The gate needs the declaration as much as the
+  code needs the move.
+- Exit: move `generate_conversation_reply` and
+  `build_conversation_memory_context` — with the conversation cache they read —
+  into `thoughtpins.chat`, leave re-exports in `bot/commands.py` for the
+  adapter, then declare `bot/` a transport adapter so the direction is enforced
+  rather than remembered.
+- Deliberately not attempted in the same pass that found it: the move relocates
+  module-level cache state shared by several call sites, and shipping that
+  half-done would put every chat reply at risk to close a documentation item.
 
 ### TD-004: Stylesheet Concentration
 

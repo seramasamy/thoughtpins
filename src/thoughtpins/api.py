@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import json
 import time
 from contextlib import asynccontextmanager
-from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
@@ -60,42 +58,18 @@ _REQUEST_COUNTS: dict[tuple[str, str, int], int] = {}
 _REQUEST_DURATIONS: list[float] = []
 
 
-def _request_id(request: Request) -> str:
-    return getattr(request.state, "request_id", "")
-
-
-def _error_payload(code: str, message: str, request_id: str = "", details: Any | None = None) -> dict[str, Any]:
-    payload: dict[str, Any] = {
-        "error": {
-            "code": code,
-            "message": message,
-            "request_id": request_id,
-        }
-    }
-    if details is not None:
-        payload["error"]["details"] = _json_safe(details)
-    return payload
-
-
-def _json_safe(value: Any) -> Any:
-    try:
-        json.dumps(value)
-        return value
-    except TypeError:
-        return json.loads(json.dumps(value, default=str))
-
-
-def _http_error_code(status_code: int) -> str:
-    return {
-        400: "bad_request",
-        401: "unauthorized",
-        403: "forbidden",
-        404: "not_found",
-        402: "usage_budget_exceeded",
-        409: "conflict",
-        413: "payload_too_large",
-        429: "rate_limit_exceeded",
-    }.get(status_code, "internal_error" if status_code >= 500 else "bad_request")
+from thoughtpins.api_errors import (
+    error_payload as _error_payload,
+)
+from thoughtpins.api_errors import (
+    error_response as _error_response,
+)
+from thoughtpins.api_errors import (
+    http_error_code as _http_error_code,
+)
+from thoughtpins.api_errors import (
+    request_id as _request_id,
+)
 
 
 def _record_metric(method: str, path: str, status_code: int, duration_seconds: float) -> None:
@@ -104,25 +78,6 @@ def _record_metric(method: str, path: str, status_code: int, duration_seconds: f
     _REQUEST_DURATIONS.append(duration_seconds)
     if len(_REQUEST_DURATIONS) > 1000:
         del _REQUEST_DURATIONS[:-1000]
-
-
-def _error_response(
-    status_code: int,
-    code: str,
-    message: str,
-    request_id: str,
-    *,
-    retry_after: int | None = None,
-    details: Any | None = None,
-) -> JSONResponse:
-    headers = {"X-Request-ID": request_id}
-    if retry_after is not None:
-        headers["Retry-After"] = str(retry_after)
-    return JSONResponse(
-        status_code=status_code,
-        headers=headers,
-        content=_error_payload(code, message, request_id, details),
-    )
 
 
 @asynccontextmanager
