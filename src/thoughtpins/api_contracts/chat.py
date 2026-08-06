@@ -28,6 +28,16 @@ class ChatRequest(BaseModel):
     )
     confirm_action: bool = False
     pending_action_id: str | None = Field(default=None, max_length=32)
+    supersedes_message_id: str | None = Field(
+        default=None,
+        max_length=32,
+        title="Edit and resend",
+        description=(
+            "Replace an earlier message in this conversation and discard the turns that "
+            "followed it. The retired turns are marked rather than deleted, because one of "
+            "them may have saved a journal entry."
+        ),
+    )
     model_config = {
         "json_schema_extra": {
             "examples": [
@@ -104,6 +114,21 @@ class ChatResponse(BaseModel):
     requires_confirmation: bool = False
     confirmation_prompt: str | None = None
     context_size_chars: int = 0
+    user_message_id: str | None = Field(
+        default=None,
+        description="The stored id of the turn just sent, so a client can offer to edit it.",
+    )
+    superseded_message_ids: list[str] = Field(
+        default_factory=list,
+        description="Turns retired by an edit, no longer part of the conversation.",
+    )
+    orphaned_entry_ids: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Journal entries saved by the retired turns. They are still stored: an edit to a "
+            "chat message is not consent to delete what was written. Offer removal explicitly."
+        ),
+    )
     metadata: dict[str, Any] = Field(default_factory=dict)
     model_config = {
         "json_schema_extra": {

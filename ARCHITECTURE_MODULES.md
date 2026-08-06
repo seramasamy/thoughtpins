@@ -46,6 +46,13 @@ as thin adapters.
   contract.
 - `memory/`: retrieval, hybrid ranking, graph backends, vector stores,
   maintenance, reset, audit, and eval harnesses.
+- `db_base.py`: declarative base and shared row defaults. `db.py` describes
+  tables; anything that is not a table belongs here.
+- `config_telegram.py`: Telegram startup preconditions. `config.py` answers what
+  the operator set; whether a surface may start is policy and lives beside it.
+- `chat/store.py`: conversation persistence, including supersede. An edited turn
+  is marked, never deleted — it may have written a journal entry, and a chat
+  edit is not consent to destroy what someone wrote.
 - `memory/search.py`: candidate generation only. Each channel is a `_collect_*`
   function that proposes into a shared map; the orchestrator absorbs any one of
   them failing, because a channel is an optimisation and not a dependency.

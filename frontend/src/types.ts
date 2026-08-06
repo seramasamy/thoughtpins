@@ -275,6 +275,8 @@ export type LibrarySourceResponse = {
 };
 
 export type ChatRequest = {
+  /** Replace an earlier turn and discard everything after it. */
+  supersedes_message_id?: string | null;
   text: string;
   conversation_id?: string;
   surface?: string;
@@ -294,6 +296,12 @@ export type ChatResponse = {
   requires_confirmation: boolean;
   confirmation_prompt: string | null;
   context_size_chars: number;
+  /** The stored id of the turn just sent, so it can be edited without a reload. */
+  user_message_id: string | null;
+  /** Turns retired by an edit; they are no longer part of the conversation. */
+  superseded_message_ids: string[];
+  /** Journal entries the retired turns saved. Still stored — an edit is not consent to delete. */
+  orphaned_entry_ids: string[];
   metadata: Record<string, unknown>;
 };
 

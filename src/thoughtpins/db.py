@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import uuid
-from datetime import datetime, timezone
-
 from sqlalchemy import (
     JSON,
     Boolean,
@@ -19,19 +16,9 @@ from sqlalchemy import (
     String,
     Text,
 )
-from sqlalchemy.orm import DeclarativeBase, relationship
+from sqlalchemy.orm import relationship
 
-
-def _new_id() -> str:
-    return uuid.uuid4().hex[:16]
-
-
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
-
-
-class Base(DeclarativeBase):
-    pass
+from thoughtpins.db_base import Base, _new_id, _utcnow
 
 
 class User(Base):
@@ -335,6 +322,13 @@ class ChatMessage(Base):
     __table_args__ = (
         Index("ix_chat_messages_user_conversation_created", "user_id", "conversation_id", "created_at_utc"),
         Index("ix_chat_messages_user_role", "user_id", "role"),
+        Index(
+            "ix_chat_messages_user_conversation_live",
+            "user_id",
+            "conversation_id",
+            "superseded_at_utc",
+            "created_at_utc",
+        ),
     )
 
     id = Column(String(32), primary_key=True, default=_new_id)
@@ -349,6 +343,11 @@ class ChatMessage(Base):
     document_id = Column(String(32), ForeignKey("document_sources.id"), nullable=True, index=True)
     created_at_utc = Column(DateTime, default=_utcnow, index=True)
     metadata_json = Column(JSON, default=dict)
+    # Set when an earlier turn is edited and resent. The row is kept rather
+    # than deleted: this turn may have written a journal entry, and a chat edit
+    # is not consent to destroy what was saved.
+    superseded_at_utc = Column(DateTime, nullable=True)
+    superseded_by_message_id = Column(String(32), nullable=True)
 
     user = relationship("User", back_populates="chat_messages")
     conversation = relationship("ChatConversation", back_populates="messages")

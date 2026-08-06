@@ -1,6 +1,6 @@
 # Technical Debt Register
 
-Last reviewed: 2026-08-05
+Last reviewed: 2026-08-06
 
 This register is intentionally candid. A production codebase with no technical
 debt is not a credible claim. Thought Pins uses tests and architecture fitness
@@ -130,6 +130,25 @@ arguments anywhere in the tree; vector retrieval enforces tenancy twice, at the
 index and again when the hit is re-read through the tenant-scoped SQL query.
 The remaining unbounded module state is confined to the founder Telegram
 adapter, where an approved-user allowlist bounds it in practice.
+
+## Closed In The 2026-08-06 Pass
+
+- **Voice retention could be enabled onto a disposable filesystem.** The archive
+  writes to a path that a container rebuilds on every deploy, so an operator who
+  turned retention on without a mounted volume would take a user's consent to
+  keep their recordings and then lose them — discovered only when someone went
+  looking for audio that was gone. Startup now refuses that combination, with an
+  explicit override for durable storage the check cannot recognise.
+- **Editing a chat turn had no implementation.** Now supported end to end. The
+  product-specific part is that a retired turn may have written a journal entry:
+  it is neither deleted nor silently orphaned, but kept and reported so the
+  interface can raise it. Fifteen tests cover ownership, cross-conversation
+  isolation, timestamp ties, and double-retirement.
+- **Three files crossed their size budgets** while the above landed. Rather than
+  granting new ratchets — the policy is that files may shrink, not grow — the
+  editor moved to its own component, declarative plumbing moved out of the model
+  module, and Telegram startup policy moved out of configuration. All three are
+  back under the default budget with no ratchet added.
 
 ## Closed Or Controlled Items
 

@@ -11,7 +11,7 @@
 [![CI](https://github.com/seramasamy/thoughtpins/actions/workflows/ci.yml/badge.svg)](https://github.com/seramasamy/thoughtpins/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-e8612b)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.13-3776ab)](.python-version)
-[![Tests](https://img.shields.io/badge/tests-681-587465)](tests/)
+[![Tests](https://img.shields.io/badge/tests-703-587465)](tests/)
 [![Code of Conduct](https://img.shields.io/badge/contributor-covenant-6b6459)](CODE_OF_CONDUCT.md)
 
 **A memory layer for real life.** Write naturally, bring in what you read,<br>
@@ -48,6 +48,7 @@ marketing claim.
 | Promise | How it's actually enforced |
 | --- | --- |
 | **Your data leaves whenever you want** | Full export to a plain Obsidian vault — Markdown, YAML properties, wikilinks. No proprietary format, no lock-in. [`export_vault.py`](scripts/export_vault.py) · [contract](docs/architecture/OBSIDIAN_INTEROPERABILITY.md) |
+| **An edit never destroys what you wrote** | Editing a chat turn rewinds the conversation like any chat app — but a rewound turn may have saved a journal entry, so entries are kept and reported rather than silently deleted or orphaned. [`store.py`](src/thoughtpins/chat/store.py) · [tests](tests/test_chat_edit_and_resend.py) |
 | **Delete means delete** | `DELETE /v1/me` removes entries, memories, entities, vectors, jobs, and audit rows in dependency order. [`data_lifecycle.py`](src/thoughtpins/data_lifecycle.py) |
 | **One user cannot read another** | PostgreSQL `FORCE ROW LEVEL SECURITY` on every tenant table — enforced by the database, not by hoping every query has a `WHERE`. Proven against a non-owner role. [`verify_postgres_rls.py`](scripts/verify_postgres_rls.py) |
 | **Private entries stay private** | Encrypted at rest with a Fernet key you hold. Private memories are excluded from model context by default and require an explicit per-request opt-in. [`crypto.py`](src/thoughtpins/crypto.py) |
@@ -56,7 +57,7 @@ marketing claim.
 | **No ads, no tracking, no resale** | There is no advertising profile, no public feed, and no analytics SDK. The release contract is machine-checked. [`commerce-policy.json`](deploy/store/commerce-policy.json) · [`check_free_launch.py`](scripts/check_free_launch.py) |
 | **It doesn't steal articles** | Link capture reads public text with a normal request. It never impersonates a crawler, strips auth, or defeats access controls. Gated publishers stay metadata-only. [`article_parsing.py`](src/thoughtpins/article_parsing.py) |
 
-Backed by **681 tests**, **28 machine-enforced quality gates**, and CI across Python,
+Backed by **703 tests**, **28 machine-enforced quality gates**, and CI across Python,
 PostgreSQL, web, Android, and iOS.
 
 ## How it works
@@ -124,9 +125,9 @@ src/thoughtpins/      FastAPI backend, memory engine, ingestion, retrieval
 └── llm/              provider-neutral OpenAI-compatible runtime
 frontend/             React web client (served at /app)
 mobile/               iOS and Android shells
-alembic/versions/     25 migrations, RLS policies included
+alembic/versions/     26 migrations, RLS policies included
 scripts/              28 check_*.py gates, operational tooling
-tests/                681 tests across 112 files
+tests/                703 tests across 115 files
 docs/                 architecture, operations, product, release
 site/                 the marketing site at thoughtpins.com
 ```
@@ -155,9 +156,11 @@ Honest gaps, kept current:
   Local containers have passed RLS, Celery dispatch, restore drills, and a 100-VU health load;
   that is not the same as proving cloud networking, failover, or provider quotas.
 - **iOS CI is red.** The Android and web pipelines are green; the iOS job needs a Mac to
-  iterate on.
-- **Voice audio storage is local-disk only.** Fine self-hosted, not yet durable on an
-  ephemeral container filesystem.
+  iterate on. Deliberately parked.
+- **Voice retention needs a mounted volume.** The archive writes to a filesystem path, so
+  startup now refuses to enable retention on a shared deployment unless that path is durable
+  — taking someone's consent to keep a recording and then losing it on redeploy is worse
+  than not offering retention at all.
 - **The external graph backend is experimental.** `internal_sql` is the default and the only
   supported source of truth; Graphiti stays behind a flag until deletion and recall contracts
   are proven.

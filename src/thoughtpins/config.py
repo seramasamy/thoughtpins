@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import ipaddress
+import os
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -317,8 +318,16 @@ class Config:
     VAULT_IMPORT_SESSION_HOURS: int = _env_int("VAULT_IMPORT_SESSION_HOURS", 24)
     VAULT_UPLOAD_CHUNK_BYTES: int = _env_int("VAULT_UPLOAD_CHUNK_BYTES", 524_288)
     CONVERSATION_CACHE_PATH: Path = Path(_env("CONVERSATION_CACHE_PATH", "./data/conversation_cache.json"))
+    # Retaining a recording is a promise. The archive writes to a filesystem
+    # path, and on a container host that path is discarded on every redeploy —
+    # so an operator who enables retention without a mounted volume takes the
+    # consent and loses the audio. validate_startup refuses that combination
+    # rather than letting it fail quietly months later.
     VOICE_ARCHIVE_ENABLED: bool = _env_bool("VOICE_ARCHIVE_ENABLED", False)
     VOICE_ARCHIVE_PATH: Path = Path(_env("VOICE_ARCHIVE_PATH", "./data/voice_archive"))
+    # Escape hatch for durable storage this check cannot recognise, such as an
+    # NFS mount or a host bind outside a platform's volume convention.
+    VOICE_ARCHIVE_DURABLE: bool = _env_bool("VOICE_ARCHIVE_DURABLE", False)
     DATABASE_URL: str = _env("DATABASE_URL", "sqlite:///./data/thoughtpins.sqlite3")
     DB_POOL_SIZE: int = _env_int("DB_POOL_SIZE", 5)
     DB_MAX_OVERFLOW: int = _env_int("DB_MAX_OVERFLOW", 10)
@@ -375,6 +384,29 @@ class Config:
         on who the software is acting for, not on how the box is configured.
         """
         return cls.ENVIRONMENT in {"staging", "production"}
+
+    @classmethod
+    def voice_archive_is_durable(cls) -> bool:
+        """Whether retained audio would survive a redeploy.
+
+        Only two things count as durable: an explicit operator assertion, or an
+        archive path that lives under the platform's mounted volume. Anything
+        else is the container's own filesystem, which is rebuilt from the image
+        on every deploy.
+
+        Outside a shared deployment this is always true — a laptop's disk is
+        durable, and a self-hoster owns the consequences of their own storage.
+        """
+        if not cls.is_shared_deployment() or cls.VOICE_ARCHIVE_DURABLE:
+            return True
+        mount = os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", "").strip()
+        if not mount:
+            return False
+        try:
+            cls.resolve_path(cls.VOICE_ARCHIVE_PATH).relative_to(Path(mount).resolve())
+        except (ValueError, OSError):
+            return False
+        return True
 
     @classmethod
     def resolve_path(cls, path: str | Path) -> Path:
@@ -603,6 +635,14 @@ class Config:
             ),
             (cls.ENABLE_FOUNDER_MODE, "ENABLE_FOUNDER_MODE must be false outside local development."),
             (
+                cls.VOICE_ARCHIVE_ENABLED and not cls.voice_archive_is_durable(),
+                "VOICE_ARCHIVE_ENABLED requires durable storage. The archive path resolves inside the "
+                "container filesystem, which is discarded on every redeploy — a user who consented to "
+                "keeping their recordings would silently lose them. Mount a volume and set "
+                "VOICE_ARCHIVE_PATH to it, or set VOICE_ARCHIVE_DURABLE=true if the path is durable "
+                "by other means.",
+            ),
+            (
                 cls.ENABLE_TELEGRAM_BOT and not cls.TELEGRAM_ALLOWED_USER_IDS,
                 "TELEGRAM_ALLOWED_USER_IDS must be set when Telegram is enabled.",
             ),
@@ -636,31 +676,9 @@ class Config:
     @classmethod
     def validate_telegram_startup(cls) -> list[str]:
         """Return Telegram runtime problems before polling starts."""
-        problems: list[str] = []
-        if not cls.ENABLE_TELEGRAM_BOT:
-            problems.append("ENABLE_TELEGRAM_BOT must be true to run the Telegram bot.")
-        if not cls.TELEGRAM_BOT_TOKEN:
-            problems.append("TELEGRAM_BOT_TOKEN must be set.")
-        elif ":" not in cls.TELEGRAM_BOT_TOKEN or len(cls.TELEGRAM_BOT_TOKEN) < 30:
-            problems.append("TELEGRAM_BOT_TOKEN does not look like a valid Telegram bot token.")
+        from thoughtpins.config_telegram import telegram_startup_problems
 
-        if cls.is_production():
-            if cls.TELEGRAM_TEST_MODE:
-                problems.append("TELEGRAM_TEST_MODE must be false outside local development.")
-            if cls.ENABLE_FOUNDER_MODE:
-                problems.append("ENABLE_FOUNDER_MODE must be false outside local development.")
-            if not cls.TELEGRAM_ALLOWED_USER_IDS:
-                problems.append("TELEGRAM_ALLOWED_USER_IDS must be set when Telegram is enabled in production.")
-        else:
-            if not cls.TELEGRAM_ALLOWED_USER_IDS and not cls.TELEGRAM_TEST_MODE:
-                problems.append("Set TELEGRAM_ALLOWED_USER_IDS or enable TELEGRAM_TEST_MODE for local testing.")
-            if cls.ENABLE_FOUNDER_MODE and not cls.TELEGRAM_TEST_MODE:
-                problems.append("ENABLE_FOUNDER_MODE requires TELEGRAM_TEST_MODE in local founder testing.")
-            if cls.ENABLE_FOUNDER_MODE and not cls.FOUNDER_ACCESS_CODE:
-                problems.append("FOUNDER_ACCESS_CODE must be set when founder mode is enabled.")
-            if not cls.CONFIDENTIAL_ACCESS_CODE:
-                problems.append("CONFIDENTIAL_ACCESS_CODE should be set before using private-entry queries.")
-        return problems
+        return telegram_startup_problems(cls)
 
 
 config = Config()

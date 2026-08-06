@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import and_, or_
@@ -102,6 +102,7 @@ def prompt_history(
             ChatMessage.user_id == user_id,
             ChatMessage.conversation_id == conversation_id,
             ChatMessage.role.in_(("user", "assistant")),
+            ChatMessage.superseded_at_utc.is_(None),
         )
         .order_by(ChatMessage.created_at_utc.desc(), ChatMessage.id.desc())
         .limit(limit)
@@ -109,6 +110,90 @@ def prompt_history(
     )
     rows.reverse()
     return [{"role": str(row.role), "content": str(row.text)} for row in rows if row.text]
+
+
+def supersede_from(
+    session: Session,
+    *,
+    user_id: str,
+    conversation_id: str,
+    message_id: str,
+) -> tuple[list[ChatMessage], list[str]]:
+    """Retire an edited turn and everything the conversation built on it.
+
+    Editing a message invalidates the replies that followed it, the same way it
+    does in any chat product. What differs here is that a retired turn may have
+    written durable memory — a journal entry, a saved source — and a chat edit
+    is not consent to delete what someone wrote. So rows are marked rather than
+    removed, and the ids of any entries the retired turns created are returned
+    for the caller to surface. Silently orphaning them, or silently destroying
+    them, are both worse than saying so.
+
+    Returns the retired messages and the raw entry ids still standing behind
+    them. Returns empty when the target is not this user's own live user turn
+    in this conversation, so a bad id is a no-op rather than an error.
+    """
+    target = (
+        session.query(ChatMessage)
+        .filter(
+            ChatMessage.id == message_id,
+            ChatMessage.user_id == user_id,
+            ChatMessage.conversation_id == conversation_id,
+            ChatMessage.role == "user",
+            ChatMessage.superseded_at_utc.is_(None),
+        )
+        .first()
+    )
+    if target is None:
+        return [], []
+
+    doomed = (
+        session.query(ChatMessage)
+        .filter(
+            ChatMessage.user_id == user_id,
+            ChatMessage.conversation_id == conversation_id,
+            ChatMessage.superseded_at_utc.is_(None),
+            or_(
+                ChatMessage.created_at_utc > target.created_at_utc,
+                and_(ChatMessage.created_at_utc == target.created_at_utc, ChatMessage.id >= target.id),
+            ),
+        )
+        .order_by(ChatMessage.created_at_utc.asc(), ChatMessage.id.asc())
+        .all()
+    )
+    retired_at = datetime.now(UTC).replace(tzinfo=None)
+    for row in doomed:
+        row.superseded_at_utc = retired_at
+    orphaned = [str(row.raw_entry_id) for row in doomed if row.raw_entry_id]
+    return doomed, orphaned
+
+
+def attribute_supersede(messages: list[ChatMessage], *, replacement_id: str) -> None:
+    """Point retired turns at the message that replaced them."""
+    for row in messages:
+        row.superseded_by_message_id = replacement_id
+
+
+def latest_live_user_message_id(session: Session, *, user_id: str, conversation_id: str) -> str | None:
+    """The id of this user's most recent live turn in a conversation.
+
+    Read back rather than threaded out of the engine: the engine has several
+    return paths that each append the turn, and widening its result type across
+    all of them to carry one identifier is more coupling than the identifier is
+    worth. This is one lookup on an index the conversation loader already uses.
+    """
+    row = (
+        session.query(ChatMessage.id)
+        .filter(
+            ChatMessage.user_id == user_id,
+            ChatMessage.conversation_id == conversation_id,
+            ChatMessage.role == "user",
+            ChatMessage.superseded_at_utc.is_(None),
+        )
+        .order_by(ChatMessage.created_at_utc.desc(), ChatMessage.id.desc())
+        .first()
+    )
+    return str(row[0]) if row else None
 
 
 def list_conversations(
@@ -153,6 +238,9 @@ def list_messages(
     query = session.query(ChatMessage).filter(
         ChatMessage.user_id == user_id,
         ChatMessage.conversation_id == conversation_id,
+        # An edited turn stays on the row for provenance but leaves the
+        # transcript, so a replayed conversation matches what the user sees.
+        ChatMessage.superseded_at_utc.is_(None),
     )
     total = query.count()
     if cursor:

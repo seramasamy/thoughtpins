@@ -20,11 +20,49 @@ from thoughtpins.api_contracts import (
 from thoughtpins.api_contracts.common import INTERNAL_ERROR_MESSAGE
 from thoughtpins.api_preferences import resolve_private_context_preference
 from thoughtpins.audit import record_audit_event
-from thoughtpins.chat.store import find_conversation, list_conversations, list_messages
+from thoughtpins.chat.store import (
+    find_conversation,
+    latest_live_user_message_id,
+    list_conversations,
+    list_messages,
+    supersede_from,
+)
 from thoughtpins.db import ChatConversation, ChatMessage
 from thoughtpins.jobs import IngestionDispatchUnavailable
 from thoughtpins.pagination import decode_cursor, encode_cursor
 from thoughtpins.store import get_session
+
+
+def _stored_turn_id(session, *, user_id: str, payload: ChatRequest) -> str | None:
+    """The id the client should use if the person edits what they just sent."""
+    conversation = find_conversation(session, user_id=user_id, conversation_id=payload.conversation_id)
+    if conversation is None:
+        return None
+    return latest_live_user_message_id(session, user_id=user_id, conversation_id=conversation.id)
+
+
+def _retire_edited_branch(session, *, user_id: str, payload: ChatRequest) -> tuple[list[str], list[str]]:
+    """Discard the turns an edit invalidated, and report what they left behind.
+
+    Runs before the replacement turn is written so the engine builds context
+    from a conversation that already ends where the user chose to rewrite it.
+    Otherwise the model would answer the edited question while still reading
+    the replies to the original one.
+    """
+    if not payload.supersedes_message_id:
+        return [], []
+    conversation = find_conversation(session, user_id=user_id, conversation_id=payload.conversation_id)
+    if conversation is None:
+        return [], []
+    retired, orphaned = supersede_from(
+        session,
+        user_id=user_id,
+        conversation_id=conversation.id,
+        message_id=payload.supersedes_message_id,
+    )
+    if retired:
+        session.flush()
+    return [str(row.id) for row in retired], orphaned
 
 
 def create_chat_router(
@@ -74,6 +112,7 @@ def create_chat_router(
                 user_id=user_id,
                 requested=payload.include_private,
             )
+            superseded, orphaned = _retire_edited_branch(session, user_id=user_id, payload=payload)
             result = execute_chat_message_fn(
                 session,
                 payload.text,
@@ -111,6 +150,9 @@ def create_chat_router(
                 requires_confirmation=result.requires_confirmation,
                 confirmation_prompt=result.confirmation_prompt,
                 context_size_chars=result.context_size_chars,
+                user_message_id=_stored_turn_id(session, user_id=user_id, payload=payload),
+                superseded_message_ids=superseded,
+                orphaned_entry_ids=orphaned,
                 metadata=result.metadata,
             )
         except HTTPException:

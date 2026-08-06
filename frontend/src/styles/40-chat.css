@@ -572,3 +572,90 @@
 }
 
 
+/* ---------------- Edit and resend ----------------
+   The trigger stays invisible until the row is hovered or something inside it
+   takes focus, so a quiet transcript stays quiet. Coarse pointers have no
+   hover, so there it is simply always visible — a control you cannot reveal
+   is a control you do not have. */
+.message-edit-trigger {
+  padding: 0;
+  border: 0;
+  color: var(--tp-ink-soft);
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  text-underline-offset: 3px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--motion-quick) var(--ease-quiet), color var(--motion-quick) var(--ease-quiet);
+}
+
+.chat-message-row:hover .message-edit-trigger,
+.chat-message-row:focus-within .message-edit-trigger,
+.message-edit-trigger:focus-visible {
+  opacity: 1;
+}
+
+.message-edit-trigger:hover {
+  color: var(--tp-action);
+}
+
+.message-edit-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0;
+}
+
+.chat-message-row.is-editing .message-content {
+  outline: 2px solid var(--tp-brand);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+.message-edit {
+  display: grid;
+  gap: 9px;
+}
+
+.message-edit textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--tp-line-strong);
+  border-radius: 8px;
+  color: inherit;
+  background: var(--tp-surface);
+  font: inherit;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.message-edit textarea:focus-visible {
+  outline: 2px solid var(--tp-brand);
+  outline-offset: 1px;
+}
+
+.message-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+.message-edit-note {
+  color: var(--tp-ink-soft);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media (pointer: coarse) {
+  .message-edit-trigger {
+    min-height: 44px;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .message-edit-trigger {
+    transition: none;
+  }
+}

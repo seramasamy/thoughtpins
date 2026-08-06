@@ -355,6 +355,19 @@
             ],
             "title": "Pending Action Id"
           },
+          "supersedes_message_id": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Replace an earlier message in this conversation and discard the turns that followed it. The retired turns are marked rather than deleted, because one of them may have saved a journal entry.",
+            "title": "Edit and resend"
+          },
           "surface": {
             "default": "web",
             "maxLength": 32,
@@ -445,6 +458,14 @@
             "title": "Metadata",
             "type": "object"
           },
+          "orphaned_entry_ids": {
+            "description": "Journal entries saved by the retired turns. They are still stored: an edit to a chat message is not consent to delete what was written. Offer removal explicitly.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Orphaned Entry Ids",
+            "type": "array"
+          },
           "reply": {
             "title": "Reply",
             "type": "string"
@@ -461,6 +482,26 @@
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "superseded_message_ids": {
+            "description": "Turns retired by an edit, no longer part of the conversation.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Superseded Message Ids",
+            "type": "array"
+          },
+          "user_message_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The stored id of the turn just sent, so a client can offer to edit it.",
+            "title": "User Message Id"
           }
         },
         "required": [

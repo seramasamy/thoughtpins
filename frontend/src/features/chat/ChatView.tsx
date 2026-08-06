@@ -7,6 +7,7 @@ import type { ChatMessageResponse, ChatResponse, UploadIngestResponse } from "..
 import { formatConversationDay, formatConversationTime } from "../../components/format";
 import { ChatGlyph, IconButton, PrimaryButton, SecondaryButton } from "../../components/ui";
 import { confirmationIntent } from "./confirmation";
+import { MessageEditor } from "./MessageEditor";
 import { submitFormOnEnter } from "../../components/keyboard";
 
 type ThreadMessage = {
@@ -36,6 +37,13 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
   const [busy, setBusy] = useState(false);
   const [busyLabel, setBusyLabel] = useState("Thinking with your memory");
   const [thinkingHandoff, setThinkingHandoff] = useState(false);
+  /* Which of your own turns is open for editing, and the draft replacing it.
+     Editing rewinds the conversation to that point the way it does in any
+     chat product — the difference here is that a rewound turn may have saved
+     a journal entry, so the server reports what it left behind. */
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+  const [keptEntryCount, setKeptEntryCount] = useState(0);
   const [sendPulse, setSendPulse] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingElapsed, setRecordingElapsed] = useState(0);
@@ -97,9 +105,17 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
     return compactComposer ? "Message..." : "Message Thought Pins...";
   }, [compactComposer, pendingActionId]);
 
-  const sendMessage = useCallback(async (rawText: string, forceConfirm = false) => {
+  const sendMessage = useCallback(async (rawText: string, forceConfirm = false, supersedesId: string | null = null) => {
     const body = rawText.trim();
     if (!body || busy) return;
+    // Drop the rewound turn and everything after it before the replacement
+    // lands, so the thread never shows both versions at once.
+    if (supersedesId) {
+      setMessages((current) => {
+        const cut = current.findIndex((item) => item.id === supersedesId);
+        return cut === -1 ? current : current.slice(0, cut);
+      });
+    }
     setMessages((current) => [...current, {
       id: `local-${crypto.randomUUID()}`,
       role: "user",
@@ -135,9 +151,20 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
         include_private: includePrivate,
         confirm_action: Boolean(forceConfirm || (pendingActionId && intent === "confirm")),
         pending_action_id: pendingActionId,
+        supersedes_message_id: supersedesId,
       }, controller.signal));
       if (!result) return;
       setLastResponse(result);
+      // Adopt the stored id so this turn can itself be edited without a reload.
+      if (result.user_message_id) {
+        setMessages((current) => {
+          const index = [...current].reverse().findIndex((item) => item.role === "user");
+          if (index === -1) return current;
+          const at = current.length - 1 - index;
+          return current.map((item, i) => (i === at ? { ...item, id: result.user_message_id as string } : item));
+        });
+      }
+      setKeptEntryCount(result.orphaned_entry_ids?.length ?? 0);
       setPendingActionId(extractPendingActionId(result));
       setMessages((current) => [...current, {
         id: `assistant-${crypto.randomUUID()}`,
@@ -361,14 +388,37 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
                 <span>{formatConversationDay(message.createdAt)}</span>
               </div>
             )}
-            <article className={`chat-message-row ${message.role === "user" ? "user" : "assistant"}`}>
+            <article className={`chat-message-row ${message.role === "user" ? "user" : "assistant"}${editingId === message.id ? " is-editing" : ""}`}>
               {message.role !== "user" && <span className="message-avatar"><ChatGlyph size={19} /></span>}
               <div className="message-content">
-                <MessageBody text={message.text} />
+                {editingId === message.id ? (
+                  <MessageEditor
+                    messageId={message.id}
+                    draft={editDraft}
+                    onDraftChange={setEditDraft}
+                    onCancel={() => setEditingId(null)}
+                    onSubmit={(next) => {
+                      setEditingId(null);
+                      if (next && next !== message.text) void sendMessage(next, false, message.id);
+                    }}
+                  />
+                ) : (
+                  <MessageBody text={message.text} />
+                )}
                 <footer>
                   <span>{message.role === "user" ? "You" : "Thought Pins"}</span>
                   {message.routeType && !["chat", "conversation"].includes(message.routeType) && <span className="classification-label">{friendlyRoute(message.routeType)}</span>}
                   {message.createdAt && <time dateTime={message.createdAt}>{formatConversationTime(message.createdAt)}</time>}
+                  {message.role === "user" && editingId !== message.id && !message.id.startsWith("local-") && (
+                    <button
+                      type="button"
+                      className="message-edit-trigger"
+                      onClick={() => { setEditingId(message.id); setEditDraft(message.text); }}
+                      disabled={busy}
+                    >
+                      Edit
+                    </button>
+                  )}
                 </footer>
               </div>
             </article>
