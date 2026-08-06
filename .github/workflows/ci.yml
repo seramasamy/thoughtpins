@@ -3,6 +3,13 @@ name: ci
 on:
   push:
   pull_request:
+  # Native verification is opt-in; see the ios job below for why.
+  workflow_dispatch:
+    inputs:
+      run_native:
+        description: "Run the macOS iOS build"
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -295,6 +302,12 @@ jobs:
         run: ./gradlew :thoughtpins-core:test :thoughtpins-app:assembleDebug --no-daemon
 
   ios:
+    # macOS minutes bill at 10x on a private repository, and this job cannot
+    # pass without a Mac to iterate on, so running it per-push exhausted the
+    # allowance and took the whole workflow down with it. Source shape is
+    # still verified on every push by check_ios_submission_source.py on Linux;
+    # this is the part that actually needs the platform.
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     runs-on: macos-latest
     timeout-minutes: 30
 

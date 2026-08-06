@@ -34,7 +34,7 @@ def _retry_delay_seconds(attempt: int, *, rng: random.Random | None = None) -> f
     is what actually decorrelates the retries. Halving the herd is not the
     point; spreading it flat across the window is.
     """
-    ceiling = min(_RETRY_MAX_SECONDS, _RETRY_BASE_SECONDS * (2**max(0, attempt)))
+    ceiling = min(_RETRY_MAX_SECONDS, _RETRY_BASE_SECONDS * (2 ** max(0, attempt)))
     return (rng or random).uniform(0.0, ceiling)
 
 
