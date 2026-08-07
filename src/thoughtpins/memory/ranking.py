@@ -88,6 +88,14 @@ class RankingWeights:
     importance_gate_floor: float = 0.05
     identity_match_floor: float = 0.25
 
+    # An unattributed uncertain claim is exactly as misleading whether the
+    # question sounded social or not. Scaling its penalty by social focus alone
+    # meant "when was the launch postponed" barely penalised a rumour — the
+    # case where someone is most likely to take the answer at face value. This
+    # floor keeps a minimum penalty on orphaned hearsay for any question, while
+    # a socially specific one still attracts more.
+    factualization_floor: float = 0.6
+
     def __post_init__(self) -> None:
         # Upper bounds encode intent, not arithmetic: each is the point past
         # which that term could overturn retrieval evidence on its own.
@@ -111,6 +119,7 @@ class RankingWeights:
             "memory_type_salience_neutral": 1.0,
             "importance_gate_floor": 1.0,
             "identity_match_floor": 1.0,
+            "factualization_floor": 1.0,
         }
         for field_name, upper_bound in limits.items():
             value = getattr(self, field_name)
@@ -360,8 +369,13 @@ def _calibrated_score(
     social_bonus = (
         social_intent.social_focus * weights.social_utility * social.utility if policy.social_evidence else 0.0
     )
+    # max(floor, social_focus): the risk assessment is already query-
+    # independent, so the penalty should not vanish just because the question
+    # was phrased factually rather than socially.
     social_penalty = (
-        social_intent.social_focus * weights.factualization_penalty * social.factualization_risk
+        max(weights.factualization_floor, social_intent.social_focus)
+        * weights.factualization_penalty
+        * social.factualization_risk
         if policy.social_evidence
         else 0.0
     )

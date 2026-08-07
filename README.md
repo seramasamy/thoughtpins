@@ -11,7 +11,7 @@
 [![CI](https://github.com/seramasamy/thoughtpins/actions/workflows/ci.yml/badge.svg)](https://github.com/seramasamy/thoughtpins/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-e8612b)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.13-3776ab)](.python-version)
-[![Tests](https://img.shields.io/badge/tests-781-587465)](tests/)
+[![Tests](https://img.shields.io/badge/tests-788-587465)](tests/)
 [![Code of Conduct](https://img.shields.io/badge/contributor-covenant-6b6459)](CODE_OF_CONDUCT.md)
 
 **A memory layer for real life.** Write naturally, bring in what you read,<br>
@@ -22,6 +22,42 @@ and find the right detail months later — without handing your journal to an ad
 </div>
 
 ---
+
+## Why not just use ChatGPT or Claude memory?
+
+Fair question, and the honest answer is that they solve a different problem. Their memory
+exists to make *the assistant* better across sessions. Thought Pins exists to make *your
+record of your own life* searchable. Those pull in different directions, and four differences
+follow from it.
+
+**It is a record, not a summary.** Assistant memory is lossy by design — it keeps a compact
+profile of what's useful to know about you. Thought Pins keeps what you wrote, verbatim,
+alongside the structure extracted from it. You can always get back to the sentence.
+
+**Attribution survives.** Your journal is full of things you did not witness: what someone
+told you, what you assumed, what you later corrected. Systems that flatten that into a
+profile will tell you "Tom is leaving." Thought Pins carries an epistemic status end to end
+and answers "Sarah told you Tom was leaving." That distinction is the difference between a
+memory you can act on and one you have to go re-check. It is the thing this codebase spends
+the most effort on, and it is
+[measured](tests/test_retrieval_robustness.py), not asserted.
+
+**Retrieval is inspectable and reproducible.** Eight independent channels propose candidates;
+a pure ranking function with nineteen bounded coefficients orders them. Same corpus, same
+query, same result — on any process, on any run. You can ablate a signal and measure what it
+was worth. Assistant memory is a black box that occasionally surprises you, which is fine for
+a chat assistant and not fine for a system of record.
+
+**It is yours to leave.** Everything exports as a plain Obsidian vault — Markdown, YAML
+properties, wikilinks, a JSON Canvas map. Not an export button producing a JSON blob you'd
+need us to read: a folder you open in Obsidian, or in any text editor, forever. Minor point
+next to the others, but it's the one that makes the others credible — a promise you can walk
+away from is a promise you can check.
+
+Where an agent framework like Hermes or a general assistant wins: breadth of tools, doing
+things on your behalf, and not being a single-purpose product. Thought Pins does one thing.
+If you want an assistant that remembers you a bit, use theirs. If you want a searchable
+record of your own life that you own, that's this.
 
 ## What it is
 
@@ -57,7 +93,7 @@ marketing claim.
 | **No ads, no tracking, no resale** | There is no advertising profile, no public feed, and no analytics SDK. The release contract is machine-checked. [`commerce-policy.json`](deploy/store/commerce-policy.json) · [`check_free_launch.py`](scripts/check_free_launch.py) |
 | **It doesn't steal articles** | Link capture reads public text with a normal request. It never impersonates a crawler, strips auth, or defeats access controls. Gated publishers stay metadata-only. [`article_parsing.py`](src/thoughtpins/article_parsing.py) |
 
-Backed by **781 tests** and **26 quality gates that run on every push** — architecture
+Backed by **788 tests** and **26 quality gates that run on every push** — architecture
 and complexity ratchets, tenant-isolation checks, supply-chain and secret scans, web
 accessibility and responsive contracts, and store-readiness packets — across Python,
 PostgreSQL, web, Android, and iOS.
@@ -129,7 +165,7 @@ frontend/             React web client (served at /app)
 mobile/               iOS and Android shells
 alembic/versions/     26 migrations, RLS policies included
 scripts/              28 check_*.py gates, operational tooling
-tests/                781 tests across 115 files
+tests/                788 tests across 115 files
 docs/                 architecture, operations, product, release
 site/                 the marketing site at thoughtpins.com
 ```

@@ -174,6 +174,14 @@ function startHeroParticles() {
     };
   }
 
+  /* Rebuilding the field puts every mote somewhere new, which reads as the
+     whole background flinching. On a phone that is not rare: scrolling
+     collapses the URL bar, the viewport height changes, and `resize` fires
+     mid-scroll. So the canvas is always resized, but the field is only
+     regenerated when the *width* changed enough to want a different density —
+     which is a real layout change, not a scroll artefact. */
+  let lastWidth = -1;
+
   function resize() {
     const rect = canvas.getBoundingClientRect();
     dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -183,6 +191,8 @@ function startHeroParticles() {
     canvas.height = Math.round(height * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const target = Math.round(Math.min(58, Math.max(20, width / 21)));
+    if (motes.length === target && Math.abs(width - lastWidth) < 24) return;
+    lastWidth = width;
     motes = Array.from({ length: target }, () => makeMote(true));
   }
 
@@ -276,11 +286,27 @@ function startHeroParticles() {
     frame = window.requestAnimationFrame(tick);
   }
 
+  function pause() {
+    if (!frame) return;
+    window.cancelAnimationFrame(frame);
+    frame = 0;
+  }
+
   resize();
   play();
-  window.addEventListener("resize", () => { resize(); play(); });
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) play(); });
+  window.addEventListener("resize", () => { resize(); play(); }, { passive: true });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); else play(); });
   if (reduceMotion.addEventListener) reduceMotion.addEventListener("change", play);
+
+  /* Once the hero has scrolled away there is nothing to animate, and a canvas
+     repainting sixty times a second behind the fold costs battery and competes
+     with the scroll itself for main-thread time. */
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(
+      (entries) => (entries[0].isIntersecting ? play() : pause()),
+      { threshold: 0 }
+    ).observe(canvas);
+  }
 }
 
 if (document.readyState === "loading") {

@@ -302,3 +302,62 @@ def test_reranking_the_same_objects_twice_needs_an_explicit_clone():
 
     assert [item.memory_id for item in cloned] == first_ids, "cloning failed to restore the pre-fusion state"
     assert naive is not None  # the naive path is allowed to differ; it is misuse, not a crash
+
+
+# ------------------------------------------- factualization, phrasing-invariant
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "when was the launch postponed",
+        "what happened with the launch",
+        "is the launch delayed",
+        "launch date",
+        "what did Sarah say about the launch",
+    ],
+)
+def test_an_orphaned_rumour_loses_to_a_direct_account_however_the_question_is_phrased(query: str):
+    """The penalty on unattributed hearsay used to scale with how social the
+    question sounded, so a plainly factual "when was X postponed" barely
+    penalised a rumour at all — the case where someone is most likely to take
+    the answer at face value. Risk is assessed independently of the query, so
+    the penalty carries a floor now.
+    """
+    direct = candidate(
+        "direct", "Sarah told me the launch is postponed to September", score=0.70, confidence="observed_by_user"
+    )
+    rumour = candidate(
+        "rumour", "apparently the launch got postponed, someone said", score=0.70, confidence="hearsay_from_person"
+    )
+    ranked = rerank_results([direct, rumour], query=query, limit=2, as_of_date=AS_OF)
+    assert top(ranked) == "direct", query
+
+
+def test_the_rumour_penalty_survives_a_small_retrieval_disadvantage():
+    """A floor is only meaningful if it is worth more than rounding. Measured
+    tolerance: a direct account still wins with roughly three points less
+    retrieval score than the rumour."""
+    direct = candidate(
+        "direct", "Sarah told me the launch is postponed to September", score=0.70, confidence="observed_by_user"
+    )
+    rumour = candidate(
+        "rumour", "apparently the launch got postponed, someone said", score=0.73, confidence="hearsay_from_person"
+    )
+    ranked = rerank_results([direct, rumour], query="when was the launch postponed", limit=2, as_of_date=AS_OF)
+    assert top(ranked) == "direct"
+
+
+def test_attribution_removes_the_penalty_entirely():
+    """Hearsay is not the problem; unattributed hearsay is. A named source is
+    often exactly what was asked for and must not be suppressed."""
+    attributed = candidate(
+        "attributed",
+        "Sarah said the launch is postponed",
+        score=0.70,
+        confidence="attributed_statement",
+        metadata={"attributed_to": "Sarah"},
+    )
+    orphan = candidate("orphan", "apparently the launch got postponed", score=0.70, confidence="hearsay_from_person")
+    ranked = rerank_results([attributed, orphan], query="when was the launch postponed", limit=2, as_of_date=AS_OF)
+    assert top(ranked) == "attributed"
