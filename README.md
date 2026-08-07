@@ -11,7 +11,7 @@
 [![CI](https://github.com/seramasamy/thoughtpins/actions/workflows/ci.yml/badge.svg)](https://github.com/seramasamy/thoughtpins/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-e8612b)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.13-3776ab)](.python-version)
-[![Tests](https://img.shields.io/badge/tests-703-587465)](tests/)
+[![Tests](https://img.shields.io/badge/tests-781-587465)](tests/)
 [![Code of Conduct](https://img.shields.io/badge/contributor-covenant-6b6459)](CODE_OF_CONDUCT.md)
 
 **A memory layer for real life.** Write naturally, bring in what you read,<br>
@@ -57,7 +57,7 @@ marketing claim.
 | **No ads, no tracking, no resale** | There is no advertising profile, no public feed, and no analytics SDK. The release contract is machine-checked. [`commerce-policy.json`](deploy/store/commerce-policy.json) · [`check_free_launch.py`](scripts/check_free_launch.py) |
 | **It doesn't steal articles** | Link capture reads public text with a normal request. It never impersonates a crawler, strips auth, or defeats access controls. Gated publishers stay metadata-only. [`article_parsing.py`](src/thoughtpins/article_parsing.py) |
 
-Backed by **703 tests** and **26 quality gates that run on every push** — architecture
+Backed by **781 tests** and **26 quality gates that run on every push** — architecture
 and complexity ratchets, tenant-isolation checks, supply-chain and secret scans, web
 accessibility and responsive contracts, and store-readiness packets — across Python,
 PostgreSQL, web, Android, and iOS.
@@ -129,7 +129,7 @@ frontend/             React web client (served at /app)
 mobile/               iOS and Android shells
 alembic/versions/     26 migrations, RLS policies included
 scripts/              28 check_*.py gates, operational tooling
-tests/                703 tests across 114 files
+tests/                781 tests across 115 files
 docs/                 architecture, operations, product, release
 site/                 the marketing site at thoughtpins.com
 ```

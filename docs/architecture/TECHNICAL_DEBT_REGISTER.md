@@ -180,6 +180,29 @@ adapter, where an approved-user allowlist bounds it in practice.
   module, and Telegram startup policy moved out of configuration. All three are
   back under the default budget with no ratchet added.
 
+## Closed In The 2026-08-07 Robustness Pass
+
+- **Near-duplicate answers were never diversified.** `_needs_diversification`
+  asked whether the pool held several distinct evidence *views* — multiple
+  retrieval channels, repeated source keys, differing social facets. A pool of
+  near-identical memories arriving on one channel from different entries
+  answered no to all three, so maximal marginal relevance was skipped exactly
+  when it was most needed and the answer became the same sentence four times.
+  Found by an adversarial test written to fail rather than to reassure. The
+  check now also measures textual redundancy across the selectable head.
+- **A property test over randomised corpora** surfaced that `rerank_results`
+  writes fused scores back onto its inputs, so replaying over the same objects
+  compounds one ranking pass on another. That is why
+  `clone_candidates_for_rerank` exists; it is now pinned by a named test
+  instead of being a footgun documented only in a docstring.
+
+Recorded because it matters more than the fixes: the existing social-relevance
+harness reports 1.0 across five thousand randomised cases. A benchmark that
+never fails has stopped measuring — it proves only that the generator and the
+ranker agree about what is easy. The new suite is built the other way round:
+each case is a specific way ranking is known to go wrong, with a distractor
+engineered to beat the right answer on some signal the ranker uses.
+
 ## Closed Or Controlled Items
 
 - Native UI is feature-sliced: SwiftUI separates the review shell, screens,

@@ -227,8 +227,26 @@ def rerank_results(
     return _maximal_marginal_relevance(ranked, limit, context, policy)
 
 
+# A pool this repetitive is answering one thing many ways, and a reader gains
+# nothing from the fourth phrasing. Expressed as a fraction so it scales with
+# the pool rather than firing on a couple of coincidental overlaps.
+_REDUNDANT_POOL_RATIO = 0.75
+_REDUNDANCY_MIN_CANDIDATES = 4
+
+
 def _needs_diversification(candidates: list[SearchResult], context: _RankingContext) -> bool:
-    """Use coverage repair only when the pool contains distinct evidence views."""
+    """Whether coverage repair would change anything for this pool.
+
+    Skipping the repair is a real saving on the common case of a handful of
+    unrelated candidates. The trap is that the original checks all asked "are
+    there several distinct evidence *views* here?" — and a pool of near
+    identical memories, arriving on one channel from different entries, answers
+    no to every one of them. That is the pool that most needs repair: without
+    it the answer is the same sentence four times and the second real fact
+    never surfaces.
+    """
+    if _is_textually_redundant(candidates):
+        return True
     retrieval_channels = {source for candidate in candidates for source in candidate.retrieval_sources}
     if len(retrieval_channels) > 1:
         return True
@@ -243,6 +261,20 @@ def _needs_diversification(candidates: list[SearchResult], context: _RankingCont
         matched for candidate in candidates if (matched := frozenset(context.facets(candidate) & requested))
     }
     return len(facet_profiles) > 1
+
+
+def _is_textually_redundant(candidates: list[SearchResult]) -> bool:
+    """Whether the pool mostly repeats itself.
+
+    Compares token sets rather than raw strings so a reworded duplicate still
+    counts, and only looks at the candidates that could actually be selected —
+    a long tail of distinct low scorers should not mask redundancy at the top.
+    """
+    if len(candidates) < _REDUNDANCY_MIN_CANDIDATES:
+        return False
+    head = candidates[: max(_REDUNDANCY_MIN_CANDIDATES, len(candidates) // 2)]
+    signatures = {frozenset(_tokens(candidate.text)) for candidate in head}
+    return len(signatures) <= len(head) * (1.0 - _REDUNDANT_POOL_RATIO) + 1
 
 
 def clone_candidates_for_rerank(results: list[SearchResult]) -> list[SearchResult]:
