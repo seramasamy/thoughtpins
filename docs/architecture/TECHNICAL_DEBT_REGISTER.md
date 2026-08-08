@@ -1,6 +1,6 @@
 # Technical Debt Register
 
-Last reviewed: 2026-08-06
+Last reviewed: 2026-08-08
 
 This register is intentionally candid. A production codebase with no technical
 debt is not a credible claim. Thought Pins uses tests and architecture fitness
@@ -202,6 +202,34 @@ never fails has stopped measuring — it proves only that the generator and the
 ranker agree about what is easy. The new suite is built the other way round:
 each case is a specific way ranking is known to go wrong, with a distractor
 engineered to beat the right answer on some signal the ranker uses.
+
+## Closed In The 2026-08-08 Surface Pass
+
+Two surfaces had been asserted production-grade without being re-checked since
+they were last changed. Both had real faults.
+
+- **The README did not render.** The banner used `<picture>` with relative paths
+  in `<source srcset>`; GitHub rewrites relative URLs in an `img` src but not
+  inside srcset, so both sources failed and — because sources take priority over
+  the fallback — nothing displayed at all. The CI badge returned 404 because
+  Actions badges do not exist for private repositories, rendering as a broken
+  image beside the licence badge. Now a single `img`, a static gates badge, and
+  a check that strips HTML comments then verifies every image resolves, every
+  remote badge returns 200, every relative link exists, and tables are not
+  ragged.
+- **The Telegram adapter had two latent crashes**, both the same shape:
+  `data.get(k) if isinstance(data.get(k), dict) else {}`. Calling `.get` twice
+  asks a reader — and a type checker — to believe two separate lookups agree.
+  Now read once and narrowed on the local. Ten files were unformatted and three
+  pytest cache directories were sitting in the project root.
+
+Added the contract that actually matters for that surface: Telegram rejects the
+entire send on malformed HTML, so a stray unbalanced tag does not degrade a
+message, it replaces a good answer with silence. Every message shape the adapter
+can emit is now asserted valid against hostile input — script tags, unbalanced
+markup, six-thousand-character replies, emoji runs, and bare ampersands — plus a
+case proving a trim never cuts an HTML entity in half. The adapter went from 31
+tests to 54.
 
 ## Closed Or Controlled Items
 

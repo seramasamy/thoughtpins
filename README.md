@@ -196,8 +196,10 @@ Honest gaps, kept current:
 - **Not proven at scale.** The hosted service is in private beta with a handful of accounts.
   Local containers have passed RLS, Celery dispatch, restore drills, and a 100-VU health load;
   that is not the same as proving cloud networking, failover, or provider quotas.
-- **iOS CI is red.** The Android and web pipelines are green; the iOS job needs a Mac to
-  iterate on. Deliberately parked.
+- **iOS native CI runs on tags only.** macOS minutes bill at 10x on a private
+  repository, and running it per-push exhausted the allowance and stopped every
+  other job. Source shape is still checked on Linux on every push. Publishing
+  makes Actions free, at which point this can be reconsidered.
 - **Voice retention needs a mounted volume.** The archive writes to a filesystem path, so
   startup now refuses to enable retention on a shared deployment unless that path is durable
   — taking someone's consent to keep a recording and then losing it on redeploy is worse
