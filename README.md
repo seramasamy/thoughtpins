@@ -1,14 +1,17 @@
 <div align="center">
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/banner-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset=".github/assets/banner-light.png">
-  <img alt="Thought Pins — your memory, connected." src=".github/assets/banner-light.png" width="720">
-</picture>
+<!-- A single <img>, deliberately. GitHub rewrites relative URLs in src but not
+     inside <source srcset>, so a <picture> with relative paths renders nothing:
+     the sources take priority and both fail to resolve. The dark banner is
+     self-contained and reads as an intentional band on either GitHub theme. -->
+<img alt="Thought Pins — your memory, connected." src=".github/assets/banner-dark.png" width="720">
 
 <br>
 
-[![CI](https://github.com/seramasamy/thoughtpins/actions/workflows/ci.yml/badge.svg)](https://github.com/seramasamy/thoughtpins/actions/workflows/ci.yml)
+<!-- The live Actions badge 404s while this repository is private, which renders
+     as a broken image. Restore it on the day it is published:
+     [![CI](https://github.com/seramasamy/thoughtpins/actions/workflows/ci.yml/badge.svg)](https://github.com/seramasamy/thoughtpins/actions/workflows/ci.yml) -->
+[![Gates](https://img.shields.io/badge/CI-26%20gates-587465)](.github/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-e8612b)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.13-3776ab)](.python-version)
 [![Tests](https://img.shields.io/badge/tests-788-587465)](tests/)
