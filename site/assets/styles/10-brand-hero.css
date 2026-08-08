@@ -315,14 +315,23 @@
 }
 
 .test-session-note,
+/* Three short claims that wrap to two lines on a phone. Left to itself the
+   break lands wherever the width runs out, which stranded a bare "in." on its
+   own line under the buttons. Balancing shares the words between the lines
+   instead, and a bounded measure stops the line running the full width on a
+   tablet where centred text becomes hard to track back. */
 .hero-trust {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  max-width: 46ch;
+  margin-inline: auto;
   color: var(--tp-ink-soft);
   font-size: 13px;
   line-height: 1.5;
+  text-align: center;
+  text-wrap: balance;
 }
 
 .test-session-note {
