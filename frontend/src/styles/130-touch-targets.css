@@ -1,0 +1,46 @@
+/* ---------------- Touch targets ----------------
+   Coarse-pointer only. The checkbox and segmented controls are sized for a
+   cursor; on touch they sit below the 44px platform guidance. The visible label
+   already extends the checkbox hit area, so only the control itself grows. */
+@media (pointer: coarse) {
+  .check-row {
+    min-height: 44px;
+  }
+
+  .check-row input {
+    width: 22px;
+    min-height: 22px;
+  }
+
+  .segmented button {
+    min-height: 44px;
+  }
+}
+
+/* The sign-in screen's "Home" link is a standalone control, not prose, so it
+   gets a full touch target. Links inside paragraphs are deliberately left at
+   text size: growing them would break line rhythm, and the accessibility
+   guidance exempts inline links for that reason. */
+@media (pointer: coarse) {
+  .auth-home-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}
+
+/* The private-memory checkbox decides whether private entries are sent to the
+   model, so it needs to be easy to hit deliberately rather than by accident.
+   The surrounding control grows to a full touch target while the box itself
+   stays visually small. */
+@media (pointer: coarse) {
+  .private-memory-toggle {
+    min-height: 44px;
+  }
+
+  .private-memory-toggle input {
+    width: 20px;
+    height: 20px;
+    min-height: 20px;
+  }
+}

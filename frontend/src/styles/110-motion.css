@@ -1,0 +1,24 @@
+/* ---------- 14. Reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .skeleton {
+    animation: none;
+    background: var(--tp-line);
+  }
+
+  .thinking-dots i {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+

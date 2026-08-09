@@ -112,6 +112,30 @@ layers remain exact-size-ratcheted while browser and screenshot contracts guard
 their behavior. This item is controlled and can close after those layers are
 feature-sliced without changing the public design contract.
 
+**Reduced 2026-08-09, not closed.** Both remaining layers were misnamed rather
+than merely large. `100-responsive.css` was 853 lines of which only 646 were
+responsive; the rest were reduced motion, dark mode, and touch targets, filed
+there by accumulation. `50-adaptive.css` was the same plus a print block. Each
+is now split along those existing section boundaries:
+
+- app: `100-responsive.css` 646, `110-motion.css` 24, `120-color-scheme.css` 137,
+  `130-touch-targets.css` 47
+- site: `50-motion.css` 110, `52-responsive.css` 345, `54-color-scheme.css` 204,
+  `56-reduced-motion.css` 17, `58-print.css` 75, `59-touch-targets.css` 54
+
+Every new file is a contiguous byte range of the original, imported in the
+original order, so concatenating them reproduces the file that was there before
+— checked against the committed blob, not asserted. That matters because both
+files sit last in their `@import` chain and are pure override layers, where a
+reordering would change computed style without changing any rule.
+
+This is a slice by concern, not the slice by feature the exit condition asks
+for. A feature slice would have to lift rules out of shared media blocks and
+regroup them, which changes cascade order and cannot be verified this way. The
+honest position is that theming is now reviewable on its own and the largest
+file dropped from 853 lines to 646, but the exit condition as written is not
+met, so the item stays open.
+
 ### TD-006: Native Execution Evidence
 
 Windows can validate source shape but cannot execute Xcode, iOS Simulator,
@@ -300,11 +324,18 @@ that would have failed loudly the moment the layering was wrong.
 Exceptions are down from ten to one, and `bot/commands.py`'s line budget is
 tightened from 542 to its new size rather than left slack.
 
-Still open, deliberately not bundled: `generate_conversation_reply` takes
-`telegram_message_id`, and the web path passes a web message id to it. That is
-the same "filed under a transport" defect in a parameter name, but renaming it
-reaches into `remember_user_chat_message` and its callers, and mixing it into a
-layering change would have made both harder to review.
+Still open: `generate_conversation_reply` takes `telegram_message_id`, and the
+web path passes a web message id to it. **Measured 2026-08-09, and it is larger
+than first recorded.** The estimate said it reached `remember_user_chat_message`
+and its callers. It actually reaches the persisted schema: `telegram_message_id`
+is a column on `raw_entries` (`db.py`), is written into
+`migrations/frozen_initial_schema.py`, and is threaded through
+`ingestion/pipeline.py`, `ingestion/service.py`, `memory/corrections.py` and
+`startup_recovery.py`. Renaming only the parameters would leave them disagreeing
+with the column they write, which is worse than the current honest mismatch, and
+renaming the column means an Alembic migration against live production data to
+fix a name. Not attempted, and not recommended before there is a migration
+already going out for another reason.
 
 ## Closed In The 2026-08-09 Graph Contract Pass
 
@@ -352,6 +383,47 @@ is deliberate: the guarantee belongs to the abstraction, so any future driver
 inherits a failing test before its data escapes. The flag stays shut, and
 `graph_backend_problems` still refuses both Graphiti and shadow mode in
 production — now with a test asserting it.
+
+## Closed In The 2026-08-09 Dependency And Gate Pass
+
+Three vulnerable dependencies, and a release gate that could not have told you
+about two of them.
+
+`cryptography` 49.0.0 (PYSEC-2026-3552), `h2` 4.3.0 (CVE-2026-71554), and
+`nanoid` below 3.3.17 are on their fixed versions. The SBOM step was failing
+only because it runs the dependency audit and stops when that fails, so two of
+the four red gates were one problem wearing two hats.
+
+**The audit had a blind spot the size of the project.**
+`requirements-prod.lock` is exported with `--no-dev --extra workers`: 78 of 205
+resolved packages. The gate audited that file and reported no known
+vulnerabilities while `pypdf` 6.14.2 sat in the `telegram` extra with a
+published advisory, imported at runtime by `media/extraction.py`. Self-hosting
+instructions tell people to install these extras, so the unaudited 127 packages
+are not hypothetical. GitHub Dependabot found it within minutes of being
+enabled, because it reads `uv.lock`, which covers everything.
+`scripts/check_optional_extra_dependencies.py` now audits the full resolved
+graph, and the release gate runs it beside the production audit.
+
+**Two gates were failing for reasons that described the developer's laptop.**
+Production config validation tripped on `VOICE_ARCHIVE_ENABLED`, which a machine
+set up per `founder/README.md` turns on and whose path is not a durable mount.
+Production ships it off and the durability rule has its own test, so the
+synthetic production environment now pins the shipped shape.
+
+**And the pytest step had been red since the commit that added the test it could
+not pass.** Its environment pinned `LIBRARY_EXTRACT_GRAPH` false, which matched
+the shipped default until `c077ec6` changed the default to true and added a test
+asserting it. The override survived, so that test passed under a plain `pytest`
+run and could never pass under the release gate. Its timeout was also 480s
+against a suite measured at 429s, 482s, 559s and 580s, so three runs in four
+would have failed on the clock instead. Both fixed; the gate now passes end to
+end.
+
+The pattern worth keeping: every one of these was invisible because something
+downstream of the check was reporting on a narrower world than the one being
+shipped — 78 packages instead of 205, a synthetic environment leaking a real
+one, an override outliving the default it mirrored.
 
 ## Closed Or Controlled Items
 

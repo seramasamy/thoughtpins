@@ -1,0 +1,345 @@
+/* ------------------------------------------------------------------
+   Responsive
+   ------------------------------------------------------------------ */
+@media (max-width: 900px) {
+  .site-nav {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .header-links {
+    display: none;
+  }
+
+  .hero h1 {
+    font-size: 62px;
+  }
+
+  .workflow-layout,
+  .privacy-layout {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+
+  .footer-main {
+    grid-template-columns: minmax(180px, 1fr) repeat(3, minmax(100px, 0.55fr));
+    gap: 30px;
+  }
+
+  .page-layout {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .page-toc {
+    position: static;
+    padding: 28px 0 0;
+  }
+
+  .page-toc ol {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    border-left: 0;
+  }
+
+  .page-toc a {
+    padding: 6px 12px;
+    margin-left: 0;
+    border: 1px solid var(--tp-line);
+    border-radius: 6px;
+    background: var(--tp-surface);
+  }
+
+  .page-toc a:hover {
+    border-color: var(--tp-line-strong);
+  }
+}
+
+@media (max-width: 680px) {
+  .content-width,
+  .site-nav,
+  .principles-inner,
+  .footer-main,
+  .footer-bottom,
+  .topbar,
+  .footer {
+    width: min(100% - 32px, var(--content));
+  }
+
+  .site-header,
+  .site-nav {
+    min-height: 64px;
+  }
+
+  .site-brand {
+    gap: 9px;
+  }
+
+  .site-brand span {
+    font-size: 17px;
+  }
+
+  .site-brand img {
+    width: 36px;
+    height: 36px;
+  }
+
+  .header-actions {
+    gap: 10px;
+  }
+
+  .header-actions .text-action {
+    display: none;
+  }
+
+  .button-small {
+    min-height: 38px;
+    padding-inline: 14px;
+  }
+
+  .hero-inner {
+    width: calc(100% - 32px);
+    padding: 52px 0 56px;
+  }
+
+  .hero-mark {
+    width: 64px;
+    height: 64px;
+  }
+
+  .hero .eyebrow {
+    margin-top: 0;
+  }
+
+  .hero h1 {
+    font-size: 52px;
+  }
+
+  .hero-tagline {
+    font-size: 20px;
+  }
+
+  .hero-lede {
+    margin-top: 18px;
+    font-size: 17px;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    margin-top: 28px;
+  }
+
+  .hero-actions .button {
+    width: 100%;
+  }
+
+  .hero-trust {
+    margin-top: 20px;
+  }
+
+  .principles-inner,
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .principles p,
+  .principles p:first-child,
+  .principles p:last-child {
+    padding: 22px 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--tp-line);
+  }
+
+  .principles p:last-child {
+    border-bottom: 0;
+  }
+
+  .feature-band,
+  .product-section,
+  .workflow-band,
+  .privacy-band,
+  .closing-cta {
+    padding: 76px 0;
+  }
+
+  .section-heading h2,
+  .product-copy h2,
+  .workflow-intro h2,
+  .privacy-layout h2,
+  .closing-cta h2 {
+    font-size: 34px;
+  }
+
+  .feature-card {
+    padding: 22px 0 26px;
+  }
+
+  .feature-card:nth-child(even) {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .feature-card h3 {
+    margin-top: 16px;
+    font-size: 22px;
+  }
+
+  .product-shot {
+    width: calc(100% - 32px);
+    margin-top: 40px;
+  }
+
+  .product-demo {
+    padding: 20px;
+  }
+
+  .product-demo-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .preview-tabs {
+    width: 100%;
+  }
+
+  .preview-tab {
+    flex: 1;
+  }
+
+  .product-demo-stage {
+    min-height: 560px;
+  }
+
+  .browser-frame-bar {
+    min-height: 32px;
+    padding: 0 12px;
+  }
+
+  .footer-main {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 36px 24px;
+    padding-top: 48px;
+  }
+
+  .footer-brand-block {
+    grid-column: 1 / -1;
+  }
+
+  .footer-bottom,
+  .footer {
+    flex-direction: column;
+  }
+
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    padding: 18px 0;
+  }
+
+  .nav {
+    flex-wrap: wrap;
+    gap: 10px 16px;
+  }
+
+  .page {
+    width: calc(100% - 32px);
+    padding: 52px 0 76px;
+  }
+
+  .page-with-toc {
+    width: calc(100% - 32px);
+  }
+
+  .page h1 {
+    font-size: 38px;
+  }
+
+  .page h2 {
+    font-size: 23px;
+  }
+
+  .legal-glance {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 390px) {
+  .site-brand span {
+    font-size: 16px;
+  }
+
+  .button-small {
+    padding-inline: 11px;
+    font-size: 13px;
+  }
+
+  .header-back {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+}
+
+/* Narrowest phones (e.g. iPhone SE, 320px): brand icon + wordmark, the
+   Modern pill, theme toggle, and Sign up no longer all fit on one row.
+   Drop the wordmark and keep the mark — it's still fully legible. */
+@media (max-width: 360px) {
+  .site-brand span {
+    display: none;
+  }
+
+  .header-actions {
+    gap: 8px;
+  }
+
+  .hero h1 {
+    font-size: 44px;
+  }
+
+  .workflow-list li {
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .workflow-list li > div {
+    gap: 8px;
+  }
+
+  .workflow-list > li > span {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+
+  .workflow-list strong {
+    font-size: 17px;
+  }
+
+  .workflow-list p {
+    font-size: 13px;
+  }
+
+  .product-demo {
+    padding: 14px;
+  }
+
+  .product-demo-title {
+    font-size: 20px;
+  }
+
+  .product-demo-stage {
+    min-height: 540px;
+    margin-top: 18px;
+  }
+
+  .footer-main {
+    grid-template-columns: 1fr;
+  }
+
+  .footer-brand-block {
+    grid-column: 1;
+  }
+}
+

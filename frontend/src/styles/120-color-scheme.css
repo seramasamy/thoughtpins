@@ -1,0 +1,137 @@
+/* ---------- 15. Dark mode ----------
+   Additive: the warm paper palette is re-pointed to a warm dark canvas by
+   overriding the neutral and accent-text tokens. Brand fills (buttons,
+   avatars, dots) stay terracotta; accent *text* shifts to a lighter action
+   orange so links and eyebrows keep WCAG AA on dark surfaces. */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    /* Warm dark neutrals */
+    --tp-canvas: #1a1714;
+    --tp-surface: #221d18;
+    --tp-surface-warm: #2a241e;
+    --tp-ink: #f4efe8;
+    --tp-ink-soft: #b7ad9f;
+    --tp-ink-faint: #8f8578;
+    --tp-line: #38312a;
+    --tp-line-strong: #4a4239;
+
+    /* Accent text that reads on dark (fills keep --tp-brand/--tp-action) */
+    --tp-brand-deep: #ef9a72;
+    --tp-sage: #86a794;
+
+    /* Elevation reads through shadow on dark */
+    --shadow-float: 0 14px 34px rgba(0, 0, 0, 0.55);
+    --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.42);
+
+    /* Focus ring visible on dark */
+    --tp-focus: rgba(232, 137, 95, 0.55);
+  }
+
+  /* Chrome surfaces with hardcoded light backgrounds need dark equivalents. */
+  :root:not([data-theme="light"]) .auth-layout {
+    background: var(--tp-canvas);
+  }
+
+  :root:not([data-theme="light"]) .global-composer {
+    background: rgba(34, 29, 22, 0.94);
+  }
+
+  :root:not([data-theme="light"]) .mobile-tabbar {
+    /* Matched to the light bar's translucency so the blur reads the same in
+       both themes rather than going flat and heavy in dark. */
+    border-color: rgba(245, 241, 234, 0.1);
+    background: rgba(26, 23, 20, 0.72);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.24);
+  }
+
+  /* Bare links and accent text on dark neutral surfaces (chip text keeps
+     the darker --tp-action against its light brand-soft background). */
+  :root:not([data-theme="light"]) a {
+    color: #e8895f;
+  }
+
+  :root:not([data-theme="light"]) .source-link,
+  :root:not([data-theme="light"]) .auth-consent a {
+    color: #e8895f;
+  }
+
+  :root:not([data-theme="light"]) ::selection {
+    color: #ffffff;
+    background: var(--tp-brand);
+  }
+}
+
+/* Explicit theme choices. This dark block must stay in sync with the
+   media-query block above: same tokens, same surface fixes, same values. */
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Warm dark neutrals */
+  --tp-canvas: #1a1714;
+  --tp-surface: #221d18;
+  --tp-surface-warm: #2a241e;
+  --tp-ink: #f4efe8;
+  --tp-ink-soft: #b7ad9f;
+  --tp-ink-faint: #8f8578;
+  --tp-line: #38312a;
+  --tp-line-strong: #4a4239;
+
+  /* Accent text that reads on dark (fills keep --tp-brand/--tp-action) */
+  --tp-brand-deep: #ef9a72;
+  --tp-sage: #86a794;
+
+  /* Elevation reads through shadow on dark */
+  --shadow-float: 0 14px 34px rgba(0, 0, 0, 0.55);
+  --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.42);
+
+  /* Focus ring visible on dark */
+  --tp-focus: rgba(232, 137, 95, 0.55);
+}
+
+:root[data-theme="dark"] .auth-layout {
+  background: var(--tp-canvas);
+}
+
+:root[data-theme="dark"] .global-composer {
+  background: rgba(34, 29, 22, 0.94);
+}
+
+:root[data-theme="dark"] .mobile-tabbar {
+  background: rgba(26, 23, 20, 0.94);
+}
+
+:root[data-theme="dark"] a {
+  color: #e8895f;
+}
+
+:root[data-theme="dark"] .source-link,
+:root[data-theme="dark"] .auth-consent a {
+  color: #e8895f;
+}
+
+:root[data-theme="dark"] ::selection {
+  color: #ffffff;
+  background: var(--tp-brand);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* Dark-mode empty states: the light brand-soft halo reads as dull gray on
+   the warm dark canvas, so it shifts to a low terracotta glow. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .empty-state-halo::before {
+    background: var(--tp-brand);
+    opacity: 0.16;
+  }
+}
+
+:root[data-theme="dark"] .empty-state-halo::before {
+  background: var(--tp-brand);
+  opacity: 0.16;
+}
+

@@ -1,0 +1,110 @@
+/* ------------------------------------------------------------------
+   Motion
+   ------------------------------------------------------------------ */
+@keyframes tp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes tp-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.012);
+  }
+}
+
+@keyframes tp-preview-enter {
+  from {
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes tp-mark-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Hero entrance: quiet rise with a capped stagger */
+  .hero-inner > * {
+    animation: tp-rise var(--motion-entrance) var(--ease-quiet) both;
+  }
+
+  .hero-inner > *:nth-child(2) {
+    animation-delay: 45ms;
+  }
+
+  .hero-inner > *:nth-child(3) {
+    animation-delay: 90ms;
+  }
+
+  .hero-inner > *:nth-child(4) {
+    animation-delay: 135ms;
+  }
+
+  .hero-inner > *:nth-child(5) {
+    animation-delay: 180ms;
+  }
+
+  .hero-inner > *:nth-child(n + 6) {
+    animation-delay: 225ms;
+  }
+
+  /* Authored entrance, then ambient breathe, on the hero mark only */
+  .hero-mark {
+    animation: tp-mark-enter var(--motion-entrance) var(--ease-settle) both,
+      tp-breathe 4.5s ease-in-out 900ms infinite;
+  }
+
+  .preview-panel.is-active {
+    animation: tp-preview-enter 360ms var(--ease-quiet) both;
+  }
+
+  /* Scroll reveal: elements stay visible unless JS opts in (html.js-reveal) */
+  html.js-reveal .reveal {
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity var(--motion-entrance) var(--ease-quiet),
+      transform var(--motion-entrance) var(--ease-quiet);
+  }
+
+  html.js-reveal .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  html.js-reveal .feature-grid .reveal:nth-child(2),
+  html.js-reveal .principles-inner .reveal:nth-child(2),
+  html.js-reveal .workflow-list .reveal:nth-child(2) {
+    transition-delay: 55ms;
+  }
+
+  html.js-reveal .feature-grid .reveal:nth-child(3),
+  html.js-reveal .principles-inner .reveal:nth-child(3),
+  html.js-reveal .workflow-list .reveal:nth-child(3) {
+    transition-delay: 110ms;
+  }
+
+  html.js-reveal .feature-grid .reveal:nth-child(4) {
+    transition-delay: 165ms;
+  }
+}
+

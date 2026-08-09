@@ -1,0 +1,204 @@
+/* ------------------------------------------------------------------
+   Dark scheme: warm charcoal paper, same brand voice
+
+   The same token remap is applied three ways:
+   - system dark, when the visitor has not chosen a theme (no data-theme)
+   - explicit :root[data-theme="dark"] from the header theme toggle
+   The two rule bodies must stay identical.
+   ------------------------------------------------------------------ */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+  }
+}
+
+/* Token remap — this block and the one inside the media query below must
+   stay identical. */
+:root[data-theme="dark"] {
+  --tp-canvas: #1c1916;
+  --tp-surface: #26211b;
+  --tp-surface-warm: #2b251e;
+  --tp-ink: #f5f1ea;
+  --tp-ink-soft: #b5ac9f;
+  --tp-ink-faint: #8d8478;
+  --tp-line: #383128;
+  --tp-line-strong: #4a4136;
+  --tp-brand-soft: #402518;
+  --tp-sage-soft: #26332b;
+  --tp-blue-soft: #223038;
+  --tp-charcoal: #211d18;
+  --tp-charcoal-soft: #332c24;
+
+  --tp-eyebrow: #f0906a;
+  --tp-link: #f0906a;
+  --tp-action-hover: #cd4d20;
+  --tp-band: #211d18;
+  --tp-header-bg: rgba(28, 25, 22, 0.92);
+  --tp-chip-orange-ink: #ffb48f;
+  --tp-chip-orange-bg: #402518;
+  --tp-chip-sage-ink: #a9c4b4;
+  --tp-chip-sage-bg: #26332b;
+  --tp-chip-blue-ink: #a3c3d4;
+  --tp-chip-blue-bg: #223038;
+  --tp-summary-ink: #f2cdb8;
+  --tp-shadow-card: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --tp-shadow-shot: 0 24px 64px rgba(0, 0, 0, 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --tp-canvas: #1c1916;
+    --tp-surface: #26211b;
+    --tp-surface-warm: #2b251e;
+    --tp-ink: #f5f1ea;
+    --tp-ink-soft: #b5ac9f;
+    --tp-ink-faint: #8d8478;
+    --tp-line: #383128;
+    --tp-line-strong: #4a4136;
+    --tp-brand-soft: #402518;
+    --tp-sage-soft: #26332b;
+    --tp-blue-soft: #223038;
+    --tp-charcoal: #211d18;
+    --tp-charcoal-soft: #332c24;
+
+    --tp-eyebrow: #f0906a;
+    --tp-link: #f0906a;
+    --tp-action-hover: #cd4d20;
+    --tp-band: #211d18;
+    --tp-header-bg: rgba(28, 25, 22, 0.92);
+    --tp-chip-orange-ink: #ffb48f;
+    --tp-chip-orange-bg: #402518;
+    --tp-chip-sage-ink: #a9c4b4;
+    --tp-chip-sage-bg: #26332b;
+    --tp-chip-blue-ink: #a3c3d4;
+    --tp-chip-blue-bg: #223038;
+    --tp-summary-ink: #f2cdb8;
+    --tp-shadow-card: 0 10px 30px rgba(0, 0, 0, 0.35);
+    --tp-shadow-shot: 0 24px 64px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Component-level dark adjustments, explicit theme choice… */
+[data-theme="dark"] ::selection {
+  color: var(--tp-ink);
+  background: #4a2c1c;
+}
+
+[data-theme="dark"] .site-brand img,
+[data-theme="dark"] .closing-cta img {
+  box-shadow: none;
+}
+
+[data-theme="dark"] .test-session-note span {
+  background: #7fae95;
+}
+
+[data-theme="dark"] .test-session-note {
+  color: var(--tp-chip-sage-ink);
+}
+
+[data-theme="dark"] .hero-mark {
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.4));
+}
+
+[data-theme="dark"] .privacy-band {
+  border-block: 1px solid var(--tp-line);
+}
+
+[data-theme="dark"] .site-footer {
+  border-top: 1px solid var(--tp-line);
+  background: #191613;
+}
+
+[data-theme="dark"] .footer-bottom {
+  border-top-color: #332d25;
+}
+
+[data-theme="dark"] .skip-link {
+  color: var(--tp-ink);
+  background: var(--tp-charcoal-soft);
+}
+
+[data-theme="dark"] .feature-label {
+  color: var(--tp-eyebrow);
+}
+
+[data-theme="dark"] .feature-sage .feature-label {
+  color: var(--tp-chip-sage-ink);
+}
+
+[data-theme="dark"] .feature-blue .feature-label {
+  color: var(--tp-chip-blue-ink);
+}
+
+[data-theme="dark"] .feature-charcoal .feature-label {
+  color: var(--tp-ink-soft);
+}
+
+/* …and the same under system dark with no explicit choice. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) ::selection {
+    color: var(--tp-ink);
+    background: #4a2c1c;
+  }
+
+  :root:not([data-theme="light"]) .site-brand img,
+  :root:not([data-theme="light"]) .closing-cta img {
+    box-shadow: none;
+  }
+
+  :root:not([data-theme="light"]) .test-session-note span {
+    background: #7fae95;
+  }
+
+  :root:not([data-theme="light"]) .test-session-note {
+    color: var(--tp-chip-sage-ink);
+  }
+
+  :root:not([data-theme="light"]) .hero-mark {
+    filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.4));
+  }
+
+  :root:not([data-theme="light"]) .privacy-band {
+    border-block: 1px solid var(--tp-line);
+  }
+
+  :root:not([data-theme="light"]) .site-footer {
+    border-top: 1px solid var(--tp-line);
+    background: #191613;
+  }
+
+  :root:not([data-theme="light"]) .footer-bottom {
+    border-top-color: #332d25;
+  }
+
+  :root:not([data-theme="light"]) .skip-link {
+    color: var(--tp-ink);
+    background: var(--tp-charcoal-soft);
+  }
+
+  :root:not([data-theme="light"]) .feature-label {
+    color: var(--tp-eyebrow);
+  }
+
+  :root:not([data-theme="light"]) .feature-sage .feature-label {
+    color: var(--tp-chip-sage-ink);
+  }
+
+  :root:not([data-theme="light"]) .feature-blue .feature-label {
+    color: var(--tp-chip-blue-ink);
+  }
+
+  :root:not([data-theme="light"]) .feature-charcoal .feature-label {
+    color: var(--tp-ink-soft);
+  }
+}
+

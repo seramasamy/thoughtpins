@@ -1,0 +1,75 @@
+/* ------------------------------------------------------------------
+   Print: clean document, no chrome
+   ------------------------------------------------------------------ */
+@media print {
+  .skip-link,
+  .site-header,
+  .topbar .nav,
+  .header-actions,
+  .page-toc,
+  .legal-links,
+  .anchor-link,
+  .site-footer,
+  .footer nav,
+  .hero-actions,
+  .test-session-note {
+    display: none;
+  }
+
+  :root,
+  body {
+    color: #000;
+    background: #fff;
+  }
+
+  .page,
+  .page-with-toc {
+    width: auto;
+    padding: 0;
+  }
+
+  .page-layout {
+    display: block;
+  }
+
+  .page p,
+  .page li,
+  .legal-meta,
+  .legal-glance dd,
+  .legal-summary p {
+    color: #000;
+  }
+
+  .page a {
+    color: #000;
+    text-decoration: underline;
+  }
+
+  .legal-summary {
+    border: 1px solid #000;
+    border-radius: 0;
+    background: none;
+  }
+
+  .legal-glance,
+  .legal-glance > div {
+    border-color: #000;
+    background: none;
+  }
+
+  .page section {
+    break-inside: avoid;
+  }
+
+  .page h1,
+  .page h2,
+  .page h3 {
+    break-after: avoid;
+  }
+
+  .footer {
+    border-top: 1px solid #000;
+    color: #000;
+  }
+}
+
