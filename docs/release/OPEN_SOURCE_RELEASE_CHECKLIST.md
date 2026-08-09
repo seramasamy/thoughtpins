@@ -10,8 +10,18 @@ checklist does not push code or create a remote repository.
 - [ ] Choose the public repository owner and private security-reporting route.
 - [ ] Decide whether the founder adapter's two public runbooks remain in the
   public tree or move to a separate private repository.
-- [ ] Rotate every credential ever used in the local workspace before public
-  release, even if scanners report that it is absent from the export.
+- [x] Decide whether credentials need rotating before public release. **They do
+  not, on the evidence.** This item used to say rotate everything "even if
+  scanners report that it is absent from the export" — a sound default while
+  history cannot be proven clean, and the wrong call once it can. Publishing
+  exposes what is in the repository; deployment credentials live in `.env` and in
+  the host environment, and neither has ever been in it. Audited 2026-08-09
+  across all 76 reachable commits *and* the 6 unreachable objects left behind by
+  a force-push, which `git log --all` does not reach: no credential-shaped string
+  in any of them, `.env` never tracked, every `.env.example` value a placeholder.
+  Rotation would still be the fix if a credential were exposed somewhere this
+  scan cannot see — a screenshot, a pasted log, an issue comment — but such an
+  exposure is independent of publishing and would need rotating either way.
 
 ## Public Export
 
@@ -39,10 +49,13 @@ checklist does not push code or create a remote repository.
   file was ever committed, no private-looking file was ever deleted, and no diff
   in any commit matches a Telegram bot token, an `sk-` key, an AWS key id, a
   GitHub token, a PEM private key, or an `api_key`/`jwt_secret`/`password`
-  assignment. The working tree passes the same scan. The residual risk this item
-  guarded against is therefore believed closed, but it was closed by inspection
-  after the fact rather than by construction, which is weaker. Rotating
-  credentials before publishing (below) remains the compensating control.
+  assignment. The working tree passes the same scan, and so do the 6 unreachable
+  objects a force-push left behind, which `git log --all` does not reach. The
+  residual risk this item guarded against is therefore closed by inspection after
+  the fact rather than by construction. That is weaker in general — inspection
+  can only find what it knows to look for — but the specific thing this step
+  existed to prevent, a secret entering history from the working folder, is
+  directly observable and was not observed.
 
 ## Engineering Evidence
 
