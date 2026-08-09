@@ -30,8 +30,19 @@ checklist does not push code or create a remote repository.
   is `PROOF_CURRENT_PASSWORD = "current_password"`, a constant name.
 - [ ] Inspect the exported archive on a second machine before creating Git
   history.
-- [ ] Initialize Git inside the sanitized export, not inside a folder containing
-  active secrets.
+- [~] Initialize Git inside the sanitized export, not inside a folder containing
+  active secrets. **Overtaken by events and cannot be satisfied as written.**
+  History was created in the working folder and pushed to a private GitHub
+  repository on 2026-08-01, so the export-first sequence this item describes is
+  no longer available. Audited on 2026-08-09 in place of it, across all 76
+  commits: `.env` was never added, no database, vault, log, backup or report
+  file was ever committed, no private-looking file was ever deleted, and no diff
+  in any commit matches a Telegram bot token, an `sk-` key, an AWS key id, a
+  GitHub token, a PEM private key, or an `api_key`/`jwt_secret`/`password`
+  assignment. The working tree passes the same scan. The residual risk this item
+  guarded against is therefore believed closed, but it was closed by inspection
+  after the fact rather than by construction, which is weaker. Rotating
+  credentials before publishing (below) remains the compensating control.
 
 ## Engineering Evidence
 

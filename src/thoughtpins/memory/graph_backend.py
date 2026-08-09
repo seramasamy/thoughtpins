@@ -192,9 +192,12 @@ class GraphitiBackend:
         return hits[:limit]
 
     def delete_user(self, user_id: str) -> bool:
-        # Graphiti delete APIs vary by backend/version. Keep this false so data
-        # lifecycle remains SQL-authoritative until the exact backend is tested.
-        return False
+        # Graphiti delete APIs vary by backend/version and none of them are
+        # exercised here, so this cannot claim a deletion it did not perform.
+        # An uninitialised backend refused every add_episode, so it holds
+        # nothing and deleting nothing is honestly a success; a configured one
+        # may hold episodes it cannot be proven to remove, and says so.
+        return self._graphiti is None
 
 
 class ShadowGraphBackend:
@@ -223,21 +226,28 @@ class ShadowGraphBackend:
         return ok
 
     def search(self, query: str, *, user_id: str, limit: int = 10) -> list[GraphSearchHit]:
+        """Serve the primary only. A shadow is measured, never answered from.
+
+        The shadow is still queried so its cost and failures surface, but its
+        hits are deliberately discarded: recall from an unproven backend must
+        not reach a user before an eval says it should.
+        """
         primary_hits = self.primary.search(query, user_id=user_id, limit=limit)
         try:
-            shadow_hits = self.shadow.search(query, user_id=user_id, limit=max(1, limit // 2))
+            self.shadow.search(query, user_id=user_id, limit=max(1, limit // 2))
         except Exception as exc:
             logger.warning("Shadow graph search failed: {}", str(exc)[:200])
-            shadow_hits = []
-        return (primary_hits + shadow_hits)[:limit]
+        return primary_hits[:limit]
 
     def delete_user(self, user_id: str) -> bool:
-        ok = self.primary.delete_user(user_id)
+        """Succeed only if both halves did. The shadow holds real user data."""
+        primary_ok = self.primary.delete_user(user_id)
         try:
-            self.shadow.delete_user(user_id)
+            shadow_ok = self.shadow.delete_user(user_id)
         except Exception as exc:
             logger.warning("Shadow graph delete failed: {}", str(exc)[:200])
-        return ok
+            shadow_ok = False
+        return primary_ok and shadow_ok
 
 
 def get_graph_backend(session: Session) -> GraphBackend:

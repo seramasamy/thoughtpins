@@ -230,6 +230,26 @@ def delete_user_data(session: Session, user_id: str) -> dict[str, int]:
                 "Derived memory cleanup is temporarily unavailable; the account was not deleted."
             ) from exc
 
+    # An auxiliary graph backend can hold episodes that the relational cascades
+    # below will never reach, because ingestion writes to it directly. Refuse the
+    # deletion rather than report one that did not happen. internal_sql confirms
+    # immediately: its rows are deleted by the cascades in this function.
+    try:
+        from thoughtpins.memory.graph_backend import get_graph_backend
+
+        graph_deleted = get_graph_backend(session).delete_user(user_id)
+    except Exception as exc:
+        session.rollback()
+        raise DataDeletionUnavailable(
+            "Graph memory cleanup is temporarily unavailable; the account was not deleted."
+        ) from exc
+    if not graph_deleted:
+        session.rollback()
+        raise DataDeletionUnavailable(
+            "The configured graph backend cannot confirm removal of this account's episodes; "
+            "the account was not deleted."
+        )
+
     deleted: dict[str, int] = delete_voice_archive(session, user_id, commit=False)
 
     ordered_models = [

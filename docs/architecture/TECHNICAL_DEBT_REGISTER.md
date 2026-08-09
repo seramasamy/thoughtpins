@@ -306,6 +306,53 @@ the same "filed under a transport" defect in a parameter name, but renaming it
 reaches into `remember_user_chat_message` and its callers, and mixing it into a
 layering change would have made both harder to review.
 
+## Closed In The 2026-08-09 Graph Contract Pass
+
+The README said external graph backends stay behind a flag "until deletion and
+recall contracts are proven." Reading the code to write those contracts found
+that the wiring was asymmetric in the worst possible direction.
+
+**Only the direction that stores data worked.** `add_episode_to_graph_backend`
+is called from `ingestion/pipeline.py` and `library.py`, so with the flag on,
+user content is written to the graph backend on every ingest. Retrieval never
+used the abstraction at all — `memory/search.py` calls `graph_search_hits`
+directly — and **nothing anywhere called `delete_user`**. The hook existed on
+the protocol, `data_lifecycle.delete_user_data` never invoked it, and
+`GraphitiBackend.delete_user` returned `False` by design. So the flag turned on
+a write path with no delete path.
+
+Three defects, each fixed and each pinned by a test that fails without the fix:
+
+- **Account deletion never asked the graph backend anything.** It now does, and
+  fails closed the way the vector store already did: a backend that cannot
+  confirm removal raises `DataDeletionUnavailable` and the account is not
+  deleted. `internal_sql` confirms immediately because its rows are deleted by
+  the cascades in that same function, so the default path is unchanged.
+- **The shadow backend reported the primary's success as the whole truth.**
+  `ShadowGraphBackend.delete_user` returned the primary's result and swallowed
+  the shadow's, including exceptions. A shadow that failed to delete read as a
+  successful deletion. It now succeeds only if both halves do.
+- **The shadow backend served results it had not earned.**
+  `ShadowGraphBackend.search` concatenated shadow hits into what the caller got,
+  so an unproven backend could answer a user — most easily when the primary
+  returned little, which is exactly when its answers would carry the most
+  weight. The shadow is still queried, so its cost and failures surface, but its
+  hits are discarded.
+
+`GraphitiBackend.delete_user` now distinguishes two cases it previously merged.
+Uninitialised, it refused every `add_episode`, holds nothing, and reports
+success because deleting nothing is honest. Configured, it holds episodes it
+cannot be proven to remove, and says so. Writing a real deletion against an
+untested driver API would have been the same "assert it without running it"
+pattern the surface pass was about, so it is not attempted here.
+
+What this does **not** do is prove Graphiti. graphiti-core is not installed and
+no graph server is reachable, so the contracts are enforced against fakes. That
+is deliberate: the guarantee belongs to the abstraction, so any future driver
+inherits a failing test before its data escapes. The flag stays shut, and
+`graph_backend_problems` still refuses both Graphiti and shadow mode in
+production — now with a test asserting it.
+
 ## Closed Or Controlled Items
 
 - Native UI is feature-sliced: SwiftUI separates the review shell, screens,

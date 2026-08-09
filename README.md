@@ -205,8 +205,11 @@ Honest gaps, kept current:
   — taking someone's consent to keep a recording and then losing it on redeploy is worse
   than not offering retention at all.
 - **The external graph backend is experimental.** `internal_sql` is the default and the only
-  supported source of truth; Graphiti stays behind a flag until deletion and recall contracts
-  are proven.
+  supported source of truth. The deletion and recall contracts are now pinned by tests:
+  account deletion fails closed rather than report a removal a graph backend cannot confirm,
+  and a shadow backend is measured but never answered from. Graphiti itself stays behind the
+  flag — no driver has been exercised against a real graph server, so it still cannot promise
+  to delete what it would store.
 - **Mobile apps are unreleased.** The shells build; neither store has seen a submission.
 
 Tracked in the [technical debt register](docs/architecture/TECHNICAL_DEBT_REGISTER.md).
