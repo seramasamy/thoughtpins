@@ -8,7 +8,7 @@ from typing import Any
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
-from thoughtpins.bot.natural_commands import PENDING_TTL_SECONDS, NaturalCommandRoute
+from thoughtpins.chat.natural_commands import PENDING_TTL_SECONDS, NaturalCommandRoute
 from thoughtpins.db import ChatConversation, ChatMessage, PendingChatAction
 from thoughtpins.pagination import CursorPosition
 from thoughtpins.utils import utcnow

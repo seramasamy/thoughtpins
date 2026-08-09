@@ -31,7 +31,9 @@ from thoughtpins.bot.commands import (
     cmd_undo,
     handle_disclosure_code,
 )
-from thoughtpins.bot.natural_commands import (
+from thoughtpins.bot.utils import telegram_user_id, trim_for_telegram
+from thoughtpins.chat.engine import execute_chat_message, route_chat_message
+from thoughtpins.chat.natural_commands import (
     NaturalCommandRoute,
     clear_pending,
     confirmation_prompt,
@@ -40,8 +42,6 @@ from thoughtpins.bot.natural_commands import (
     pop_pending,
     set_pending,
 )
-from thoughtpins.bot.utils import telegram_user_id, trim_for_telegram
-from thoughtpins.chat.engine import execute_chat_message, route_chat_message
 from thoughtpins.store import get_session
 
 LEGACY_NATURAL_ACTIONS = {

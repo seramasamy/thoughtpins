@@ -6,18 +6,6 @@ import re
 
 from sqlalchemy.orm import Session
 
-from thoughtpins.bot import commands as bot_commands
-from thoughtpins.bot.commands import (
-    _refresh_vectors_after_removed_memories,
-    answer_with_llm,
-    build_memory_context_package,
-    generate_conversation_reply,
-)
-from thoughtpins.bot.natural_commands import (
-    NaturalCommandRoute,
-    interpret_confirmation,
-    route_natural_command,
-)
 from thoughtpins.chat.actions import (
     ActionHooks,
     _classification_meta,
@@ -32,7 +20,15 @@ from thoughtpins.chat.actions import (
 from thoughtpins.chat.actions import (
     _save_journal_turn as _save_journal_turn_action,
 )
+from thoughtpins.chat.conversation_state import CONVERSATION_CACHE, HISTORY_MAX_MESSAGES
+from thoughtpins.chat.memory_answer import answer_with_llm
 from thoughtpins.chat.models import ChatEngineResult, ChatRouteDecision
+from thoughtpins.chat.natural_commands import (
+    NaturalCommandRoute,
+    interpret_confirmation,
+    route_natural_command,
+)
+from thoughtpins.chat.reply import generate_conversation_reply
 from thoughtpins.chat.store import (
     append_chat_message,
     get_or_create_conversation,
@@ -44,7 +40,13 @@ from thoughtpins.chat.store import (
 from thoughtpins.db import ChatConversation, PendingChatAction
 from thoughtpins.ingestion.classify import classify_message
 from thoughtpins.ingestion.pipeline import process_message
+from thoughtpins.memory.context_package import (
+    _format_context_diagnostics,
+    build_memory_context_package,
+    describe_memory_context_package,
+)
 from thoughtpins.memory.corrections import store_and_apply_correction
+from thoughtpins.memory.vector_refresh import refresh_vectors_after_removed_memories
 from thoughtpins.users import lock_active_user_for_write
 
 CHAT_API_SOURCE = "api_chat"
@@ -55,9 +57,9 @@ def _action_hooks() -> ActionHooks:
     """Bind compatibility seams at request time, without global mutation."""
     return ActionHooks(
         process_message=process_message,
-        refresh_vectors=_refresh_vectors_after_removed_memories,
-        describe_context=bot_commands.describe_memory_context_package,
-        format_context=bot_commands._format_context_diagnostics,
+        refresh_vectors=refresh_vectors_after_removed_memories,
+        describe_context=describe_memory_context_package,
+        format_context=_format_context_diagnostics,
     )
 
 
@@ -224,7 +226,6 @@ def execute_chat_message(
             telegram_message_id=message_id,
             author_user_id=author_user_id or user_id,
             chat_source=source[:32],
-            trim_for_telegram=False,
         )
         ctx = build_memory_context_package(
             routed_text, session, chat_id=key, user_id=user_id, include_private=include_private
@@ -312,7 +313,6 @@ def execute_chat_message(
             telegram_message_id=message_id,
             author_user_id=author_user_id or user_id,
             chat_source=source[:32],
-            trim_for_telegram=False,
         )
         result = ChatEngineResult(
             status=stored.status,
@@ -446,5 +446,4 @@ def _finalize_chat_result(
 
 
 def _seed_prompt_history(chat_id: str, history: list[dict[str, str]]) -> None:
-    max_messages = getattr(bot_commands, "_CONVERSATION_HISTORY_MAX_MESSAGES", 200)
-    bot_commands.CONVERSATION_CACHE[chat_id] = list(history[-max_messages:])
+    CONVERSATION_CACHE[chat_id] = list(history[-HISTORY_MAX_MESSAGES:])

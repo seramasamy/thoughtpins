@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from thoughtpins.bot.natural_command_patterns import (
+from thoughtpins.chat.natural_command_patterns import (
     _extract_backup_list_args,
     _extract_confidential_on_args,
     _extract_context_query,
@@ -34,7 +34,7 @@ from thoughtpins.bot.natural_command_patterns import (
     _normalize,
     _starts_like_journal_note,
 )
-from thoughtpins.bot.natural_command_types import NaturalCommandRoute
+from thoughtpins.chat.natural_command_types import NaturalCommandRoute
 
 
 def route_natural_command(text: str) -> NaturalCommandRoute | None:

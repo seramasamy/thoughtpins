@@ -8,14 +8,14 @@ from typing import Any, Callable
 
 from sqlalchemy.orm import Session
 
-from thoughtpins.bot.journal_commands import _demote_entry_to_chat, _refresh_vectors_after_removed_memories
-from thoughtpins.bot.natural_commands import NaturalCommandRoute, confirmation_prompt
-from thoughtpins.bot.profile_commands import _format_capture_summary
-from thoughtpins.bot.style_memory import CHAT_STATUS, record_user_style_sample
+from thoughtpins.chat.capture_summary import format_capture_summary
+from thoughtpins.chat.entry_demotion import demote_entry_to_chat
 from thoughtpins.chat.importance_actions import execute_importance_action
 from thoughtpins.chat.memory_answer import answer_with_llm
 from thoughtpins.chat.models import ChatEngineResult, ChatRouteDecision
+from thoughtpins.chat.natural_commands import NaturalCommandRoute, confirmation_prompt
 from thoughtpins.chat.store import create_pending_action
+from thoughtpins.chat.style_memory import CHAT_STATUS, record_user_style_sample
 from thoughtpins.config import config
 from thoughtpins.crypto import maybe_decrypt_text
 from thoughtpins.db import ChatConversation, RawEntry
@@ -30,6 +30,7 @@ from thoughtpins.library import ingest_document_text, ingest_url, list_documents
 from thoughtpins.memory.context_package import _format_context_diagnostics, describe_memory_context_package
 from thoughtpins.memory.search import search
 from thoughtpins.memory.store import MemoryStore
+from thoughtpins.memory.vector_refresh import refresh_vectors_after_removed_memories
 from thoughtpins.utils import hash_text, local_today
 from thoughtpins.voice_archive import delete_voice_assets_for_entry
 
@@ -62,7 +63,7 @@ class _NaturalActionExecution:
 def _default_hooks() -> ActionHooks:
     return ActionHooks(
         process_message=process_message,
-        refresh_vectors=_refresh_vectors_after_removed_memories,
+        refresh_vectors=refresh_vectors_after_removed_memories,
         describe_context=describe_memory_context_package,
         format_context=_format_context_diagnostics,
     )
@@ -369,7 +370,7 @@ def _save_journal_turn(
     elif result["type"] == "private_stored":
         reply = "Saved privately."
     else:
-        reply = f"Saved. Captured: {_format_capture_summary(stats)}."
+        reply = f"Saved. Captured: {format_capture_summary(stats)}."
     importance = result.get("user_importance")
     if importance is not None:
         reply += f" Importance: {importance_label(importance)}."
@@ -462,7 +463,7 @@ def _mark_latest_as_chat(
         return "I could not find a recent journal save to mark as chat.", {}
     entry_id = entry.id
     preview = maybe_decrypt_text(entry.raw_text)[:180]
-    memory_ids, restored = _demote_entry_to_chat(session, entry, user_id=user_id)
+    memory_ids, restored = demote_entry_to_chat(session, entry, user_id=user_id)
     session.commit()
     hooks.refresh_vectors(memory_ids, restored, entry_id)
     restored_note = f" Restored {len(restored)} older memory record(s)." if restored else ""

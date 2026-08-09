@@ -10,7 +10,7 @@ def no_processing(telegram_bot, monkeypatch):
     # reaches for thoughtpins.bot.handlers, which imports the telegram package.
     import thoughtpins.bot.processing as processing
     from thoughtpins.bot import handlers
-    from thoughtpins.bot.natural_commands import clear_pending
+    from thoughtpins.chat.natural_commands import clear_pending
 
     async def no_disclosure(update, text: str) -> bool:
         return False

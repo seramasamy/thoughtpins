@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 from loguru import logger
-from sqlalchemy.orm import Session
 
-from thoughtpins.bot.personality import get_active_profile
 from thoughtpins.bot.profile_commands import _process_and_reply
-from thoughtpins.bot.style_memory import CHAT_SOURCE, CHAT_STATUS, build_user_style_prompt
 from thoughtpins.bot.utils import chat_id as _chat_id
 from thoughtpins.bot.utils import telegram_user_id as _telegram_user_id
+from thoughtpins.chat.entry_demotion import demote_entry_to_chat
 from thoughtpins.chat.memory_answer import answer_with_llm as _answer_with_llm
+from thoughtpins.chat.personality import get_active_profile
+from thoughtpins.chat.style_memory import CHAT_SOURCE, CHAT_STATUS, build_user_style_prompt
 from thoughtpins.config import config
 from thoughtpins.crypto import maybe_decrypt_text
 from thoughtpins.data_lifecycle import export_user_data
@@ -23,6 +23,7 @@ from thoughtpins.memory.context_package import (
     describe_memory_context_package,
 )
 from thoughtpins.memory.context_scope import scope_user as _scope_user
+from thoughtpins.memory.vector_refresh import refresh_vectors_after_removed_memories
 from thoughtpins.obsidian.exporter import ObsidianExporter
 from thoughtpins.reports.generator import ReportGenerator
 from thoughtpins.reports.graph_visuals import export_all_graphs
@@ -332,60 +333,11 @@ async def cmd_save_last_chat(update, context) -> None:
     await _process_and_reply(update, text)
 
 
-def _demote_entry_to_chat(
-    session: Session,
-    entry: RawEntry,
-    *,
-    user_id: str,
-) -> tuple[list[str], list[Memory]]:
-    memory_ids = [memory.id for memory in entry.memories]
-    superseded_ids = [memory.supersedes_memory_id for memory in entry.memories if memory.supersedes_memory_id]
-    restored_memories: list[Memory] = []
-    if superseded_ids:
-        restored_memories = (
-            _scope_user(session.query(Memory), Memory, user_id).filter(Memory.id.in_(superseded_ids)).all()
-        )
-        for memory in restored_memories:
-            memory.valid_to = None
-
-    for attr in (
-        "entity_mentions",
-        "relationships_ref",
-        "action_items",
-        "expenses",
-        "document_sources",
-        "events",
-        "memories",
-    ):
-        for item in list(getattr(entry, attr, []) or []):
-            session.delete(item)
-
-    entry.source = CHAT_SOURCE
-    entry.processed_status = CHAT_STATUS
-    entry.sensitivity = "personal"
-    entry.processing_error = None
-    return memory_ids, restored_memories
+_demote_entry_to_chat = demote_entry_to_chat
 
 
-def _refresh_vectors_after_removed_memories(
-    memory_ids: list[str],
-    restored_memories: list[Memory],
-    entry_id: str,
-) -> None:
-    try:
-        from thoughtpins.memory.vector_store import get_vector_store
-
-        vector_store = get_vector_store()
-        if memory_ids:
-            vector_store.delete(memory_ids)
-        if restored_memories:
-            vector_store.add(
-                [memory.id for memory in restored_memories],
-                [memory.text for memory in restored_memories],
-                [{"user_id": memory.user_id} for memory in restored_memories],
-            )
-    except Exception as exc:
-        logger.warning("Vector refresh failed after entry rewrite {}: {}", entry_id, exc)
+# Rebindable seam: bot/commands.py swaps this in for the /mark_chat test path.
+_refresh_vectors_after_removed_memories = refresh_vectors_after_removed_memories
 
 
 async def cmd_graph(update, context) -> None:

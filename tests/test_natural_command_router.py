@@ -30,7 +30,7 @@ class FakeContext:
 
 
 def test_natural_router_maps_safe_read_only_requests():
-    from thoughtpins.bot.natural_commands import route_natural_command
+    from thoughtpins.chat.natural_commands import route_natural_command
 
     cases = {
         "what did I write recently?": ("recent", []),
@@ -54,7 +54,7 @@ def test_natural_router_maps_safe_read_only_requests():
 
 
 def test_natural_router_requires_confirmation_for_risky_requests():
-    from thoughtpins.bot.natural_commands import route_natural_command
+    from thoughtpins.chat.natural_commands import route_natural_command
 
     cases = {
         "undo last save": "undo",
@@ -90,7 +90,7 @@ def test_natural_router_requires_confirmation_for_risky_requests():
     ],
 )
 def test_natural_router_does_not_hijack_generated_journal_notes(text: str):
-    from thoughtpins.bot.natural_commands import route_natural_command
+    from thoughtpins.chat.natural_commands import route_natural_command
     from thoughtpins.ingestion.classify import classify_message
 
     assert route_natural_command(text) is None
@@ -100,7 +100,7 @@ def test_natural_router_does_not_hijack_generated_journal_notes(text: str):
 async def test_handler_routes_safe_chat_surface_command_through_durable_engine(telegram_bot, monkeypatch):
     import thoughtpins.bot.processing as processing
     from thoughtpins.bot import handlers
-    from thoughtpins.bot.natural_commands import clear_pending
+    from thoughtpins.chat.natural_commands import clear_pending
 
     clear_pending("chat-natural")
     monkeypatch.setattr(handlers, "handle_disclosure_code", _no_disclosure)
@@ -124,7 +124,7 @@ async def test_handler_routes_safe_chat_surface_command_through_durable_engine(t
 async def test_handler_keeps_legacy_ops_on_command_dispatch(telegram_bot, monkeypatch):
     import thoughtpins.bot.processing as processing
     from thoughtpins.bot import handlers
-    from thoughtpins.bot.natural_commands import clear_pending
+    from thoughtpins.chat.natural_commands import clear_pending
 
     clear_pending("chat-natural")
     monkeypatch.setattr(handlers, "handle_disclosure_code", _no_disclosure)
@@ -148,7 +148,7 @@ async def test_handler_keeps_legacy_ops_on_command_dispatch(telegram_bot, monkey
 async def test_handler_routes_undo_confirmation_flow_to_durable_engine(telegram_bot, monkeypatch):
     import thoughtpins.bot.processing as processing
     from thoughtpins.bot import handlers
-    from thoughtpins.bot.natural_commands import clear_pending
+    from thoughtpins.chat.natural_commands import clear_pending
 
     clear_pending("chat-natural")
     monkeypatch.setattr(handlers, "handle_disclosure_code", _no_disclosure)
@@ -178,7 +178,7 @@ async def test_handler_routes_undo_confirmation_flow_to_durable_engine(telegram_
 async def test_handler_saves_generated_journal_examples(telegram_bot, monkeypatch):
     import thoughtpins.bot.processing as processing
     from thoughtpins.bot import handlers
-    from thoughtpins.bot.natural_commands import clear_pending
+    from thoughtpins.chat.natural_commands import clear_pending
 
     clear_pending("chat-natural")
     monkeypatch.setattr(handlers, "handle_disclosure_code", _no_disclosure)

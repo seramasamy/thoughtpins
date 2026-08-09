@@ -27,7 +27,7 @@ def test_telegram_test_mode_claims_first_user(monkeypatch):
 
 
 def test_founder_personality_is_local_only(monkeypatch):
-    from thoughtpins.bot.personality import get_visible_personalities
+    from thoughtpins.chat.personality import get_visible_personalities
     from thoughtpins.config import config
 
     _set_config(monkeypatch, config, "ENABLE_FOUNDER_MODE", False)
@@ -513,7 +513,7 @@ async def test_handle_conversation_sends_memory_vault_and_history_to_llm(
         {"role": "assistant", "content": "I remember that pressure around launch."},
     ]
     llm = CapturingLlm()
-    monkeypatch.setattr(commands, "get_llm_client", lambda: llm)
+    monkeypatch.setattr("thoughtpins.chat.reply.get_llm_client", lambda: llm)
 
     session = get_session()
     try:
@@ -709,7 +709,7 @@ async def test_handle_conversation_empty_llm_uses_memory_fallback(isolated_db, m
 
 async def test_handle_conversation_persists_chat_and_style_profile(isolated_db, monkeypatch, tmp_path):
     from thoughtpins.bot import commands
-    from thoughtpins.bot.style_memory import CHAT_SOURCE, CHAT_STATUS
+    from thoughtpins.chat.style_memory import CHAT_SOURCE, CHAT_STATUS
     from thoughtpins.db import RawEntry, User
     from thoughtpins.store import get_session
     from thoughtpins.users import get_or_create_user_for_telegram
@@ -747,7 +747,7 @@ async def test_handle_conversation_persists_chat_and_style_profile(isolated_db, 
     monkeypatch.setattr(commands, "_cache_path", lambda: tmp_path / "conversation_cache.json")
     commands.CONVERSATION_CACHE.clear()
     llm = CapturingLlm()
-    monkeypatch.setattr(commands, "get_llm_client", lambda: llm)
+    monkeypatch.setattr("thoughtpins.chat.reply.get_llm_client", lambda: llm)
 
     session = get_session()
     try:
@@ -780,7 +780,7 @@ async def test_handle_conversation_persists_chat_and_style_profile(isolated_db, 
 async def test_handler_defaults_ambiguous_thought_to_chat(telegram_bot, monkeypatch):
     import thoughtpins.bot.processing as processing
     from thoughtpins.bot import handlers
-    from thoughtpins.bot.natural_commands import clear_pending
+    from thoughtpins.chat.natural_commands import clear_pending
 
     class FakeMessage:
         def __init__(self):
@@ -873,7 +873,7 @@ async def test_handler_persists_durable_telegram_chat_thread(telegram_bot, isola
     monkeypatch.setattr(processing, "is_processing", lambda chat_id: False)
     monkeypatch.setattr(commands, "_cache_path", lambda: tmp_path / "conversation_cache.json")
     commands.CONVERSATION_CACHE.clear()
-    monkeypatch.setattr(commands, "get_llm_client", lambda: FakeLlm())
+    monkeypatch.setattr("thoughtpins.chat.reply.get_llm_client", lambda: FakeLlm())
 
     update = FakeUpdate()
     await handlers.handle_natural_language(update, type("FakeContext", (), {"args": []})())
@@ -940,7 +940,7 @@ async def test_handler_confirms_durable_telegram_undo(telegram_bot, isolated_db,
 
     monkeypatch.setattr(handlers, "handle_disclosure_code", no_disclosure)
     monkeypatch.setattr(processing, "is_processing", lambda chat_id: False)
-    monkeypatch.setattr("thoughtpins.chat.engine._refresh_vectors_after_removed_memories", lambda *args, **kwargs: None)
+    monkeypatch.setattr("thoughtpins.chat.engine.refresh_vectors_after_removed_memories", lambda *args, **kwargs: None)
 
     session = get_session()
     try:
@@ -990,7 +990,7 @@ async def test_cmd_mark_chat_demotes_latest_journal_save(telegram_bot, isolated_
     from datetime import datetime
 
     from thoughtpins.bot import commands
-    from thoughtpins.bot.style_memory import CHAT_SOURCE, CHAT_STATUS
+    from thoughtpins.chat.style_memory import CHAT_SOURCE, CHAT_STATUS
     from thoughtpins.db import Memory, RawEntry
     from thoughtpins.store import get_session
     from thoughtpins.users import get_or_create_user_for_telegram

@@ -17,7 +17,7 @@
   },
   "legacy_line_budgets": {
     "src/thoughtpins/api.py": 364,
-    "src/thoughtpins/bot/commands.py": 542
+    "src/thoughtpins/bot/commands.py": 455
   },
   "dependency_rules": [
     {
@@ -39,53 +39,8 @@
       "exceptions": [
         {
           "path": "src/thoughtpins/chat/actions.py",
-          "import": "thoughtpins.bot.journal_commands",
-          "reason": "TD-002. The chat engine that serves web and native still reaches into the Telegram adapter and founder operations. Personality, writing style, and natural-command routing are product concepts filed under a transport by history, not by design. Declared so the existing violations are visible and no new one can be added silently; the register carries the exit."
-        },
-        {
-          "path": "src/thoughtpins/chat/actions.py",
-          "import": "thoughtpins.bot.natural_commands",
-          "reason": "TD-002. The chat engine that serves web and native still reaches into the Telegram adapter and founder operations. Personality, writing style, and natural-command routing are product concepts filed under a transport by history, not by design. Declared so the existing violations are visible and no new one can be added silently; the register carries the exit."
-        },
-        {
-          "path": "src/thoughtpins/chat/actions.py",
-          "import": "thoughtpins.bot.profile_commands",
-          "reason": "TD-002. The chat engine that serves web and native still reaches into the Telegram adapter and founder operations. Personality, writing style, and natural-command routing are product concepts filed under a transport by history, not by design. Declared so the existing violations are visible and no new one can be added silently; the register carries the exit."
-        },
-        {
-          "path": "src/thoughtpins/chat/actions.py",
-          "import": "thoughtpins.bot.style_memory",
-          "reason": "TD-002. The chat engine that serves web and native still reaches into the Telegram adapter and founder operations. Personality, writing style, and natural-command routing are product concepts filed under a transport by history, not by design. Declared so the existing violations are visible and no new one can be added silently; the register carries the exit."
-        },
-        {
-          "path": "src/thoughtpins/chat/actions.py",
           "import": "thoughtpins.founder.ops",
-          "reason": "TD-002. The chat engine that serves web and native still reaches into the Telegram adapter and founder operations. Personality, writing style, and natural-command routing are product concepts filed under a transport by history, not by design. Declared so the existing violations are visible and no new one can be added silently; the register carries the exit."
-        },
-        {
-          "path": "src/thoughtpins/chat/engine.py",
-          "import": "thoughtpins.bot",
-          "reason": "TD-002. The chat engine that serves web and native still reaches into the Telegram adapter and founder operations. Personality, writing style, and natural-command routing are product concepts filed under a transport by history, not by design. Declared so the existing violations are visible and no new one can be added silently; the register carries the exit."
-        },
-        {
-          "path": "src/thoughtpins/chat/memory_answer.py",
-          "import": "thoughtpins.bot.personality",
-          "reason": "TD-002. The chat engine that serves web and native still reaches into the Telegram adapter and founder operations. Personality, writing style, and natural-command routing are product concepts filed under a transport by history, not by design. Declared so the existing violations are visible and no new one can be added silently; the register carries the exit."
-        },
-        {
-          "path": "src/thoughtpins/chat/memory_answer.py",
-          "import": "thoughtpins.bot.style_memory",
-          "reason": "TD-002. The chat engine that serves web and native still reaches into the Telegram adapter and founder operations. Personality, writing style, and natural-command routing are product concepts filed under a transport by history, not by design. Declared so the existing violations are visible and no new one can be added silently; the register carries the exit."
-        },
-        {
-          "path": "src/thoughtpins/chat/models.py",
-          "import": "thoughtpins.bot.natural_commands",
-          "reason": "TD-002. The chat engine that serves web and native still reaches into the Telegram adapter and founder operations. Personality, writing style, and natural-command routing are product concepts filed under a transport by history, not by design. Declared so the existing violations are visible and no new one can be added silently; the register carries the exit."
-        },
-        {
-          "path": "src/thoughtpins/chat/store.py",
-          "import": "thoughtpins.bot.natural_commands",
-          "reason": "TD-002. The chat engine that serves web and native still reaches into the Telegram adapter and founder operations. Personality, writing style, and natural-command routing are product concepts filed under a transport by history, not by design. Declared so the existing violations are visible and no new one can be added silently; the register carries the exit."
+          "reason": "TD-002. Chat no longer imports the Telegram adapter; this is the one remaining cross-layer reach, and it is a different concern from the one that item names. chat/actions.py calls founder.ops.build_doctor_report to answer a diagnostics request. Declared so it stays visible and no new violation can be added silently."
         }
       ]
     }

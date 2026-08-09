@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from thoughtpins.bot.natural_command_types import JOURNAL_PREFIX_BLOCKLIST
+from thoughtpins.chat.natural_command_types import JOURNAL_PREFIX_BLOCKLIST
 
 
 def _normalize(text: str) -> str:

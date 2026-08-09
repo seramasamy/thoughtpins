@@ -4,16 +4,17 @@ from __future__ import annotations
 
 from loguru import logger
 
-from thoughtpins.bot.personality import (
+from thoughtpins.bot.utils import telegram_user_id as _telegram_user_id
+from thoughtpins.chat import conversation_state as _conversation_state
+from thoughtpins.chat.capture_summary import format_capture_summary
+from thoughtpins.chat.personality import (
     derive_personality_from_history,
     get_active_profile,
     is_founder_mode_available,
     load_personality,
     save_personality,
 )
-from thoughtpins.bot.style_memory import record_user_style_sample
-from thoughtpins.bot.utils import telegram_user_id as _telegram_user_id
-from thoughtpins.chat import conversation_state as _conversation_state
+from thoughtpins.chat.style_memory import record_user_style_sample
 from thoughtpins.config import config
 from thoughtpins.ingestion.pipeline import process_message
 from thoughtpins.store import get_session
@@ -36,7 +37,7 @@ async def cmd_personality(update, context) -> None:
             "",
             "Available personalities:",
         ]
-        from thoughtpins.bot.personality import get_visible_personalities
+        from thoughtpins.chat.personality import get_visible_personalities
 
         visible = get_visible_personalities(chat_id)
         for pid, p in visible.items():
@@ -58,7 +59,7 @@ async def cmd_personality(update, context) -> None:
 
     if sub == "set" and len(args) > 1:
         pid = args[1].lower()
-        from thoughtpins.bot.personality import get_visible_personalities
+        from thoughtpins.chat.personality import get_visible_personalities
 
         visible = get_visible_personalities(chat_id)
         if pid not in visible:
@@ -235,26 +236,7 @@ async def cmd_emojis(update, context) -> None:
 # -- Journal entry processor (with status updates) ----
 
 
-def _plural(count: int, singular: str, plural: str | None = None) -> str:
-    label = singular if count == 1 else (plural or f"{singular}s")
-    return f"{count} {label}"
-
-
-def _format_capture_summary(stats: dict) -> str:
-    fields = [
-        ("memories", "memory", "memories"),
-        ("entities", "entity", "entities"),
-        ("events", "event", None),
-        ("relationships", "link", None),
-        ("action_items", "action item", None),
-        ("expenses", "expense", None),
-    ]
-    parts = [
-        _plural(int(stats.get(key, 0) or 0), singular, plural)
-        for key, singular, plural in fields
-        if int(stats.get(key, 0) or 0) > 0
-    ]
-    return ", ".join(parts) if parts else "raw entry"
+_format_capture_summary = format_capture_summary
 
 
 def _format_journal_stored_reply(result: dict, elapsed: float) -> str:

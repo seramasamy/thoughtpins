@@ -5,9 +5,9 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 
-from thoughtpins.bot.natural_command_parser import route_natural_command
-from thoughtpins.bot.natural_command_patterns import _normalize
-from thoughtpins.bot.natural_command_types import NaturalCommandRoute
+from thoughtpins.chat.natural_command_parser import route_natural_command
+from thoughtpins.chat.natural_command_patterns import _normalize
+from thoughtpins.chat.natural_command_types import NaturalCommandRoute
 
 __all__ = [
     "NaturalCommandRoute",

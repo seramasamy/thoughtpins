@@ -5,7 +5,6 @@ from fastapi.testclient import TestClient
 
 def test_chat_endpoint_replies_and_persists_style_memory(isolated_db, monkeypatch):
     from thoughtpins.api import app
-    from thoughtpins.bot import commands
     from thoughtpins.db import RawEntry, User
     from thoughtpins.store import get_session
 
@@ -16,7 +15,7 @@ def test_chat_endpoint_replies_and_persists_style_memory(isolated_db, monkeypatc
             assert "Casual markers the user uses" not in messages[0]["content"]
             return "Keep in mind this is a demo excerpt, bro - not a complete tally."
 
-    monkeypatch.setattr(commands, "get_llm_client", lambda: FakeLlm())
+    monkeypatch.setattr("thoughtpins.chat.reply.get_llm_client", lambda: FakeLlm())
 
     client = TestClient(app)
     response = client.post(
@@ -45,7 +44,6 @@ def test_chat_endpoint_replies_and_persists_style_memory(isolated_db, monkeypatc
 
 def test_chat_endpoint_only_mirrors_direct_address_when_explicitly_selected(isolated_db, monkeypatch):
     from thoughtpins.api import app
-    from thoughtpins.bot import commands
 
     class FakeLlm:
         def chat(self, messages: list[dict], temperature: float, max_tokens: int) -> str:
@@ -53,7 +51,7 @@ def test_chat_endpoint_only_mirrors_direct_address_when_explicitly_selected(isol
             assert "Casual markers the user uses: yo, bro" in messages[0]["content"]
             return "Got it, bro."
 
-    monkeypatch.setattr(commands, "get_llm_client", lambda: FakeLlm())
+    monkeypatch.setattr("thoughtpins.chat.reply.get_llm_client", lambda: FakeLlm())
     client = TestClient(app)
     updated = client.patch("/v1/preferences", json={"response_style": "mirror"})
     assert updated.status_code == 200
@@ -133,13 +131,12 @@ def test_chat_endpoint_returns_confirmation_for_risky_natural_command(isolated_d
 
 def test_chat_endpoint_persists_conversation_and_messages(isolated_db, monkeypatch):
     from thoughtpins.api import app
-    from thoughtpins.bot import commands
 
     class FakeLlm:
         def chat(self, messages: list[dict], temperature: float, max_tokens: int) -> str:
             return "I can work with that memory."
 
-    monkeypatch.setattr(commands, "get_llm_client", lambda: FakeLlm())
+    monkeypatch.setattr("thoughtpins.chat.reply.get_llm_client", lambda: FakeLlm())
 
     client = TestClient(app)
     response = client.post(
@@ -265,15 +262,13 @@ def test_chat_endpoint_runs_source_and_context_diagnostics_naturally(isolated_db
     from datetime import datetime, timezone
 
     from thoughtpins.api import app
-    from thoughtpins.bot import commands
     from thoughtpins.db import DocumentChunk, DocumentSource, RawEntry
     from thoughtpins.store import get_session
     from thoughtpins.users import get_or_create_default_user
     from thoughtpins.utils import hash_text
 
     monkeypatch.setattr(
-        commands,
-        "describe_memory_context_package",
+        "thoughtpins.chat.engine.describe_memory_context_package",
         lambda *args, **kwargs: {
             "configured_mode": "smart",
             "effective_mode": "smart",
@@ -382,7 +377,7 @@ def test_chat_endpoint_natural_mark_that_as_chat_demotes_latest_save(isolated_db
     from datetime import datetime, timezone
 
     from thoughtpins.api import app
-    from thoughtpins.bot.style_memory import CHAT_STATUS
+    from thoughtpins.chat.style_memory import CHAT_STATUS
     from thoughtpins.db import RawEntry
     from thoughtpins.store import get_session
     from thoughtpins.users import get_or_create_default_user

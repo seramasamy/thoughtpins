@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from loguru import logger
 
-from thoughtpins.bot.personality import enforce_response_style, get_response_profile
-from thoughtpins.bot.style_memory import build_user_style_prompt
 from thoughtpins.chat.fallbacks import fallback_conversation_reply as _fallback_conversation_reply
+from thoughtpins.chat.personality import enforce_response_style, get_response_profile
+from thoughtpins.chat.style_memory import build_user_style_prompt
 from thoughtpins.config import config
 from thoughtpins.db import ActionItem, Memory, RawEntry
 from thoughtpins.llm.client import get_llm_client

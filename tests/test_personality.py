@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from thoughtpins.bot.personality import enforce_response_style
+from thoughtpins.chat.personality import enforce_response_style
 
 
 def test_friendly_voice_removes_unrequested_direct_address_slang():

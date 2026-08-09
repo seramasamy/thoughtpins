@@ -122,7 +122,7 @@ def test_entry_importance_api_validates_and_enforces_tenant_scope(isolated_db):
     ],
 )
 def test_natural_importance_commands_are_explicit(text: str, action: str, args: list[str]):
-    from thoughtpins.bot.natural_commands import route_natural_command
+    from thoughtpins.chat.natural_commands import route_natural_command
 
     route = route_natural_command(text)
     assert route is not None
@@ -139,7 +139,7 @@ def test_natural_importance_commands_are_explicit(text: str, action: str, args: 
     ],
 )
 def test_natural_importance_parser_does_not_hijack_prose(text: str):
-    from thoughtpins.bot.natural_commands import route_natural_command
+    from thoughtpins.chat.natural_commands import route_natural_command
 
     assert route_natural_command(text) is None
 

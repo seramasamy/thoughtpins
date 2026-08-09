@@ -1,6 +1,6 @@
 # Technical Debt Register
 
-Last reviewed: 2026-08-08
+Last reviewed: 2026-08-09
 
 This register is intentionally candid. A production codebase with no technical
 debt is not a credible claim. Thought Pins uses tests and architecture fitness
@@ -85,6 +85,15 @@ reply "for any product surface".
 - Deliberately not attempted in the same pass that found it: the move relocates
   module-level cache state shared by several call sites, and shipping that
   half-done would put every chat reply at risk to close a documentation item.
+
+**Closed 2026-08-09**, except for one import that belongs to a different
+concern. Nine of the ten exceptions are gone; `chat` no longer imports `bot` at
+all. What remains is `chat/actions.py` → `founder.ops.build_doctor_report`,
+which is a diagnostics call, not a transport dependency, and is declared with
+its own reason rather than left under this item's number.
+
+The feared part turned out not to exist, and the real defect was worse than
+recorded. See the 2026-08-09 pass below.
 
 ### TD-004: Stylesheet Concentration
 
@@ -230,6 +239,72 @@ can emit is now asserted valid against hostile input — script tags, unbalanced
 markup, six-thousand-character replies, emoji runs, and bare ampersands — plus a
 case proving a trim never cuts an HTML entity in half. The adapter went from 31
 tests to 54.
+
+## Closed In The 2026-08-09 Dependency Pass
+
+TD-002 said the chat engine reached into the Telegram adapter. Measured against
+the code rather than the description, it mostly reached *through* it. Of the six
+names `chat/engine.py` imported from `bot/commands.py`, five were re-exports of
+things already living in core: `answer_with_llm` in `chat/memory_answer.py`,
+`build_memory_context_package`, `describe_memory_context_package` and
+`_format_context_diagnostics` in `memory/context_package.py`, and
+`CONVERSATION_CACHE`, which was already only an alias of the dict in
+`chat/conversation_state.py`. Only reply generation genuinely lived in the
+transport.
+
+**The one real crossing hid a user-visible bug.** `bot/commands.py` did not
+re-export `answer_with_llm` unchanged — it wrapped it to pass
+`max_response_chars=3900`, Telegram's message boundary. The engine called that
+wrapper, so **every report answer served to the web and native clients was
+truncated at Telegram's limit**, on a route whose whole purpose is long output.
+This is exactly the risk the item names — "transport-specific behavior can
+diverge from the shared chat engine" — and it had already happened. Nothing
+detected it, because a dependency-direction gate can see that core imports a
+transport but not that the transport quietly changed the answer on the way
+through. The engine now calls the core function, whose transport limit defaults
+to none.
+
+The seam for the genuine move was already in the signature.
+`generate_conversation_reply` took `trim_for_telegram: bool`, and both web call
+sites passed `False` — the function had been surface-agnostic in everything but
+its address. It now lives in `chat/reply.py` taking an injectable `trim` and
+`persist`; `bot/commands.py` keeps a wrapper that supplies Telegram's trim and
+cache path, so the adapter and its tests keep the signature they had.
+
+Corrections to the exit as written:
+
+- **The dangerous part did not exist.** The item deferred this work because it
+  "relocates module-level cache state shared by several call sites." The only
+  such state, `CONVERSATION_CACHE`, never moved — it was already in
+  `chat/conversation_state.py`. The other module-level cache, `_PENDING` in the
+  natural-command router, moved as one object with its module and is still one
+  object; re-exporting rather than copying is what keeps that true.
+- **The prescribed re-export shims were not needed.** The exit said to leave
+  re-exports in `bot/` "for the adapter." Checked rather than assumed: nothing
+  outside `src/` and `tests/` imported those paths, and the founder Telegram
+  adapter talks to the API over HTTP. Shims would have been dead code the gate
+  cannot see. The importers were repointed instead.
+- **Three more functions had no transport in them at all.**
+  `_refresh_vectors_after_removed_memories`, `_demote_entry_to_chat`, and
+  `_format_capture_summary` were filed under `bot/` by history; they are now
+  `memory/vector_refresh.py`, `chat/entry_demotion.py`, and
+  `chat/capture_summary.py`. The private names survive as aliases where a test
+  rebinds them as a seam.
+
+Four tests were encoding the defect rather than catching it. They exercised the
+**web** chat endpoint while stubbing `thoughtpins.bot.commands.get_llm_client`,
+and they passed only because the web path was routed through the Telegram
+module. They now stub `chat/reply.py`, where the call actually happens — a seam
+that would have failed loudly the moment the layering was wrong.
+
+Exceptions are down from ten to one, and `bot/commands.py`'s line budget is
+tightened from 542 to its new size rather than left slack.
+
+Still open, deliberately not bundled: `generate_conversation_reply` takes
+`telegram_message_id`, and the web path passes a web message id to it. That is
+the same "filed under a transport" defect in a parameter name, but renaming it
+reaches into `remember_user_chat_message` and its callers, and mixing it into a
+layering change would have made both harder to review.
 
 ## Closed Or Controlled Items
 

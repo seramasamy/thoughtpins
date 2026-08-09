@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from thoughtpins.bot.natural_commands import NaturalCommandRoute
+from thoughtpins.chat.natural_commands import NaturalCommandRoute
 
 
 @dataclass(frozen=True)

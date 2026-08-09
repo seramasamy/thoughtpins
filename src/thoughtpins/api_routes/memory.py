@@ -21,7 +21,7 @@ from thoughtpins.api_memory_cards import (
     memory_card,
     memory_card_detail,
 )
-from thoughtpins.bot.personality import PREDEFINED, get_active_profile, load_personality
+from thoughtpins.chat.personality import PREDEFINED, get_active_profile, load_personality
 from thoughtpins.config import config
 from thoughtpins.db import Entity, Event
 from thoughtpins.memory.audit import audit_memory_system

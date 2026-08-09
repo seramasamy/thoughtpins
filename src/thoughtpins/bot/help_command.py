@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from thoughtpins.bot.disclosure import is_disclosure_mode
-from thoughtpins.bot.personality import get_active_profile
 from thoughtpins.bot.profile_commands import _emojis_enabled
+from thoughtpins.chat.personality import get_active_profile
 
 
 async def cmd_help(update, context) -> None:

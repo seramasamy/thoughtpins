@@ -71,7 +71,7 @@ def build_jobs_report(session: Session, *, user_id: str, limit: int = 8) -> str:
 
 def build_founder_status(session: Session, *, user_id: str, chat_id: str, uptime_seconds: int | None = None) -> str:
     from thoughtpins.bot.disclosure import is_disclosure_mode
-    from thoughtpins.bot.personality import get_active_profile
+    from thoughtpins.chat.personality import get_active_profile
 
     store = MemoryStore(session, user_id=user_id)
     stats = store.get_stats()
