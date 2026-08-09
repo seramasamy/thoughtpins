@@ -107,7 +107,11 @@ def main() -> int:
                 str(_pytest_basetemp()),
             ],
             env=_test_check_env(),
-            timeout=480,
+            # The suite was measured at 429s, 482s, 559s and 580s on 2026-08-09,
+            # against a budget of 480s. Three of four runs would have failed on
+            # the clock rather than on a test, and a gate that fails for reasons
+            # unrelated to the code is one people learn to rerun until it passes.
+            timeout=1200,
         )
     ok &= step("OpenAPI contract", [py, "scripts/export_openapi.py", "--check"], timeout=60)
     ok &= step("forbidden reference and secret scan", [py, "scripts/forbidden_scan.py"], timeout=30)
@@ -378,6 +382,14 @@ def _production_check_env() -> dict[str, str]:
             "TELEGRAM_TEST_MODE": "false",
             "ENABLE_FOUNDER_MODE": "false",
             "ENABLE_TELEGRAM_BOT": "false",
+            # A machine set up per founder/README.md keeps the voice archive on
+            # for local testing, and its path is not a durable mount, so the
+            # shared-deployment rule fires and this gate fails for a reason that
+            # describes the laptop rather than production. Production ships it
+            # off (.env.production.example), and the durability rule itself is
+            # asserted directly by tests/test_voice_archive_durability.py, so
+            # pin the shipped shape instead of letting a local .env decide.
+            "VOICE_ARCHIVE_ENABLED": "false",
         }
     )
     return env
@@ -399,7 +411,13 @@ def _test_check_env() -> dict[str, str]:
             "PROCESS_ENTRIES_ASYNC": "false",
             "RUN_STARTUP_RECOVERY": "false",
             "ARTICLE_FETCH_PROVIDERS": "local",
-            "LIBRARY_EXTRACT_GRAPH": "false",
+            # LIBRARY_EXTRACT_GRAPH is deliberately NOT set here. It was pinned
+            # false when the shipped default was also false; the default later
+            # became true, with a test asserting it, and this override was left
+            # behind. Forcing it made that test unpassable under the release
+            # gate while it passed under a plain pytest run — the harness was
+            # overriding a product default rather than neutralising a local one,
+            # which is not what this environment is for.
             "TMP": str(test_tmp),
             "TEMP": str(test_tmp),
         }
