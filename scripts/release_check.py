@@ -249,6 +249,15 @@ def _quality_checks(step, skip, py: str, *, strict: bool) -> bool:
             ],
             timeout=180,
         )
+        # The production lock is 78 of 205 resolved packages, so the audit above
+        # cannot see the optional extras that self-hosting instructions tell
+        # people to install. pypdf shipped a known advisory in the telegram
+        # extra while that audit reported nothing.
+        ok &= step(
+            "optional extra dependency audit",
+            [py, "scripts/check_optional_extra_dependencies.py"],
+            timeout=180,
+        )
     else:
         ok &= skip(
             "Python dependency audit", "pip-audit is not installed in the active Python environment", strict=strict
