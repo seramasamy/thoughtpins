@@ -19,7 +19,11 @@ from thoughtpins.crypto import maybe_decrypt_text
 from thoughtpins.db import ActionItem, Entity, Expense, Memory, RawEntry
 from thoughtpins.memory.context_scope import scope_user as _scope_user
 from thoughtpins.memory.evidence_plan import build_response_evidence_plan
-from thoughtpins.memory.full_context import build_full_context, build_navigational_map
+from thoughtpins.memory.full_context import (
+    build_full_context,
+    build_full_context_within,
+    build_navigational_map,
+)
 from thoughtpins.memory.query_terms import context_tokens as _context_tokens
 from thoughtpins.memory.search import search
 from thoughtpins.memory.search_types import SearchResult
@@ -426,7 +430,16 @@ def build_smart_memory_context_package(
     """Build a query-aware context package with full-context fallback for small libraries."""
     max_chars = max_chars or config.MEMORY_CONTEXT_MAX_CHARS
     nav_map = build_navigational_map(session, include_private=include_private, user_id=user_id)
-    full_context = build_full_context(session, include_private=include_private, user_id=user_id)
+    # Only the inline branch below reads this, and the sliced branch rebuilds
+    # from the search results instead. Building the whole journal to discover it
+    # is too large to send meant every message paid for a scan of the entire
+    # corpus and then threw the result away.
+    full_context = build_full_context_within(
+        session,
+        include_private=include_private,
+        user_id=user_id,
+        max_chars=max(0, config.MEMORY_CONTEXT_FULL_INLINE_MAX_CHARS),
+    )
     sections = _smart_context_header(
         nav_map,
         chat_id=chat_id,
@@ -444,7 +457,7 @@ def build_smart_memory_context_package(
         "QUERY-CONDITIONED RESPONSE EVIDENCE PLAN",
         build_response_evidence_plan(query, search_results).render(),
     )
-    if len(full_context) <= max(0, config.MEMORY_CONTEXT_FULL_INLINE_MAX_CHARS):
+    if full_context is not None:
         _append_context_section(sections, "FULL STRUCTURED JOURNAL DATABASE", full_context)
     else:
         _append_sliced_context(

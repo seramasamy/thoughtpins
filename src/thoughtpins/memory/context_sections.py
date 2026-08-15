@@ -6,6 +6,7 @@ from collections import Counter
 from datetime import date
 
 from sqlalchemy import func
+from sqlalchemy.orm import selectinload
 
 from thoughtpins.chat.message_memory import is_chat_memory_entry
 from thoughtpins.crypto import maybe_decrypt_text
@@ -24,20 +25,54 @@ from thoughtpins.memory.context_scope import scope_user
 from thoughtpins.memory.entity_stats import entity_reference_counts
 
 
+def _full_section_builders():
+    """Resolved at call time so section order stays declarative, not import-ordered."""
+
+    return (
+        _full_entity_lines,
+        _full_document_lines,
+        _full_event_lines,
+        _full_memory_lines,
+        _full_relationship_lines,
+        _full_action_lines,
+        _full_expense_lines,
+        _full_raw_entry_lines,
+    )
+
+
 def build_full_context_lines(session, *, include_private: bool, user_id: str | None) -> list[str]:
     """Render every exhaustive context section in a stable order."""
 
-    sections = (
-        _full_entity_lines(session, include_private, user_id),
-        _full_document_lines(session, include_private, user_id),
-        _full_event_lines(session, include_private, user_id),
-        _full_memory_lines(session, include_private, user_id),
-        _full_relationship_lines(session, include_private, user_id),
-        _full_action_lines(session, include_private, user_id),
-        _full_expense_lines(session, include_private, user_id),
-        _full_raw_entry_lines(session, include_private, user_id),
-    )
-    return [line for section in sections for line in section]
+    return [
+        line for build_section in _full_section_builders() for line in build_section(session, include_private, user_id)
+    ]
+
+
+def build_full_context_lines_within(
+    session,
+    *,
+    include_private: bool,
+    user_id: str | None,
+    max_chars: int,
+) -> list[str] | None:
+    """Render the exhaustive sections, or give up as soon as they exceed max_chars.
+
+    The smart package discards this context entirely when it does not fit, so
+    building an entire journal in order to measure it is work nobody reads. This
+    stops at the first line that pushes the joined length past the limit, which
+    also stops the queries the remaining sections would have run. The accounting
+    matches `"\\n".join(lines)`: every line after the first costs its separator.
+    """
+
+    lines: list[str] = []
+    used = 0
+    for build_section in _full_section_builders():
+        for line in build_section(session, include_private, user_id):
+            used += len(line) + (1 if lines else 0)
+            if used > max_chars:
+                return None
+            lines.append(line)
+    return lines
 
 
 def build_navigation_context_lines(session, *, include_private: bool, user_id: str | None) -> list[str]:
@@ -140,16 +175,34 @@ def _event_participant_labels(session, event_id: str, user_id: str | None) -> li
         .filter(EventParticipant.event_id == event_id)
         .all()
     )
+    if not participants:
+        return []
+
+    # One scoped lookup for the whole event instead of one per participant. The
+    # scoping stays: resolving these through the relationship would return an
+    # entity belonging to another tenant, where this drops it exactly as the
+    # per-participant query did.
+    entity_ids = {participant.entity_id for participant in participants if participant.entity_id}
+    entities = {
+        entity.id: entity
+        for entity in scope_user(session.query(Entity), Entity, user_id).filter(Entity.id.in_(entity_ids)).all()
+    }
+
     labels: list[str] = []
     for participant in participants:
-        entity = scope_user(session.query(Entity), Entity, user_id).filter(Entity.id == participant.entity_id).first()
+        entity = entities.get(participant.entity_id)
         if entity:
             labels.append(f"{entity.canonical_name} ({participant.role})")
     return labels
 
 
 def _full_event_lines(session, include_private: bool, user_id: str | None) -> list[str]:
-    events = _event_query(session, include_private, user_id).order_by(Event.local_date).all()
+    events = (
+        _event_query(session, include_private, user_id)
+        .options(selectinload(Event.place_entity))
+        .order_by(Event.local_date)
+        .all()
+    )
     body: list[str] = []
     for event in events:
         place_name = event.place_entity.canonical_name if event.place_entity else "unknown location"
@@ -175,7 +228,20 @@ def _memory_query(session, include_private: bool, user_id: str | None):
 
 
 def _full_memory_lines(session, include_private: bool, user_id: str | None) -> list[str]:
-    memories = _memory_query(session, include_private, user_id).order_by(Memory.local_date).all()
+    # Every rendered line reads subject_entity, object_entity and raw_entry. Left
+    # lazy, that is one SELECT per memory: a 400-memory journal spent 400 queries
+    # here on every message that assembled context. Loading them up front makes
+    # the section a fixed handful of queries regardless of journal size.
+    memories = (
+        _memory_query(session, include_private, user_id)
+        .options(
+            selectinload(Memory.subject_entity),
+            selectinload(Memory.object_entity),
+            selectinload(Memory.raw_entry),
+        )
+        .order_by(Memory.local_date)
+        .all()
+    )
     body: list[str] = []
     for memory in memories:
         parts = [f"[{memory.local_date}] [{memory.memory_type}]"]

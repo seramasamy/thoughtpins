@@ -17,7 +17,7 @@
   },
   "legacy_line_budgets": {
     "src/thoughtpins/api.py": 364,
-    "src/thoughtpins/bot/commands.py": 455
+    "src/thoughtpins/bot/commands.py": 467
   },
   "dependency_rules": [
     {

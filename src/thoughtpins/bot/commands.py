@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from types import SimpleNamespace
 
 from loguru import logger
@@ -419,25 +420,36 @@ async def handle_conversation(update, text: str) -> None:
     chat_id = str(update.message.chat_id)
     await update.message.chat.send_action("typing")
 
-    try:
+    from_user = getattr(update.message, "from_user", None)
+    telegram_message_id = str(getattr(update.message, "message_id", "") or "")
+    author_user_id = str(getattr(from_user, "id", "") or "")
+
+    def _generate() -> str:
+        """Run the blocking half of a turn: database, retrieval, and the model call.
+
+        This is synchronous work measured in seconds, and it used to run on the
+        event loop, so the bot could not answer anyone else — or send a typing
+        action — until the model replied. The session is opened here rather than
+        passed in, so it is created and closed on the thread that uses it.
+        """
+        from thoughtpins.bot.disclosure import is_disclosure_mode
+
         session = get_session()
         try:
-            from thoughtpins.bot.disclosure import is_disclosure_mode
-
-            user_id = _telegram_user_id(update, session)
-            include_private = is_disclosure_mode(chat_id)
-            from_user = getattr(update.message, "from_user", None)
-            response = generate_conversation_reply(
+            return generate_conversation_reply(
                 text=text,
                 chat_id=chat_id,
-                user_id=user_id,
+                user_id=_telegram_user_id(update, session),
                 session=session,
-                include_private=include_private,
-                telegram_message_id=str(getattr(update.message, "message_id", "") or ""),
-                author_user_id=str(getattr(from_user, "id", "") or ""),
+                include_private=is_disclosure_mode(chat_id),
+                telegram_message_id=telegram_message_id,
+                author_user_id=author_user_id,
             )
         finally:
             session.close()
+
+    try:
+        response = await asyncio.to_thread(_generate)
         await update.message.reply_text(response)
 
     except Exception as e:
