@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import base64
 import importlib.util
+import json
 import os
 import secrets
 import shutil
@@ -375,6 +376,19 @@ def _production_check_env() -> dict[str, str]:
             "CELERY_RESULT_BACKEND": "redis://127.0.0.1:6379/2",
             "LLM_PROVIDER": "openai_compatible",
             "LLM_API_KEY": _fake_secret("llm"),
+            # Production refuses an unpriced runtime, because the spend cap is
+            # computed from the price map. Name the runtimes and price them here
+            # so this gate tests the production shape rather than whichever model
+            # the developer happens to have configured locally.
+            "LLM_MODEL": "release-check-chat",
+            "LLM_FALLBACK_MODEL": "release-check-chat",
+            "LLM_EXTRACTION_MODEL": "release-check-extract",
+            "LLM_PRICING_JSON": json.dumps(
+                {
+                    "release-check-chat": {"input_per_1m": 3.0, "output_per_1m": 15.0},
+                    "release-check-extract": {"input_per_1m": 0.3, "output_per_1m": 1.2},
+                }
+            ),
             "EMBEDDING_PROVIDER": "openai",
             "OPENAI_API_KEY": _fake_secret("openai"),
             "OPENAI_EMBEDDING_MODEL": "text-embedding-3-small",

@@ -495,6 +495,59 @@ deterministic order, and the current per-event query has none — under
 PostgreSQL that makes the joined participant text order-unstable today, which is
 worth fixing on its own terms rather than as a side effect of a speed change.
 
+## Closed In The 2026-08-16 Provider And Metering Pass
+
+Moving to an open-model provider needed no client work: the LLM client is a
+stock OpenAI SDK against a configurable `base_url`, so Fireworks and Together
+are four environment values each. `.env.example` now documents both, with the
+distinction that actually matters between them recorded next to the setting:
+Fireworks keeps zero retention on by default for open models, Together makes it
+opt-in, so a forgotten setting fails safe on one and retains on the other.
+
+**The spend cap did not hold, and the reason was the price map.**
+`usage._price_for` falls back to `LLM_DEFAULT_*` for an unmapped runtime — a
+comment described this as safe because it is not zero. It is not safe. The cap
+in `ensure_budget_available` is computed from the same number, so real spend
+runs past the limit by whatever multiple the guess was wrong by. A frontier
+open model at $3/$15 metered against the $0.30/$1.20 default overshoots roughly
+tenfold: the budget reports headroom while the balance drains. Production now
+refuses to start when any configured runtime is unpriced, and the runtime logs
+once per unpriced model rather than silently absorbing it.
+
+Two things surfaced while checking the work, both about the checks rather than
+the code:
+
+- **The first version of the tests passed with the guard unwired.** Every
+  assertion called `_validate_llm_pricing_production` directly, so deleting the
+  single line that invoked it from `validate_startup` changed nothing. There is
+  now a test that drives real startup validation and asserts the problem
+  surfaces there.
+- **Validating the configured name was not enough.** The client requests
+  `normalize_llm_model_name(...)`, which strips a `[variant]` suffix, so pricing
+  the display label would validate cleanly and still meter at the default. The
+  check now normalises first.
+
+Residual, and stated rather than papered over: usage is recorded against the
+name the provider echoes in its response, falling back to the requested one. An
+echoed name cannot be known before a call, so startup validation closes the
+deterministic half only; where the echo differs, the runtime warning is the
+remaining signal. Closing that properly means reconciling echoed names against
+the price map after the fact, which is a metering feature rather than a guard.
+
+**This time the size gate was obeyed rather than raised.** The new check pushed
+`config.py` to 723 lines against the default limit of 700. Yesterday a ratchet
+was raised for `bot/commands.py` because the extractable block was pinned by
+seven test seams; here nothing pinned anything, and the file already contained
+`graph_backend_problems` as a module-level rule taking the values it judges.
+Validation policy now lives in `config_validation.py` alongside it, and
+`config.py` is 682 lines. The rule these two decisions share is that the budget
+is a prompt to look for an extraction, not a number to satisfy: when one exists
+it gets taken, and when it does not the growth gets recorded with its reason.
+
+A side benefit worth noting, since it argues for the shape: the extracted
+function takes the runtimes it judges as an argument, so its tests pass models
+directly instead of monkeypatching three class attributes on `Config`.
+
 ## Closed Or Controlled Items
 
 - Native UI is feature-sliced: SwiftUI separates the review shell, screens,

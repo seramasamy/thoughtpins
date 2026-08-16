@@ -30,6 +30,7 @@ _PriceMap = dict[str, dict[str, float]]
 
 _price_map: _PriceMap | None = None
 _price_map_lock = Lock()
+_unpriced_warned: set[str] = set()
 
 _redis_client: Any | None = None
 _redis_retry_after = 0.0
@@ -86,14 +87,25 @@ def _load_price_map() -> _PriceMap:
     return parsed
 
 
+def is_priced(model: str) -> bool:
+    """Whether this model has a configured price rather than the fallback."""
+    return (model or "") in _load_price_map()
+
+
 def _price_for(model: str) -> tuple[float, float]:
     """Return (input, output) USD per 1M tokens for a model.
 
     An unmapped model falls back to the configured default price rather than
-    zero, so a newly introduced runtime is never silently billed as free.
+    zero, so a newly introduced runtime is never silently billed as free. The
+    fallback is still a guess, and guessing low is the dangerous direction: a
+    budget cap derived from it lets real spend run past the limit by whatever
+    multiple the guess was wrong by. A frontier open model at $3/$15 metered
+    against the $0.30/$1.20 default overshoots a cap tenfold. So say so, once
+    per model, and let production validation refuse the configuration outright.
     """
     prices = _load_price_map().get(model or "")
     if prices is None:
+        _warn_unpriced_once(model)
         return (
             config.LLM_DEFAULT_INPUT_PRICE_PER_1M_USD,
             config.LLM_DEFAULT_OUTPUT_PRICE_PER_1M_USD,
@@ -101,6 +113,22 @@ def _price_for(model: str) -> tuple[float, float]:
     return (
         prices.get("input_per_1m", config.LLM_DEFAULT_INPUT_PRICE_PER_1M_USD),
         prices.get("output_per_1m", config.LLM_DEFAULT_OUTPUT_PRICE_PER_1M_USD),
+    )
+
+
+def _warn_unpriced_once(model: str) -> None:
+    if model in _unpriced_warned:
+        return
+    with _price_map_lock:
+        if model in _unpriced_warned:
+            return
+        _unpriced_warned.add(model)
+    logger.warning(
+        "No configured price for this runtime; metering it at the default "
+        "{}/{} USD per 1M. Set LLM_PRICING_JSON or the spend cap will not "
+        "match the provider bill.",
+        config.LLM_DEFAULT_INPUT_PRICE_PER_1M_USD,
+        config.LLM_DEFAULT_OUTPUT_PRICE_PER_1M_USD,
     )
 
 

@@ -10,6 +10,8 @@ from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 
+from thoughtpins.config_validation import graph_backend_problems, llm_pricing_problems
+
 load_dotenv()
 
 # Re-exported: tests and a few modules import these from thoughtpins.config.
@@ -25,16 +27,9 @@ from thoughtpins.config_env import (  # noqa: F401
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
-
-def graph_backend_problems(provider: str, shadow_enabled: bool) -> list[str]:
-    """Return privacy blockers for auxiliary graph backends."""
-
-    if provider == "internal_sql" and not shadow_enabled:
-        return []
-    return [
-        "External graph backends are evaluation-only until tenant-scoped account deletion is verified; "
-        "use GRAPH_PROVIDER=internal_sql and GRAPH_SHADOW_ENABLED=false in production."
-    ]
+# Re-exported: validation policy lives in config_validation, but callers and
+# tests have always reached it through this module.
+__all__ = ["Config", "config", "graph_backend_problems", "llm_pricing_problems"]
 
 
 def _llm_provider() -> str:
@@ -649,6 +644,7 @@ class Config:
         )
         problems.extend(message for failed, message in checks if failed)
         problems.extend(graph_backend_problems(cls.GRAPH_PROVIDER, cls.GRAPH_SHADOW_ENABLED))
+        problems.extend(llm_pricing_problems((cls.LLM_MODEL, cls.LLM_FALLBACK_MODEL, cls.LLM_EXTRACTION_MODEL)))
         return problems
 
     @classmethod
