@@ -98,7 +98,7 @@ run the whole thing on your own machine.
 > [!NOTE]
 > **Status: private beta.** thoughtpins.com is invite-only while the hosted service is
 > tested with a small group. The code here is complete enough to self-host and use, but it
-> has not been run at scale. See [What isn't done](#what-isnt-done) — that section is honest,
+> has not been run at scale. See [What's unproven](#whats-unproven) — that section is honest,
 > not decorative.
 
 ## Why you'd trust it with a journal
@@ -212,30 +212,33 @@ the owning module for each concern so new code doesn't accumulate in the adapter
 | [Production runbook](docs/operations/PRODUCTION_RUNBOOK.md) | Deploy, rollback, backup, restore |
 | [Design system](DESIGN_SYSTEM.md) | Type, colour, motion |
 
-## What isn't done
+## What's unproven
 
-Honest gaps, kept current:
+Claims the evidence does not yet support. A line leaves this list when a measurement
+replaces an assumption — not when the code changes.
 
-- **Not proven at scale.** The hosted service is in private beta with a handful of accounts.
-  Local containers have passed RLS, Celery dispatch, restore drills, and a 100-VU health load;
-  that is not the same as proving cloud networking, failover, or provider quotas.
-- **iOS native CI runs on tags only.** macOS minutes bill at 10x on a private
-  repository, and running it per-push exhausted the allowance and stopped every
-  other job. Source shape is still checked on Linux on every push. Publishing
-  makes Actions free, at which point this can be reconsidered.
-- **Voice retention needs a mounted volume.** The archive writes to a filesystem path, so
-  startup now refuses to enable retention on a shared deployment unless that path is durable
-  — taking someone's consent to keep a recording and then losing it on redeploy is worse
-  than not offering retention at all.
-- **The external graph backend is experimental.** `internal_sql` is the default and the only
-  supported source of truth. The deletion and recall contracts are now pinned by tests:
-  account deletion fails closed rather than report a removal a graph backend cannot confirm,
-  and a shadow backend is measured but never answered from. Graphiti itself stays behind the
-  flag — no driver has been exercised against a real graph server, so it still cannot promise
-  to delete what it would store.
-- **Mobile apps are unreleased.** The shells build; neither store has seen a submission.
+- **The retrieval advantage.** Against 46 held-out LongMemEval questions the system reaches
+  0.870 Recall@1 where BM25 reaches 0.848. On 46 questions that margin is **one question**,
+  which is noise, not a result. `Recall@10` is 1.000 across the set, so the right answer is
+  always retrieved and ranking is the entire problem. Multi-session recall — the category a
+  journal depends on most — is 0.70. The full 500-question set has not been run.
+- **Scale.** Private beta, a handful of accounts. Local containers have passed RLS, Celery
+  dispatch, restore drills, and a 100-VU health load. That proves the code, not cloud
+  networking, failover, or provider quotas under a real load.
+- **Prompt injection against a live model.** Retrieved text enters the prompt inside an
+  untrusted-evidence envelope and instruction-shaped content is labelled first, which is
+  [tested](tests/test_context_safety.py) against fixtures. It has never been red-teamed
+  against the configured production model, and ingested articles are attacker-controlled text.
+- **The external graph backend.** `internal_sql` is the default and the only supported source
+  of truth. Deletion and recall contracts are pinned by tests — account deletion fails closed
+  rather than report a removal a backend cannot confirm, and a shadow backend is measured but
+  never answered from. Those hold against fakes. No driver has been exercised against a real
+  graph server, so Graphiti stays behind its flag.
 
-Tracked in the [technical debt register](docs/architecture/TECHNICAL_DEBT_REGISTER.md).
+Two constraints that are decided rather than unproven: voice retention refuses to enable on a
+deployment whose archive path is not durable, and iOS native CI runs on tags because macOS
+minutes bill at 10x on a private repository. Both are
+[in the register](docs/architecture/TECHNICAL_DEBT_REGISTER.md) with the reasoning.
 
 ## Contributing
 
