@@ -24,21 +24,41 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / "site"
 RECORD = ROOT / "deploy" / "quality" / "site-cache-key.json"
-VERSIONED_SUFFIXES = {".css", ".js"}
 KEY_PATTERN = re.compile(r"\?v=([A-Za-z0-9._-]+)")
+REFERENCE_PATTERN = re.compile(r"(/assets/[A-Za-z0-9._/-]+?)\?v=")
+TEXT_SUFFIXES = {".css", ".js", ".json", ".webmanifest", ".svg"}
 
 
 def _versioned_assets() -> list[Path]:
-    return sorted(path for path in (SITE / "assets").rglob("*") if path.is_file() and path.suffix in VERSIONED_SUFFIXES)
+    """Every asset actually referenced with a ?v=, not a guess by file extension.
+
+    The first version of this hashed .css and .js only, and passed while the
+    product screenshots changed underneath it — the marketing images are
+    versioned too, so the site would have served the previous ones from cache.
+    Reading the references is what keeps the check honest as the site grows.
+    """
+    referenced: set[str] = set()
+    for source in SITE.rglob("*"):
+        if source.is_file() and source.suffix in {".html", ".css", ".js", ".webmanifest", ".json"}:
+            referenced.update(REFERENCE_PATTERN.findall(source.read_text(encoding="utf-8")))
+    paths = []
+    for ref in referenced:
+        candidate = SITE / ref.lstrip("/")
+        if candidate.is_file():
+            paths.append(candidate)
+    return sorted(paths)
 
 
 def _digest() -> str:
     sha = hashlib.sha256()
     for path in _versioned_assets():
         sha.update(path.relative_to(SITE).as_posix().encode("utf-8"))
-        # Strip the key itself so recording a new key does not change the digest
-        # it is being recorded against.
-        sha.update(KEY_PATTERN.sub("?v=", path.read_text(encoding="utf-8")).encode("utf-8"))
+        if path.suffix in TEXT_SUFFIXES:
+            # Strip the key itself so recording a new key does not change the
+            # digest it is being recorded against.
+            sha.update(KEY_PATTERN.sub("?v=", path.read_text(encoding="utf-8")).encode("utf-8"))
+        else:
+            sha.update(path.read_bytes())
     return sha.hexdigest()
 
 
