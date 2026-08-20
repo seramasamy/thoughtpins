@@ -136,6 +136,7 @@ def main() -> int:
     )
     if not args.skip_frontend:
         ok &= _frontend_check(step)
+    ok &= step("site cache key", [py, "scripts/check_site_cache_key.py"], timeout=30)
     ok &= step("web review harness", [py, "scripts/check_web_review_harness.py"], timeout=30)
     ok &= step("web responsive layout", [py, "scripts/check_web_responsive_layout.py"], timeout=30)
     ok &= step("web accessibility contract", [py, "scripts/check_web_accessibility_contract.py"], timeout=30)

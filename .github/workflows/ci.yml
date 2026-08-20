@@ -110,6 +110,7 @@ jobs:
           python scripts/check_web_accessibility_contract.py
           python scripts/check_web_responsive_layout.py
           python scripts/check_pwa_contract.py
+          python scripts/check_site_cache_key.py
           python scripts/check_web_review_harness.py
 
       - name: Release and store packets
