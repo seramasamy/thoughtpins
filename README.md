@@ -11,10 +11,10 @@
 <!-- The live Actions badge 404s while this repository is private, which renders
      as a broken image. Restore it on the day it is published:
      [![CI](https://github.com/seramasamy/thoughtpins/actions/workflows/ci.yml/badge.svg)](https://github.com/seramasamy/thoughtpins/actions/workflows/ci.yml) -->
-[![Gates](https://img.shields.io/badge/CI-26%20gates-587465)](.github/workflows/ci.yml)
+[![Gates](https://img.shields.io/badge/CI-34%20gates-587465)](.github/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-e8612b)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.13-3776ab)](.python-version)
-[![Tests](https://img.shields.io/badge/tests-788-587465)](tests/)
+[![Tests](https://img.shields.io/badge/tests-838-587465)](tests/)
 [![Code of Conduct](https://img.shields.io/badge/contributor-covenant-6b6459)](CODE_OF_CONDUCT.md)
 
 **A memory layer for real life.** Write naturally, bring in what you read,<br>
@@ -57,10 +57,26 @@ need us to read: a folder you open in Obsidian, or in any text editor, forever. 
 next to the others, but it's the one that makes the others credible — a promise you can walk
 away from is a promise you can check.
 
+**Why not Claude with an Obsidian vault?** Genuinely good, and if you live in a terminal it
+may be all you need. Two things it cannot do. It cannot capture at the moment that matters —
+the record is written walking out of the meeting, not at a desk an hour later, and a CLI is
+not reachable from a taxi. And Markdown with lexical search cannot answer *"who have I not
+spoken to since March."* That is not a text query. It is a scan over `last_seen_at` on a
+typed edge between two entities, which is a schema decision you make on day one or never.
+
+**Why not a memory layer like Mem0 or Zep?** Those are infrastructure — SDKs for giving
+*your* application a memory. Different layer of the stack, and if you are building an app you
+should probably use one. Thought Pins is the application: an account, a phone, a voice note,
+an export you can walk away with.
+
 Where an agent framework like Hermes or a general assistant wins: breadth of tools, doing
 things on your behalf, and not being a single-purpose product. Thought Pins does one thing.
 If you want an assistant that remembers you a bit, use theirs. If you want a searchable
 record of your own life that you own, that's this.
+
+The model is David Rockefeller's card file: roughly 200,000 index cards on 100,000 people,
+each noting when they last met and what mattered to them. He kept it by hand for fifty years
+because the value was never the writing — it was walking into a room already knowing.
 
 ## What it is
 
