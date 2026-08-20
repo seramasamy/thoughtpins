@@ -974,4 +974,18 @@ button:focus-visible {
   .lab-preview-tabs .preview-tab {
     min-height: 44px;
   }
+
+  /* The inspiration note is a sentence, not a row of links. The rule above is
+     written for the footer's link row, and it catches this one too: the line
+     holding it is forced to 44px against a 19.2px line-height, so the closing
+     line of the paragraph drops away from the one before it. A link inside
+     prose is read, not aimed at — same reason the classic sheet excludes
+     prose links by name. */
+  .lab-inspiration a {
+    display: inline;
+    align-items: initial;
+    min-height: 0;
+    padding-inline: 0;
+    margin-inline: 0;
+  }
 }

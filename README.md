@@ -219,9 +219,13 @@ replaces an assumption — not when the code changes.
 
 - **The retrieval advantage.** Against 46 held-out LongMemEval questions the system reaches
   0.870 Recall@1 where BM25 reaches 0.848. On 46 questions that margin is **one question**,
-  which is noise, not a result. `Recall@10` is 1.000 across the set, so the right answer is
-  always retrieved and ranking is the entire problem. Multi-session recall — the category a
-  journal depends on most — is 0.70. The full 500-question set has not been run.
+  which is noise, not a result. BM25 is a strong classical baseline rather than a strawman,
+  so being level with it is not embarrassing — but it is not the claim this project wants to
+  make either, and no comparison against a modern dense retriever or a commercial memory
+  layer has been run. `Recall@10` is 1.000 across the set: the right answer is always in the
+  candidate pool, so retrieval is solved and **ranking is the entire remaining problem** —
+  which is the good kind of gap to have. Multi-session recall, the category a journal depends
+  on most, is 0.70. The full 500-question set has not been run.
 - **Scale.** Private beta, a handful of accounts. Local containers have passed RLS, Celery
   dispatch, restore drills, and a 100-VU health load. That proves the code, not cloud
   networking, failover, or provider quotas under a real load.
