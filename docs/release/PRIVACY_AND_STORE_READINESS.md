@@ -1,4 +1,4 @@
-﻿# Thought Pins Privacy and Store Readiness
+# Thought Pins Privacy and Store Readiness
 
 This is the launch-readiness checklist for App Store and Play Store submission.
 It is not legal advice; it is the engineering checklist the product must satisfy

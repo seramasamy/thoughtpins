@@ -1,4 +1,4 @@
-﻿# Founder Telegram Runbook
+# Founder Telegram Runbook
 
 This mode is for personal/founder use. Telegram is the client; the same backend
 memory, ingestion, query, privacy, and export paths remain in use.

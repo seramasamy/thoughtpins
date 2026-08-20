@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import codecs
+import subprocess
 import sys
 from pathlib import Path, PurePosixPath
 
@@ -106,6 +108,7 @@ def main(root: Path = ROOT) -> int:
     check_public_export_alignment(findings)
     check_public_manifest_excludes_generated_state(root, findings)
     check_top_level_generated_state_is_ignored(root, findings)
+    check_no_byte_order_marks(root, findings)
 
     if findings:
         print("Workspace hygiene check failed:")
@@ -114,6 +117,30 @@ def main(root: Path = ROOT) -> int:
         return 1
     print("Workspace hygiene check passed.")
     return 0
+
+
+def check_no_byte_order_marks(root: Path, findings: list[str]) -> None:
+    """A UTF-8 BOM is invisible in an editor and breaks readers that are not looking for it.
+
+    Twenty-three tracked files carried one. The four store submission packets
+    could not be read by json.loads at all — anything reading them the ordinary
+    way got a JSONDecodeError on the first character — and a Markdown file whose
+    first line is a BOM followed by a heading does not render as a heading on
+    GitHub, which is how this was noticed.
+    """
+    completed = subprocess.run(["git", "ls-files"], cwd=root, capture_output=True, text=True, check=False)
+    if completed.returncode != 0:
+        return
+    offenders = []
+    for name in completed.stdout.split():
+        path = root / name
+        try:
+            if path.is_file() and path.read_bytes().startswith(codecs.BOM_UTF8):
+                offenders.append(name)
+        except OSError:
+            continue
+    for name in sorted(offenders):
+        findings.append(f"{name} starts with a UTF-8 byte order mark; write it without one")
 
 
 def check_ignore_alignment(root: Path, findings: list[str]) -> None:

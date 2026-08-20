@@ -1,4 +1,4 @@
-﻿# Thought Pins Production Plan
+# Thought Pins Production Plan
 
 This plan tracks the gap between the current backend and a production-grade
 multi-user product.

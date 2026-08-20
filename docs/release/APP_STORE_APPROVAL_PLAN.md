@@ -1,4 +1,4 @@
-﻿# Thought Pins App Store Approval Plan
+# Thought Pins App Store Approval Plan
 
 This plan keeps the web app useful now while avoiding the common App Store trap:
 submitting a thin web wrapper. The web app is the product contract and staging

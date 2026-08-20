@@ -1,4 +1,4 @@
-﻿# Thought Pins Technical Specification
+# Thought Pins Technical Specification
 
 ## Runtime Architecture
 

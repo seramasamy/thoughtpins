@@ -1,4 +1,4 @@
-﻿# Thought Pins App Review Risk Register
+# Thought Pins App Review Risk Register
 
 Last reviewed: 2026-07-13.
 

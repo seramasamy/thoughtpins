@@ -1,4 +1,4 @@
-﻿# Thought Pins Local Device Storage
+# Thought Pins Local Device Storage
 
 Thought Pins should be server-canonical for multi-device memory, but app-grade clients need a small encrypted local layer for resilience and review quality.
 

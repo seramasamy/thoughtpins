@@ -1,4 +1,4 @@
-﻿# Thought Pins Mobile API Contract
+# Thought Pins Mobile API Contract
 
 This is the first mobile contract for iOS, Android, and the web client. Keep it
 stable for native app work. Add new behavior under `/v1` without changing

@@ -1,4 +1,4 @@
-﻿# Thought Pins Review Notes
+# Thought Pins Review Notes
 
 Thought Pins is a private memory and journaling app. The review build should exercise the same public product surface that a normal user sees: account creation, login, chat, journal capture, article/document ingestion, memory cards, export, and account deletion.
 

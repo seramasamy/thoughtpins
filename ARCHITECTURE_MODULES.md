@@ -1,4 +1,4 @@
-﻿# Thought Pins Module Map
+# Thought Pins Module Map
 
 This codebase is organized as gears with stable boundaries. New work should
 extend the owning gear first and only touch the API or Telegram command surfaces

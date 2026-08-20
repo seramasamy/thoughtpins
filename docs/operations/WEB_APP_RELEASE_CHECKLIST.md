@@ -1,4 +1,4 @@
-﻿# Thought Pins Web App Release Checklist
+# Thought Pins Web App Release Checklist
 
 The production web app is the Vite/React client in `frontend/src`. The backend
 serves `/app` from `frontend/dist` only when a build marker exists, then falls

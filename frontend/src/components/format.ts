@@ -1,4 +1,4 @@
-﻿export function formatDate(value: string | null | undefined) {
+export function formatDate(value: string | null | undefined) {
   if (!value) return "none";
   const date = new Date(value);
   if (Number.isNaN(date.valueOf())) return value;

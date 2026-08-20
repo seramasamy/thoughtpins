@@ -1,4 +1,4 @@
-﻿package com.thoughtpins.app
+package com.thoughtpins.app
 
 import android.content.Context
 import android.content.SharedPreferences

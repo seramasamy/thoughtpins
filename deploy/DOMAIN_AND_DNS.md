@@ -1,4 +1,4 @@
-﻿# Thought Pins Domain and DNS
+# Thought Pins Domain and DNS
 
 `thoughtpins.com` is the production identity for the product. Keep public
 website, app, API, and staging names separate so mobile clients and store review

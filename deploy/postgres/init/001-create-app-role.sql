@@ -1,4 +1,4 @@
-﻿-- Local production-rehearsal role split.
+-- Local production-rehearsal role split.
 -- The bootstrap role owns schema and migrations; the app role is non-owner so
 -- PostgreSQL row-level security policies are meaningful during local testing.
 DO $$

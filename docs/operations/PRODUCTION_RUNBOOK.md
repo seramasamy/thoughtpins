@@ -1,4 +1,4 @@
-﻿# Thought Pins Production Runbook
+# Thought Pins Production Runbook
 
 ## Deploy
 

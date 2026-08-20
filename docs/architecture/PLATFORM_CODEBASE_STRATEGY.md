@@ -1,4 +1,4 @@
-﻿# Thought Pins Platform Codebase Strategy
+# Thought Pins Platform Codebase Strategy
 
 ## Naming
 

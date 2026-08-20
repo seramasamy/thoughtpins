@@ -1,4 +1,4 @@
-﻿# Thought Pins Apple Review Answers
+# Thought Pins Apple Review Answers
 
 Last reviewed: 2026-07-13 against Apple's App Review Guidelines, User Privacy and Data Use guidance, App Privacy guidance, privacy-manifest guidance, and account-deletion support guidance.
 

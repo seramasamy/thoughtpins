@@ -1,4 +1,4 @@
-﻿package com.thoughtpins.app
+package com.thoughtpins.app
 
 import android.Manifest
 import android.content.ContentResolver

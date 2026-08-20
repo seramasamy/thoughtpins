@@ -26,6 +26,17 @@ and find the right detail months later — without handing your journal to an ad
 
 ---
 
+> **The model is [David Rockefeller's card file](https://www.forbes.com/sites/carminegallo/2017/12/07/david-rockefellers-rolodex-offers-a-master-class-in-making-friends-and-influencing-people/):** roughly 200,000 index cards covering 100,000 people, each
+> noting when they last met and what mattered to them — a child's recital, a parent's illness.
+> He kept it by hand for fifty years, because the value was never the writing. It was walking
+> into a room already knowing.
+>
+> This is that, for people who don't have a staff. The schema follows from it: entities with
+> aliases and attributes, typed edges carrying `first_seen_at` / `last_seen_at` / `evidence_count`,
+> events with participants and roles, and claims that can be superseded without being erased.
+
+---
+
 ## Why not just use ChatGPT or Claude memory?
 
 Fair question, and the honest answer is that they solve a different problem. Their memory
@@ -73,10 +84,6 @@ Where an agent framework like Hermes or a general assistant wins: breadth of too
 things on your behalf, and not being a single-purpose product. Thought Pins does one thing.
 If you want an assistant that remembers you a bit, use theirs. If you want a searchable
 record of your own life that you own, that's this.
-
-The model is David Rockefeller's card file: roughly 200,000 index cards on 100,000 people,
-each noting when they last met and what mattered to them. He kept it by hand for fifty years
-because the value was never the writing — it was walking into a room already knowing.
 
 ## What it is
 
