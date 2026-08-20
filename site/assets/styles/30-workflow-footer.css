@@ -248,3 +248,22 @@
   color: var(--tp-on-dark-soft);
   font-size: 12px;
 }
+
+/* Attribution for the practice the product is modelled on. Sits between the
+   link columns and the copyright line, quiet enough not to compete with either. */
+.footer-inspiration {
+  width: min(var(--content), calc(100% - 48px));
+  margin: 0 auto;
+  padding: 18px 0 0;
+  max-width: 66ch;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--tp-on-dark-soft);
+  text-wrap: pretty;
+}
+
+.footer-inspiration a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

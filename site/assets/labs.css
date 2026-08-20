@@ -726,6 +726,21 @@ button:focus-visible {
   text-decoration: none;
 }
 
+.lab-inspiration {
+  max-width: 56ch;
+  margin: 2px auto 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--lab-faint);
+  text-wrap: pretty;
+}
+
+.lab-inspiration a {
+  color: var(--lab-soft);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .lab-footer a:hover {
   color: var(--lab-ink);
 }
