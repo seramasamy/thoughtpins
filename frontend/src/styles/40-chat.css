@@ -105,13 +105,31 @@
 
 .private-memory-toggle:has(input:checked) { border-color: var(--tp-brand); color: var(--tp-action); background: var(--tp-brand-soft); }
 .chat-stream {
-  display: block;
+  display: flex;
+  flex-direction: column;
   min-height: 0;
   padding: 26px clamp(16px, 3vw, 48px) 16px;
   overflow-y: auto;
   scroll-behavior: smooth;
   scrollbar-gutter: stable;
   scrollbar-color: var(--tp-line-strong) transparent;
+}
+
+/* A short conversation belongs against the composer, not stranded at the top of
+   an empty column with the reply and the input separated by half the window.
+   The auto margin on this spacer pushes the transcript down while it is short
+   and collapses to nothing once the content overflows, so the top of a long
+   transcript stays scrollable — which a plain justify-content: flex-end does
+   not guarantee. */
+.chat-stream::before {
+  content: "";
+  margin-top: auto;
+}
+
+/* The welcome state is its own composition and centres itself; the spacer would
+   otherwise push it against the composer. */
+.chat-stream:has(.chat-welcome)::before {
+  margin-top: 0;
 }
 
 .chat-stream:focus-visible {
