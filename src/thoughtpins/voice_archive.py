@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
+from loguru import logger
 from sqlalchemy.orm import Session
 
 from thoughtpins.config import config
@@ -315,8 +316,12 @@ def _atomic_write(path: Path, content: bytes) -> None:
         os.replace(temporary, path)
         try:
             path.chmod(0o600)
-        except OSError:
-            pass
+        except OSError as exc:
+            # The recording is already written and encrypted, so this is not
+            # worth failing the save over. It does mean the file kept the
+            # directory's default permissions rather than owner-only, which is a
+            # weaker posture than the consent the user gave assumes.
+            logger.warning("Could not restrict permissions on a stored recording ({})", type(exc).__name__)
     finally:
         temporary.unlink(missing_ok=True)
 

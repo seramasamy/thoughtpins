@@ -166,8 +166,13 @@ def get_active_profile(chat_id: str | None = None) -> PersonalityProfile:
                         tone=data.get("mirror_tone", "adaptive"),
                         voice_instruction=data["mirror_voice"],
                     )
-            except Exception:
-                pass
+            except (OSError, UnicodeError, ValueError, KeyError, TypeError) as exc:
+                # Falling back to the default profile is right — a damaged style
+                # file must not break chat. Doing it silently is not: the user
+                # chose mirror, gets friendly, and there is nothing to explain
+                # why. The exception type is safe to log; the file holds their
+                # writing style, so its contents are not.
+                logger.warning("Mirror personality unreadable ({}); using the default profile", type(exc).__name__)
     return profile
 
 

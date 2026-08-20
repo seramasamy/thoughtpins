@@ -149,8 +149,11 @@ def append_vault_import_chunk(
         os.fsync(handle.fileno())
     try:
         path.chmod(0o600)
-    except OSError:
-        pass
+    except OSError as exc:
+        # The write already succeeded, so failing here is not worth losing the
+        # transfer over. It does mean the staged vault file kept the directory's
+        # default permissions instead of owner-only, which is worth knowing.
+        logger.warning("Could not restrict permissions on a staged vault file ({})", type(exc).__name__)
     transfer.received_bytes += len(content)
     transfer.progress_current = transfer.received_bytes
     transfer.progress_total = transfer.expected_bytes

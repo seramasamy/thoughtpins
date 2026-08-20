@@ -548,6 +548,45 @@ A side benefit worth noting, since it argues for the shape: the extracted
 function takes the runtimes it judges as an argument, so its tests pass models
 directly instead of monkeypatching three class attributes on `Config`.
 
+## Closed In The 2026-08-19 CI Integrity Pass
+
+**CI had been red for three days, and the cause was the previous pass.** The
+last green run was 2026-08-15; the price-map guard landed 2026-08-16 and every
+run since failed on "Production configuration smoke". The guard was correct. The
+mistake was that the synthetic production environment it needed existed in two
+places — `release_check._production_check_env` and an inline `env:` block in the
+workflow — and only the first was updated. Every open Dependabot pull request
+inherited the failure, so eleven dependency updates sat unmergeable.
+
+The two lists had already drifted by **twenty-six keys** before this. That drift
+was survivable only because nothing had required a new key in a while; the guard
+did not create the problem, it collected on it. There is one definition now, in
+`scripts/production_smoke_env.py`, used by the local gate and by
+`scripts/check_production_config_shape.py`, which is what the workflow runs.
+
+**The same class of mistake was already sitting there a second time.**
+`check_optional_extra_dependencies.py` was added on 2026-08-16 after Dependabot
+found an advisory in the 127 packages outside the production lock — and it was
+wired into the local gate only. CI audited `requirements-prod.lock` and reported
+clean on a subset, which is the exact blind spot that check exists to close. It
+now runs in CI.
+
+Both were the same error: adding a check to the runner in front of you and not
+to the one that guards the repository. `tests/test_ci_runs_the_security_gates.py`
+pins the checks that must run in CI by name, with the reason each one matters.
+The list is deliberately not derived from what the local gate runs — deriving it
+would accept the current state as correct, which is the thing in question.
+
+Three silently swallowed exceptions were also closed. The clearest: a user who
+selects the mirror personality, derived from their own writing, falls back to
+the default profile when that file cannot be read — correct behaviour, but the
+handler was `except Exception: pass`, so there was no way to tell it had
+happened. It now narrows to the errors that reading a JSON file can raise and
+logs the exception type, never the contents. Two `chmod(0o600)` failures on a
+stored recording and a staged vault file were also silent; the write has already
+succeeded in both cases so failing would be worse, but a file that kept the
+directory's default permissions instead of owner-only is worth saying out loud.
+
 ## Closed Or Controlled Items
 
 - Native UI is feature-sliced: SwiftUI separates the review shell, screens,

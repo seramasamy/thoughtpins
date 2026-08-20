@@ -88,6 +88,11 @@ jobs:
           python scripts/check_rls_static.py
           python scripts/check_container_supply_chain.py
           python -m pip_audit -r requirements-prod.lock --require-hashes --disable-pip
+          # The line above audits the production export, which is 78 of 205
+          # resolved packages. The optional extras that self-hosting instructions
+          # tell people to install are the other 127, and a published advisory sat
+          # in one of them while this step reported clean.
+          python scripts/check_optional_extra_dependencies.py
           python scripts/generate_sbom.py
 
       - name: Product and store contracts
@@ -128,49 +133,9 @@ jobs:
         run: python scripts/check_migration_roundtrip.py
 
       - name: Production configuration smoke
-        env:
-          ENVIRONMENT: production
-          DATABASE_URL: postgresql+psycopg2://user:password@localhost:5432/thoughtpins
-          AUTO_CREATE_TABLES: "false"
-          REQUIRE_API_AUTH: "true"
-          API_KEY: ci-bootstrap-key-01234567890123456789
-          JWT_SECRET: ci-jwt-secret-01234567890123456789
-          REDIS_URL: redis://localhost:6379/0
-          RATE_LIMIT_ENABLED: "true"
-          PROCESS_ENTRIES_ASYNC: "true"
-          INGESTION_QUEUE_BACKEND: celery
-          CELERY_BROKER_URL: redis://localhost:6379/1
-          SENTRY_DSN: https://examplePublicKey@example.ingest.sentry.io/1
-          LLM_API_KEY: ci-llm-key
-          EMBEDDING_PROVIDER: openai
-          OPENAI_API_KEY: ci-embedding-key
-          DATA_ENCRYPTION_KEY: __teAEiSx6mPRbwBVXb9-SWJa7b-e0D5d1gtD89EZvI=
-          # VECTOR_MODE defaults to qdrant_local, which production rejects, so the
-          # smoke has to name a remote vector store the way a real deploy does.
-          # These are placeholders: the step validates configuration shape and
-          # never opens a connection.
-          VECTOR_MODE: qdrant_remote
-          QDRANT_URL: https://ci-placeholder.qdrant.example
-          QDRANT_API_KEY: ci-qdrant-key
-          VECTOR_HEALTHCHECK_LIVE: "true"
-          # Production transcribes through a hosted provider; the default is
-          # local, which needs the voice extra and the whisper model that CI
-          # deliberately does not install. Mirror the real deployment.
-          TRANSCRIPTION_PROVIDER: hosted
-          TRANSCRIPTION_API_KEY: ci-transcription-key
-          TRANSCRIPTION_BASE_URL: https://api.openai.com/v1
-          TRANSCRIPTION_MODEL: whisper-1
-          PRIVACY_POLICY_URL: https://thoughtpins.com/privacy
-          TERMS_URL: https://thoughtpins.com/terms
-          SUPPORT_URL: https://thoughtpins.com/support
-          ACCOUNT_DELETION_URL: https://thoughtpins.com/account/delete
-          AI_DISCLOSURE_URL: https://thoughtpins.com/ai-disclosure
-          WEB_APP_URL: https://app.thoughtpins.com/app
-          IOS_STORE_URL: https://apps.apple.com/app/thought-pins/id0000000000
-          ANDROID_STORE_URL: https://play.google.com/store/apps/details?id=com.thoughtpins.app
-          TELEGRAM_TEST_MODE: "false"
-          ENABLE_FOUNDER_MODE: "false"
-        run: python scripts/validate_production.py
+        # The environment lives in scripts/production_smoke_env.py so this
+        # workflow and the local release gate validate the same shape.
+        run: python scripts/check_production_config_shape.py
 
   postgres:
     runs-on: ubuntu-latest
