@@ -17,6 +17,17 @@
     --tp-line: #38312a;
     --tp-line-strong: #4a4239;
 
+    /* The rail is charcoal so it reads as a solid edge against warm paper: a
+       15:1 separation in light, and the strongest structural line in the app.
+       That token was never re-pointed here, so on dark the canvas came down to
+       meet it and the two surfaces measured 1.12:1 — the architecture flattened
+       into a single field with a hairline through it. Lifting the rail above
+       the canvas, rather than leaving it fixed beneath one, keeps the shape of
+       the app the same in both appearances. */
+    --tp-charcoal: #2e2822;
+    --tp-charcoal-soft: #3a332b;
+    --tp-charcoal-line: rgba(245, 241, 234, 0.16);
+
     /* Accent text that reads on dark (fills keep --tp-brand/--tp-action) */
     --tp-brand-deep: #ef9a72;
     --tp-sage: #86a794;
