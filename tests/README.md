@@ -49,3 +49,11 @@ with the check unwired.
 
 Browser tests live in `frontend/e2e/` and run under Playwright with a mocked
 API; see `npm run smoke:web`.
+
+`npm run smoke:ios` is the one to know about. It replays nine shipping iPhone
+and iPad sizes — including the 320pt iPad Slide Over window, which is narrower
+than any iPhone — through **WebKit**, the engine iOS actually runs, and checks
+horizontal bleed, 44px touch targets, composer reachability, dark mode and axe
+on each. Run it with touch emulation or not at all: the app's 44px minimums live
+behind `@media (pointer: coarse)`, so a default desktop context reports every
+one of them as a failure that no real device has.

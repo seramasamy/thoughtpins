@@ -11,6 +11,7 @@
     "preview": "vite preview --host 127.0.0.1",
     "smoke:web": "playwright test",
     "smoke:pwa": "playwright test --config playwright.pwa.config.ts",
+    "smoke:ios": "playwright test --config playwright.ios.config.ts",
     "smoke:web:headed": "playwright test --headed",
     "smoke:live": "node scripts/capture-live.mjs",
     "smoke:site": "node scripts/capture-site.mjs",

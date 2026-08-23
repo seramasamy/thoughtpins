@@ -238,13 +238,19 @@ jobs:
           npm audit --audit-level=high
           npm run build
 
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+      # WebKit is the engine every iPhone and iPad runs, including inside every
+      # third-party iOS browser. Chromium alone cannot see a WebKit layout
+      # difference or an iPad Slide Over window.
+      - name: Install Chromium and WebKit
+        run: npx playwright install --with-deps chromium webkit
 
       - name: Browser and offline tests
         run: |
           npm run smoke:web
           npm run smoke:pwa
+
+      - name: iOS device matrix
+        run: npm run smoke:ios
 
   android:
     runs-on: ubuntu-latest

@@ -44,3 +44,26 @@
     min-height: 20px;
   }
 }
+
+/* Every icon button, not just the composer's.
+   `.icon-button` is 40x40 and `.chat-composer .icon-button` overrides it to 44,
+   which quietly meant the two buttons in the chat header — settings and restore
+   conversation — stayed under the platform minimum on every iPhone and iPad
+   while the two directly below them cleared it. The sidebar's side toggle is
+   smaller still at 34px. Sizing the base class on touch covers the ones that
+   have no override and the ones nobody has written yet. */
+@media (pointer: coarse) {
+  .icon-button {
+    width: 44px;
+    min-height: 44px;
+  }
+
+  /* flex-shrink, not width, is what decides this one. The toggle sits in
+     .sidebar-brand-row beside the wordmark, so a plain width of 44px still
+     gets squeezed to 41 by the flex default. */
+  .sidebar-side-toggle.icon-button {
+    flex: none;
+    width: 44px;
+    min-height: 44px;
+  }
+}
