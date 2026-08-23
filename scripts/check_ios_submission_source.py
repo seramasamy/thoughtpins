@@ -19,7 +19,10 @@ def main() -> int:
     _check_project(failures)
     _check_info_plist(failures)
     _check_privacy_and_entitlements(failures)
+    _check_required_reason_apis(failures)
     _check_icon(failures)
+    _check_launch_appearance(failures)
+    _check_local_data_cleanup(failures)
     _check_review_shell(failures)
     _check_core_client(failures)
     _check_google_and_release_wiring(failures)
@@ -109,6 +112,110 @@ def _check_privacy_and_entitlements(failures: list[str]) -> None:
     entitlements = load_plist(TARGET / "Resources" / "ThoughtPins.entitlements", failures)
     if entitlements and entitlements.get("com.apple.developer.applesignin") != ["Default"]:
         failures.append("Sign in with Apple entitlement is missing or malformed")
+
+
+def _check_required_reason_apis(failures: list[str]) -> None:
+    """Tie the privacy manifest to what the Swift actually calls.
+
+    Apple rejects the upload with ITMS-91053 when a required-reason API is used
+    without a declaration, and the manifest shipped with an empty
+    NSPrivacyAccessedAPITypes while the chat screen stored its voice disclosure
+    in @AppStorage. Deriving the requirement from the source means adding the
+    next such call fails here rather than in App Store Connect.
+    """
+    swift = "\n".join(path.read_text(encoding="utf-8") for path in sorted((ROOT / "mobile" / "ios").rglob("*.swift")))
+    # Category -> (source markers that require it, accepted reason codes).
+    required_reason_apis = {
+        "NSPrivacyAccessedAPICategoryUserDefaults": (
+            ("@AppStorage", "UserDefaults"),
+            {"CA92.1", "1C8F.1", "C56D.1", "AC6B.1"},
+        ),
+        "NSPrivacyAccessedAPICategoryFileTimestamp": (
+            (".creationDateKey", ".contentModificationDateKey", "modificationDate", "attributesOfItem"),
+            {"DDA9.1", "C617.1", "3B52.1", "0A2A.1"},
+        ),
+        "NSPrivacyAccessedAPICategoryDiskSpace": (
+            ("volumeAvailableCapacity", "systemFreeSize", "volumeTotalCapacity"),
+            {"E174.1", "85F4.1", "7D9E.1", "B728.1"},
+        ),
+        "NSPrivacyAccessedAPICategorySystemBootTime": (
+            ("systemUptime", "mach_absolute_time"),
+            {"35F9.1", "8FFB.1", "3D61.1"},
+        ),
+    }
+
+    privacy = load_plist(TARGET / "Resources" / "PrivacyInfo.xcprivacy", failures)
+    declared = {
+        entry.get("NSPrivacyAccessedAPIType"): set(entry.get("NSPrivacyAccessedAPITypeReasons") or [])
+        for entry in (privacy.get("NSPrivacyAccessedAPITypes") or [])
+        if isinstance(entry, dict)
+    }
+
+    for category, (markers, valid_reasons) in required_reason_apis.items():
+        used = next((marker for marker in markers if marker in swift), None)
+        if used and category not in declared:
+            failures.append(f"privacy manifest must declare {category}; the app calls {used}")
+        elif used and not declared[category] & valid_reasons:
+            failures.append(f"{category} needs a documented reason code, one of {sorted(valid_reasons)}")
+        elif not used and category in declared:
+            failures.append(f"privacy manifest declares {category} but nothing in the app uses it")
+
+
+def _check_launch_appearance(failures: list[str]) -> None:
+    """The launch background needs both appearances.
+
+    A single light value paints the full-screen launch surface near-white for
+    the moment before a dark-mode app draws itself, which is a visible flash on
+    every cold start.
+    """
+    colorset = TARGET / "Resources" / "Assets.xcassets" / "LaunchBackground.colorset" / "Contents.json"
+    if not colorset.is_file():
+        failures.append("missing LaunchBackground colorset")
+        return
+    entries = json.loads(colorset.read_text(encoding="utf-8")).get("colors") or []
+    has_dark = any(
+        any(
+            appearance.get("appearance") == "luminosity" and appearance.get("value") == "dark"
+            for appearance in (entry.get("appearances") or [])
+        )
+        for entry in entries
+    )
+    if not has_dark:
+        failures.append("LaunchBackground must carry a dark appearance so cold launches do not flash light")
+
+
+def _check_local_data_cleanup(failures: list[str]) -> None:
+    """Sign-out and deletion must take the offline drafts with them.
+
+    FileDraftStore is keyed by device, not by account, and syncQueuedDrafts
+    uploads whatever it finds under the current session. A draft left behind by
+    a deleted account is journal text the next account on the device posts as
+    its own.
+    """
+    core = ROOT / "mobile" / "ios" / "ThoughtPinsCore"
+    draft_store = (core / "Sources" / "ThoughtPinsCore" / "DraftStore.swift").read_text(encoding="utf-8")
+    require(draft_store, "public func purge()", "FileDraftStore.purge", failures)
+
+    model = (
+        ROOT / "mobile" / "ios" / "ThoughtPinsApp" / "Sources" / "ThoughtPinsApp" / "ThoughtPinsAppModel.swift"
+    ).read_text(encoding="utf-8")
+    require(model, "drafts.purge()", "offline draft purge on session teardown", failures)
+    for caller in ("public func logout()", "public func deleteAccount()"):
+        if caller not in model:
+            failures.append(f"missing {caller} in the iOS app model")
+    if "clearLocalAccountState" not in model:
+        failures.append("sign-out and account deletion must share one local-state teardown")
+
+    tests = core / "Tests" / "ThoughtPinsCoreTests" / "DraftStoreTests.swift"
+    if not tests.is_file():
+        failures.append("missing DraftStoreTests.swift covering the draft purge")
+    else:
+        require(
+            tests.read_text(encoding="utf-8"),
+            "testPurgeLeavesNothingForTheNextAccountToSync",
+            "cross-account draft leak regression test",
+            failures,
+        )
 
 
 def _check_icon(failures: list[str]) -> None:
