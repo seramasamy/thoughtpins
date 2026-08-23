@@ -21,30 +21,13 @@ Existing material this builds on rather than duplicates:
 
 ## Blocking, in order
 
-### 1. One Cloudflare DNS record — **yours, ~2 minutes**
+### ~~1. DNS~~ — resolved 2026-08-23
 
-`api.thoughtpins.com` is the base URL compiled into both mobile builds and it
-had no DNS record, so the app had no backend. The API service itself is healthy
-and `api.thoughtpins.com` is now registered on it in Railway; it is inert until
-DNS points at it.
+`api.thoughtpins.com` is live: HTTP 200 on `/v1/client-config`, valid
+certificate, resolving unproxied to Railway. `check_live_endpoints.py` reports
+**8 of 8 reachable**. Both mobile builds now have a backend to dial.
 
-Cloudflare → `thoughtpins.com` → DNS → Records:
-
-| Type | Name | Value | Proxy |
-|---|---|---|---|
-| CNAME | `api` | `rl0w7xx5.up.railway.app` | **DNS only** (grey cloud) |
-| TXT | `_railway-verify.api` | `railway-verify=537ef6db8bf1139c2f0ace88a746d9dbd34aa290a6610f2b938d168243b6ec7f` | n/a |
-
-Must be unproxied — Railway issues the certificate and the grey cloud is what
-lets its ownership check complete.
-
-```bash
-python scripts/check_live_endpoints.py   # expect 7/7
-```
-
-Full detail in [`PROGRESS.md`](PROGRESS.md) under **F0**.
-
-### 2. Sign in with Apple is off in production
+### 1. Sign in with Apple is off in production
 
 Production reports `oauth_google_enabled: true` and `oauth_apple_enabled: false`.
 Guideline 4.8 requires Sign in with Apple wherever a third-party sign-in is
@@ -52,13 +35,13 @@ offered, so this is a rejection as it stands. It is not fixable yet —
 `APPLE_OAUTH_CLIENT_IDS` needs an Apple Developer account. Set it in Railway
 before submitting.
 
-### 3. No Mac — **blocks everything in Stage 3**
+### 2. No Mac — **blocks everything in Stage 3**
 
 No SwiftUI in this repository has ever been compiled. Roughly 400 lines,
 including everything changed in the last two passes. Expect first-build errors
 and treat them as normal.
 
-### 4. Screenshots — blocked on 3
+### 3. Screenshots — blocked on 2
 
 iPhone 6.9" (1290 × 2796) and iPad 13" (2064 × 2752), at least three each. iPad
 is required because the target is universal.

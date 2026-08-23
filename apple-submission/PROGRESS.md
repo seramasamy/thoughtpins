@@ -79,6 +79,40 @@ to stay consistent with what `site/privacy.html` and the AI disclosure tell
 users, because App Review compares the two. Generic *configuration* naming is
 good engineering; the *disclosure* has to remain accurate.
 
+### 30-day retention after account deletion: not adding it. Apple would not like it.
+
+Proposed: hold deleted accounts for 30 days "legally", so deletion can be
+reverted.
+
+Guideline 5.1.1(v) is unusually specific about this. Apple requires deletion to
+actually delete, and calls out the failure mode by name: the option must not
+"simply put the account in a temporarily deactivated state". A holding period is
+permitted in one circumstance — when law requires the records to be kept, and
+the app clearly explains that to the user.
+
+That exemption does not apply here. Nothing legally obliges retention of a
+personal journal, and UK/EU law pushes the other way: GDPR Article 17 requires
+erasure "without undue delay". Writing "retained for 30 days for legal reasons"
+into the privacy policy would be an inaccurate disclosure, and App Review reads
+the linked policy against the app's behaviour. An inaccurate policy is a worse
+position than either honest option.
+
+It also contradicts what this product already promises and implements.
+`delete_user_data` is a genuine cascade — it removes vectors first and **fails
+closed** if the vector store or graph backend cannot confirm, raising
+`DataDeletionUnavailable` rather than reporting a deletion that did not happen.
+The README's "Delete means delete" row links to that code. Softening it would
+turn a real differentiator into a claim that does not survive reading the source.
+
+The stated goal was undo, not compliance, and the app already handles that: the
+deletion dialog says "Export anything you want to keep first. This action cannot
+be undone", and a one-tap full export sits directly above the delete button.
+
+If you do want a grace period later, the compliant shape is a **user-controlled,
+clearly-labelled scheduled deletion** the user can cancel themselves — never a
+silent hold, and never described as a legal requirement. It adds review surface,
+so it does not belong in a first submission.
+
 ### Git history: not rewriting it.
 
 Requested: make version history reflect original authorship and sequential
@@ -111,12 +145,12 @@ the work. That is being done under "GitHub presentation" below.
 | 9 | Emulator run | **done** — Android booted, app installed, launched, screenshotted |
 | 10 | GitHub presentation + architecture graphics | **done** — `docs/architecture/RETRIEVAL_ARCHITECTURE.md` |
 | 11 | Technical debt verified fixed | in progress |
-| 12 | DNS | `api.` registered in Railway; **one Cloudflare CNAME left for you** — see F0. `app.` retired. |
+| 12 | DNS | **done** — `api.` live, cert issued, 8/8 endpoints reachable. `app.` retired. |
 
 ## What is left, and who does it
 
 **You:**
-1. Create the one `api` CNAME + TXT in Cloudflare (**F0**) — unblocks both apps
+1. ~~Create the one `api` CNAME + TXT in Cloudflare~~ — **done, verified 8/8**
 2. Verify `support@thoughtpins.com` and `invite@thoughtpins.com` receive mail
 3. Set `APPLE_OAUTH_CLIENT_IDS` in Railway once the developer account exists.
    Production currently reports `oauth_google_enabled: true` and
@@ -133,7 +167,7 @@ never been through a compiler.
 
 ## Findings log
 
-### F0 — `api.thoughtpins.com` had no DNS record (RESOLVED IN RAILWAY, ONE STEP LEFT FOR YOU)
+### F0 — `api.thoughtpins.com` had no DNS record (**RESOLVED — 8/8 endpoints live**)
 
 The hostname compiled into both mobile builds returned NXDOMAIN, so the app had
 no backend at all. The Android emulator showed exactly that on first launch:
@@ -156,7 +190,10 @@ answer there today. Only the `api.` alias was missing.
 `api.thoughtpins.com` is now registered as a custom domain on the `api` service
 (port 8420). It is inert until DNS points at it.
 
-**The one step left is yours, in Cloudflare → `thoughtpins.com` → DNS → Records:**
+**Done.** The records below were created in Cloudflare on 2026-08-23, the
+certificate issued, and `check_live_endpoints.py` now reports **8 of 8
+reachable**. `api.thoughtpins.com` returns HTTP 200 on `/v1/client-config` with
+a valid certificate, resolving unproxied straight to Railway (69.46.46.19).
 
 | Type | Name | Value | Proxy |
 |---|---|---|---|
