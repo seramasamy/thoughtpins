@@ -44,6 +44,20 @@ public actor FileDraftStore {
         try write(drafts)
     }
 
+    /// Deletes every stored draft.
+    ///
+    /// The store is keyed by device, not by account, and `syncQueuedDrafts`
+    /// uploads whatever it finds under whichever session is current. Sign-out
+    /// and account deletion both call this, because a draft left behind is raw
+    /// journal text that the next account to bootstrap on this device would
+    /// post as its own.
+    public func purge() throws {
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            return
+        }
+        try FileManager.default.removeItem(at: fileURL)
+    }
+
     private func write(_ drafts: [CaptureDraft]) throws {
         let data = try encoder.encode(drafts.filter { $0.status != .synced }.suffix(250))
         try FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)

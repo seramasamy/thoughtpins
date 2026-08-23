@@ -42,6 +42,19 @@ class DraftQueue(
         write(list().filter { it.id != draft.id } + draft.copy(updatedAtUtc = Instant.now().toString()))
     }
 
+    /**
+     * Drops every stored draft.
+     *
+     * The queue is keyed by device, not by account, and [ThoughtPinsApiClient.syncQueuedDrafts]
+     * posts whatever it finds under whichever session is current. Sign-out and
+     * account deletion both call this, because a draft left behind is raw
+     * journal text that the next account to sign in on this device uploads as
+     * its own.
+     */
+    suspend fun purge() {
+        storage.write(json.encodeToString(emptyList<CaptureDraft>()))
+    }
+
     private suspend fun write(drafts: List<CaptureDraft>) {
         storage.write(json.encodeToString(drafts.filter { it.status != DraftStatus.SYNCED }.takeLast(250)))
     }
