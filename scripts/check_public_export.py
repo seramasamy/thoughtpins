@@ -46,6 +46,13 @@ EXCLUDED_DIRS = {
     ".mypy_cache",
     ".pytest_cache",
     ".ruff_cache",
+    # Gradle and Kotlin build caches. Both are gitignored, so they were never
+    # export candidates, but the walker still descended into them — and Gradle
+    # holds .lock files open for the life of a build, so running the release
+    # gate beside a live Gradle daemon failed this check on a permission error
+    # against a file that is not part of the repository.
+    ".gradle",
+    ".kotlin",
     "__pycache__",
     "backups",
     "build",
@@ -55,6 +62,7 @@ EXCLUDED_DIRS = {
     "logs",
     "node_modules",
     "reports",
+    "test-results",
     "pytest-basetemp",
 }
 EXCLUDED_DIR_PREFIXES = ("pytest-cache-files-", "tmp-test-write-check", "write_probe_")
