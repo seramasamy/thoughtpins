@@ -38,6 +38,13 @@ fun ThoughtPinsApp(
             when {
                 state.me == null -> ThoughtPinsAuthScreen(state, viewModel)
                 !state.aiProcessingConsentAccepted -> ThoughtPinsAIConsentScreen(state, viewModel)
+                // After consent, so the account is fully created and its details
+                // kept before the wall appears — the same order the web app uses.
+                // The null check matters: the gate is unknown until asked, and
+                // defaulting to "blocked" would flash this screen at an admitted
+                // account on every cold start.
+                state.inviteStatus?.let { it.inviteRequired && !it.admitted } == true ->
+                    ThoughtPinsInviteScreen(state, viewModel)
                 else -> ThoughtPinsMainShell(state, viewModel, voiceRecorder)
             }
         }

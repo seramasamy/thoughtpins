@@ -105,7 +105,7 @@ Do this *before* the archive, so the app the reviewer opens has data.
    ```bash
    python scripts/release_check.py --strict-quality
    ```
-   Expect 47/47. ~12 minutes.
+   Expect 49/49. ~12 minutes.
 
 10. **Run the two things Windows never could.** This is the first execution of
     any Swift in this project — treat failures here as expected, not alarming.

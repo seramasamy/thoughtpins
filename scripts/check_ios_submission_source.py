@@ -206,6 +206,50 @@ def _check_local_data_cleanup(failures: list[str]) -> None:
     if "clearLocalAccountState" not in model:
         failures.append("sign-out and account deletion must share one local-state teardown")
 
+    # The closed-beta gate has to be visible in the app, not only enforced by
+    # the server. Registration is open, so an account can exist before it may be
+    # used; without a screen the shell rendered a signed-in app whose every
+    # request came back 403, which a store reviewer reports as a broken build.
+    shell = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in sorted((ROOT / "mobile" / "ios" / "ThoughtPinsApp" / "Sources").rglob("*.swift"))
+    )
+    for marker, label in (
+        ("ThoughtPinsInviteView", "iOS closed-beta gate screen"),
+        ("redeemInvite", "iOS invite redemption"),
+    ):
+        require(shell, marker, label, failures)
+
+    # The predicate has to be read where routing happens, not merely defined.
+    # A check that only greps every source together passes while the screen is
+    # orphaned and unreachable.
+    root_view = (
+        ROOT / "mobile" / "ios" / "ThoughtPinsApp" / "Sources" / "ThoughtPinsApp" / "ThoughtPinsReviewShell.swift"
+    ).read_text(encoding="utf-8")
+    require(root_view, "isBlockedByInviteGate", "iOS invite gate routing predicate", failures)
+
+    # Deletion must stay reachable from behind the gate: 5.1.1(v) wants it
+    # findable in the app, and a blocked account never reaches the Account tab.
+    #
+    # Scoped to the gate view's own body. The first version searched everything
+    # after the type name across all sources, so the Account screen's own
+    # "Delete account" button satisfied it — a check that could not fail.
+    #
+    # It asks for the trigger and the call, not the label. "Delete account"
+    # appears twice in this view — once on the button, once on the confirmation
+    # dialog — so matching the label alone stayed green with the button deleted
+    # and the dialog left stranded behind nothing that could open it.
+    _, _, after_declaration = root_view.partition("struct ThoughtPinsInviteView")
+    if not after_declaration:
+        failures.append("iOS invite gate screen is not declared in ThoughtPinsReviewShell.swift")
+    else:
+        for marker, what in (
+            ("showingDeleteConfirmation = true", "a control that opens the delete confirmation"),
+            ("model.deleteAccount()", "a call to deleteAccount"),
+        ):
+            if marker not in after_declaration:
+                failures.append(f"the iOS invite gate must offer account deletion: missing {what}")
+
     tests = core / "Tests" / "ThoughtPinsCoreTests" / "DraftStoreTests.swift"
     if not tests.is_file():
         failures.append("missing DraftStoreTests.swift covering the draft purge")

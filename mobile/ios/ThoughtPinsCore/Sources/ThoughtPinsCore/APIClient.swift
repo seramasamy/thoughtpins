@@ -463,6 +463,22 @@ public actor ThoughtPinsAPIClient {
         throw APIClientError.httpStatus(408, "Vault import did not finish before the client timeout")
     }
 
+    // Both stay reachable for an account the gate has not admitted: the server
+    // exempts /v1/invites/* precisely so somebody who cannot use the product yet
+    // can still find out why and redeem a code.
+    public func inviteStatus() async throws -> InviteStatusResponse {
+        try await request(path: "/v1/invites/status", method: "GET", auth: true, body: Optional<String>.none)
+    }
+
+    public func redeemInvite(code: String) async throws -> InviteStatusResponse {
+        try await request(
+            path: "/v1/invites/redeem",
+            method: "POST",
+            auth: true,
+            body: InviteRedeemRequest(code: code.trimmingCharacters(in: .whitespacesAndNewlines))
+        )
+    }
+
     public func preferences() async throws -> PreferencesResponse {
         try await request(path: "/v1/preferences", method: "GET", auth: true, body: Optional<String>.none)
     }
@@ -696,6 +712,10 @@ public struct EmptyResponse: Codable, Sendable {
 public enum APIClientError: Error, Equatable {
     case invalidResponse
     case httpStatus(Int, String?)
+}
+
+private struct InviteRedeemRequest: Encodable {
+    let code: String
 }
 
 private struct RegisterRequest: Encodable {

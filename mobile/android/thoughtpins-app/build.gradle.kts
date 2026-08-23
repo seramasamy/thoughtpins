@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
@@ -24,6 +26,43 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    // Upload signing, supplied by the release host and never by this repository.
+    //
+    // Values come from a gitignored keystore.properties beside this file, or from
+    // the environment so CI can inject them. The config is only registered when
+    // the material is actually present: an unsigned release build is a normal
+    // outcome on a developer machine, and failing the build there would mean
+    // nobody could run `assembleRelease` to check that R8 has not broken
+    // anything. Play rejects an unsigned bundle at upload, which is the right
+    // place for that error to surface.
+    val keystoreProperties = Properties().apply {
+        val file = rootProject.file("thoughtpins-app/keystore.properties")
+        if (file.exists()) file.inputStream().use { load(it) }
+    }
+
+    fun signingValue(propertyName: String, environmentName: String): String? =
+        keystoreProperties.getProperty(propertyName)?.takeIf { it.isNotBlank() }
+            ?: System.getenv(environmentName)?.takeIf { it.isNotBlank() }
+
+    val storePath = signingValue("storeFile", "THOUGHTPINS_ANDROID_KEYSTORE")
+    val storeSecret = signingValue("storePassword", "THOUGHTPINS_ANDROID_KEYSTORE_PASSWORD")
+    val aliasName = signingValue("keyAlias", "THOUGHTPINS_ANDROID_KEY_ALIAS")
+    val aliasSecret = signingValue("keyPassword", "THOUGHTPINS_ANDROID_KEY_PASSWORD")
+    val releaseSigningAvailable =
+        storePath != null && storeSecret != null && aliasName != null && aliasSecret != null &&
+            file(storePath).exists()
+
+    signingConfigs {
+        if (releaseSigningAvailable) {
+            create("release") {
+                storeFile = file(storePath!!)
+                storePassword = storeSecret
+                keyAlias = aliasName
+                keyPassword = aliasSecret
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -32,6 +71,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            signingConfig = if (releaseSigningAvailable) signingConfigs.getByName("release") else null
         }
     }
 

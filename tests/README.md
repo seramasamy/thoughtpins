@@ -1,6 +1,6 @@
 # Tests
 
-838 tests across 123 files, about seven minutes:
+840 tests across 122 files, about seven minutes:
 
 ```bash
 PYTHONPATH=src python -m pytest tests/ -q

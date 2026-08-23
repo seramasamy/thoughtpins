@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
@@ -202,5 +203,106 @@ internal fun ThoughtPinsAIConsentScreen(state: ThoughtPinsUiState, viewModel: Th
             ) { Text("AI Disclosure") }
         }
         state.banner?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
+    }
+}
+
+/**
+ * The closed-beta wall.
+ *
+ * Registration is deliberately open, so an account can exist before it may be
+ * used. Without this screen the shell rendered a signed-in app whose every
+ * request came back 403 — indistinguishable from a broken build, and exactly
+ * what a store reviewer would report. The server enforces the gate on its own;
+ * this exists so the person is told what is happening.
+ */
+@Composable
+internal fun ThoughtPinsInviteScreen(state: ThoughtPinsUiState, viewModel: ThoughtPinsViewModel) {
+    var code by rememberSaveable { mutableStateOf("") }
+    var confirmingDelete by rememberSaveable { mutableStateOf(false) }
+    val status = state.inviteStatus
+    val attemptsLeft = status?.attemptsRemaining ?: 0
+
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(top = 32.dp, bottom = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            ThoughtPinsBrandMark(Modifier.size(72.dp))
+            Text("You're on the list", style = MaterialTheme.typography.headlineSmall)
+            Text(
+                "Thought Pins is in private testing. Your account is saved — enter an " +
+                    "invite code to start using it.",
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+            )
+        }
+
+        OutlinedTextField(
+            code,
+            { code = it },
+            label = { Text("Invite code") },
+            singleLine = true,
+            enabled = !state.inviteBusy,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Button(
+            onClick = { viewModel.redeemInvite(code) },
+            enabled = code.isNotBlank() && !state.inviteBusy,
+            modifier = Modifier.heightIn(min = 48.dp),
+        ) { Text(if (state.inviteBusy) "Checking..." else "Redeem code") }
+
+        if (attemptsLeft in 1..3) {
+            Text(
+                "$attemptsLeft attempts remaining.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+
+        status?.contactEmail?.takeIf { it.isNotBlank() }?.let { email ->
+            Text(
+                "No code yet? Email $email and we will add you.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+
+        // Both deliberately reachable from behind the gate. An account that
+        // cannot use the product must still be able to leave it, and the server
+        // keeps /v1/me and export open for exactly that reason. Guideline
+        // 5.1.1(v) wants deletion findable in the app, and "in the app" has to
+        // include the screen a blocked account is actually looking at.
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            TextButton(
+                onClick = { viewModel.logout() },
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) { Text("Sign out") }
+            TextButton(
+                onClick = { confirmingDelete = true },
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) { Text("Delete account") }
+        }
+
+        state.banner?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
+    }
+
+    if (confirmingDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmingDelete = false },
+            title = { Text("Delete your Thought Pins account?") },
+            text = { Text("Your account and anything saved with it are removed. This cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmingDelete = false
+                    viewModel.deleteAccount()
+                }) { Text("Delete account") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmingDelete = false }) { Text("Cancel") }
+            },
+        )
     }
 }

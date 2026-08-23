@@ -285,6 +285,25 @@ data class RegisterResponse(
 @Serializable
 data class StatusResponse(val status: String)
 
+/**
+ * Whether this account may use the product yet.
+ *
+ * The gate is enforced server-side on every non-exempt path. This exists so the
+ * app can say what is happening instead of showing a signed-in shell where
+ * every request quietly fails.
+ */
+@Serializable
+data class InviteStatusResponse(
+    @SerialName("invite_required") val inviteRequired: Boolean = false,
+    @SerialName("invite_redeemed") val inviteRedeemed: Boolean = false,
+    val admitted: Boolean = true,
+    @SerialName("contact_email") val contactEmail: String = "",
+    @SerialName("attempts_remaining") val attemptsRemaining: Int = 0,
+)
+
+@Serializable
+data class InviteRedeemRequest(val code: String)
+
 @Serializable
 data class MeResponse(
     val id: String,

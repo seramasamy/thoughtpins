@@ -9,6 +9,24 @@ of what is not ready.
 | [`AFTER_DEVELOPER_ACCOUNT.md`](AFTER_DEVELOPER_ACCOUNT.md) | Ordered runbook from enrollment to submission |
 | [`PROGRESS.md`](PROGRESS.md) | Working log, decisions with reasons, findings |
 
+**Considering Play first?** See [`../play-submission/`](../play-submission/).
+Short answer: start it in parallel, not instead — Android is buildable today and
+Play's waiting period runs on its own while you sort out a Mac.
+
+---
+
+## The commonly-cited blockers, and where this project actually stands
+
+| What people warn about | Us |
+|---|---|
+| $99/yr, approval takes days, needs business registration + tax ID | Only **organisation** accounts need a D-U-N-S number. An **individual** account needs government ID and is faster — but lists your personal legal name as the seller. Decide before enrolling; changing it later is painful. |
+| Need a website with a privacy policy and terms | **Done.** `thoughtpins.com` with `/privacy`, `/terms`, `/support`, `/ai-disclosure`, `/account/delete` — all verified HTTP 200. |
+| Screenshots must match exact device dimensions | **Blocked on the Mac.** iPhone 6.9" 1290×2796 and iPad 13" 2064×2752, ≥3 each. |
+| Custom icons | **Done.** 1024×1024, RGB, no alpha, solid corners — validated by the gate. |
+| Pricing setup for subscriptions | **N/A.** Free, no IAP. Removes Guideline 3.1.1 entirely. |
+| Regional availability configured before submitting | App Store Connect UI. Default is all regions; leave it unless you have a reason. |
+| Most apps rejected first try | Likely. The mitigations are in this folder: the demo account clears the gate, the invite screen explains itself, deletion is reachable everywhere, and the review notes pre-empt the questions. |
+
 Existing material this builds on rather than duplicates:
 
 - `docs/release/MAC_XCODE_V1_EXECUTION_CHECKLIST.md` — 10-section Xcode checklist

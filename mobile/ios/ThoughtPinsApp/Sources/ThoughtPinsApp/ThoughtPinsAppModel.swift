@@ -19,6 +19,11 @@ public final class ThoughtPinsAppModel: ObservableObject {
     @Published public private(set) var importancePromptsEnabled: Bool = false
     @Published public private(set) var usePrivateMemories: Bool = false
     @Published public private(set) var aiProcessingConsentAccepted: Bool = false
+    // Nil until the gate has been asked about. Distinguishing "not yet known"
+    // from "admitted" keeps the shell from flashing the gate at an admitted
+    // account on every cold start.
+    @Published public private(set) var inviteStatus: InviteStatusResponse?
+    @Published public private(set) var inviteBusy: Bool = false
     @Published public private(set) var voiceArchiveStatus: VoiceArchiveStatusResponse?
     @Published public private(set) var librarySources: [LibrarySourceResponse] = []
     @Published public private(set) var memoryCards: [MemoryCardResponse] = []
@@ -75,6 +80,12 @@ public final class ThoughtPinsAppModel: ObservableObject {
         me != nil
     }
 
+    /// Nil status means "not asked yet", which must not read as blocked.
+    public var isBlockedByInviteGate: Bool {
+        guard let inviteStatus else { return false }
+        return inviteStatus.inviteRequired && !inviteStatus.admitted
+    }
+
     public func supportsOAuth(_ provider: ThoughtPinsOAuthProvider) -> Bool {
         oauthTokenProvider.supports(provider)
     }
@@ -86,6 +97,10 @@ public final class ThoughtPinsAppModel: ObservableObject {
             self.maintenanceMessage = config.maintenanceMode ? (config.maintenanceMessage ?? "Maintenance currently in progress.") : nil
             self.me = try? await api.me()
             await refreshPreferences()
+            // Ask the gate before loading anything it would refuse. Without
+            // this the shell rendered a signed-in app whose every request came
+            // back 403, which reads as broken rather than as a closed beta.
+            await refreshInviteStatus()
             await refreshVoiceArchive()
             // Only sync under a live session. Signed out, every draft posts
             // into a 401, comes back marked failed and burns an attempt, so a
@@ -120,6 +135,9 @@ public final class ThoughtPinsAppModel: ObservableObject {
             banner = "Registration failed. Check credentials and try again."
             return
         }
+        // A brand new account is exactly the one the closed beta has not
+        // admitted, so this cannot wait for the next cold start.
+        await refreshInviteStatus()
         // The account exists and the session is live from here down. A failure
         // recording consent is not a failed registration, and saying it was
         // sends people back to a Create account button that now collides with
@@ -152,6 +170,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
             )
             me = try await api.me()
             await refreshPreferences()
+            await refreshInviteStatus()
             banner = "Signed in with \(provider.label)."
             await refreshReadModels()
         } catch {
@@ -196,6 +215,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
             )
             me = try await api.me()
             await refreshPreferences()
+            await refreshInviteStatus()
             banner = "Signed in with Apple."
             await refreshReadModels()
         } catch {
@@ -233,6 +253,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
             _ = try await api.login(identifier: identifier, password: password)
             me = try await api.me()
             await refreshPreferences()
+            await refreshInviteStatus()
             banner = "Signed in."
             await refreshReadModels()
         } catch {
@@ -497,6 +518,34 @@ public final class ThoughtPinsAppModel: ObservableObject {
         aiProcessingConsentAccepted = preferences.legalAcceptances["ai_disclosure"] != nil
     }
 
+    private func refreshInviteStatus() async {
+        guard me != nil else {
+            inviteStatus = nil
+            return
+        }
+        inviteStatus = try? await api.inviteStatus()
+    }
+
+    public func redeemInvite(_ code: String) async {
+        let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !inviteBusy else { return }
+        inviteBusy = true
+        defer { inviteBusy = false }
+        do {
+            let status = try await api.redeemInvite(code: trimmed)
+            inviteStatus = status
+            if status.admitted {
+                banner = "Invite accepted. Welcome to Thought Pins."
+                await refreshPreferences()
+                await refreshReadModels()
+            }
+        } catch {
+            // The server never says which part was wrong, and neither does this.
+            banner = "That code is not valid. Check it and try again."
+            await refreshInviteStatus()
+        }
+    }
+
     private func refreshVoiceArchive() async {
         guard me != nil, config?.voiceArchiveEnabled == true else {
             voiceArchiveStatus = nil
@@ -548,6 +597,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
         voiceArchiveStatus = nil
         pendingVaultImport = nil
         aiProcessingConsentAccepted = false
+        inviteStatus = nil
         usePrivateMemories = false
         await refreshDraftCount()
     }

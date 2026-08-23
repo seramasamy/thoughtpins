@@ -389,6 +389,33 @@ public struct StatusResponse: Codable, Sendable {
     public let status: String
 }
 
+/// Whether this account may use the product yet.
+///
+/// The gate is enforced server-side on every non-exempt path. This exists so
+/// the app can say what is happening instead of showing a signed-in shell where
+/// every request quietly fails.
+public struct InviteStatusResponse: Codable, Sendable {
+    public let inviteRequired: Bool
+    public let inviteRedeemed: Bool
+    public let admitted: Bool
+    public let contactEmail: String
+    public let attemptsRemaining: Int
+
+    public init(
+        inviteRequired: Bool = false,
+        inviteRedeemed: Bool = false,
+        admitted: Bool = true,
+        contactEmail: String = "",
+        attemptsRemaining: Int = 0
+    ) {
+        self.inviteRequired = inviteRequired
+        self.inviteRedeemed = inviteRedeemed
+        self.admitted = admitted
+        self.contactEmail = contactEmail
+        self.attemptsRemaining = attemptsRemaining
+    }
+}
+
 public struct MeResponse: Codable, Sendable {
     public let id: String
     public let email: String?

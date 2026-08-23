@@ -132,9 +132,39 @@ class ThoughtPinsViewModel(
         val loadedMe = runCatching { api.me() }.getOrNull()
         loadedMe?.let { me -> _state.update { it.copy(me = me) } }
         if (loadedMe != null) refreshPreferences()
+        // Ask the gate before loading anything it would refuse. Without this the
+        // shell rendered a signed-in app whose every request came back 403, which
+        // reads as broken rather than as a closed beta.
+        if (loadedMe != null) refreshInviteStatus()
         if (loadedMe != null) syncDrafts(silent = true)
         refreshReadModels()
         refreshDraftCount()
+    }
+
+    private suspend fun refreshInviteStatus() {
+        runCatching { api.inviteStatus() }
+            .onSuccess { status -> _state.update { it.copy(inviteStatus = status) } }
+    }
+
+    fun redeemInvite(code: String) = viewModelScope.launch {
+        if (code.isBlank()) return@launch
+        _state.update { it.copy(inviteBusy = true) }
+        runCatching { api.redeemInvite(code) }
+            .onSuccess { status ->
+                _state.update { it.copy(inviteStatus = status, inviteBusy = false) }
+                if (status.admitted) {
+                    _state.update { it.copy(banner = "Invite accepted. Welcome to Thought Pins.") }
+                    refreshPreferences()
+                    refreshReadModels()
+                }
+            }
+            .onFailure {
+                // The server never says which part was wrong, and neither does this.
+                _state.update {
+                    it.copy(inviteBusy = false, banner = "That code is not valid. Check it and try again.")
+                }
+                refreshInviteStatus()
+            }
     }
 
     fun register(email: String?, phone: String?, password: String, consentToAIProcessing: Boolean) = viewModelScope.launch {
@@ -157,6 +187,11 @@ class ThoughtPinsViewModel(
             .onSuccess { me ->
                 _state.update { it.copy(me = me, banner = "Account created.") }
                 refreshPreferences()
+                // Ask the gate on every path that produces a session, not only
+                // on cold start. Registering and landing straight in the shell
+                // was the whole defect: a brand new account is exactly the one
+                // the closed beta has not admitted.
+                refreshInviteStatus()
                 refreshReadModels()
             }
             .onFailure { _state.update { it.copy(banner = "Registration failed.") } }
@@ -170,6 +205,7 @@ class ThoughtPinsViewModel(
             .onSuccess { me ->
                 _state.update { it.copy(me = me, banner = "Signed in.") }
                 refreshPreferences()
+                refreshInviteStatus()
                 refreshReadModels()
             }
             .onFailure { _state.update { it.copy(banner = "Sign in failed.") } }
@@ -189,6 +225,7 @@ class ThoughtPinsViewModel(
             .onSuccess { me ->
                 _state.update { it.copy(me = me, banner = "Signed in with ${provider.label}.") }
                 refreshPreferences()
+                refreshInviteStatus()
                 refreshReadModels()
             }
             .onFailure { error -> _state.update { it.copy(banner = error.message ?: "${provider.label} is not configured.") } }

@@ -358,6 +358,20 @@ class ThoughtPinsApiClient(
         throw IOException("Vault import did not finish before the client timeout")
     }
 
+    // Both stay reachable for an account the gate has not admitted: the server
+    // exempts /v1/invites/* precisely so somebody who cannot use the product yet
+    // can still find out why and redeem a code.
+    suspend fun inviteStatus(): InviteStatusResponse =
+        request("/v1/invites/status", "GET", auth = true, bodyJson = null)
+
+    suspend fun redeemInvite(code: String): InviteStatusResponse =
+        request(
+            "/v1/invites/redeem",
+            "POST",
+            auth = true,
+            bodyJson = json.encodeToString(InviteRedeemRequest(code.trim())),
+        )
+
     suspend fun preferences(): PreferencesResponse =
         request("/v1/preferences", "GET", auth = true, bodyJson = null)
 

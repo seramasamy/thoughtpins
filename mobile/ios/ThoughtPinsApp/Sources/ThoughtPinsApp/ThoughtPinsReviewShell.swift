@@ -30,10 +30,15 @@ public struct ThoughtPinsRootView: View {
     public var body: some View {
         Group {
             if model.isAuthenticated {
-                if model.aiProcessingConsentAccepted {
-                    ThoughtPinsMainShell(model: model, voiceRecorder: voiceRecorder)
-                } else {
+                if !model.aiProcessingConsentAccepted {
                     ThoughtPinsAIConsentView(model: model)
+                } else if model.isBlockedByInviteGate {
+                    // After consent, so the account is fully created and its
+                    // details kept before the wall appears — the same order the
+                    // web app uses.
+                    ThoughtPinsInviteView(model: model)
+                } else {
+                    ThoughtPinsMainShell(model: model, voiceRecorder: voiceRecorder)
                 }
             } else {
                 ThoughtPinsAuthView(model: model)
@@ -293,6 +298,87 @@ public final class ThoughtPinsVoiceRecorder: ObservableObject {
         if let recordingURL {
             try? FileManager.default.removeItem(at: recordingURL)
             self.recordingURL = nil
+        }
+    }
+}
+
+
+/// The closed-beta wall.
+///
+/// Registration is deliberately open, so an account can exist before it may be
+/// used. Without this the shell rendered a signed-in app whose every request
+/// came back 403 — indistinguishable from a broken build, and exactly what a
+/// store reviewer would report. The server enforces the gate on its own; this
+/// exists so the person is told what is happening.
+struct ThoughtPinsInviteView: View {
+    @ObservedObject var model: ThoughtPinsAppModel
+    @State private var code = ""
+    @State private var showingDeleteConfirmation = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    VStack(spacing: 12) {
+                        ThoughtPinsBrandMark()
+                            .frame(width: 72, height: 72)
+                        Text("You're on the list")
+                            .font(.system(.title2, design: .serif).weight(.semibold))
+                        Text("Thought Pins is in private testing. Your account is saved — enter an invite code to start using it.")
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                }
+
+                Section("Invite code") {
+                    TextField("Invite code", text: $code)
+                        .textInputAutocapitalization(.characters)
+                        .autocorrectionDisabled()
+                        .submitLabel(.go)
+                        .disabled(model.inviteBusy)
+                    Button(model.inviteBusy ? "Checking…" : "Redeem code") {
+                        Task { await model.redeemInvite(code) }
+                    }
+                    .disabled(code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || model.inviteBusy)
+
+                    if let remaining = model.inviteStatus?.attemptsRemaining, (1...3).contains(remaining) {
+                        Text("\(remaining) attempts remaining.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                if let email = model.inviteStatus?.contactEmail, !email.isEmpty {
+                    Section {
+                        Text("No code yet? Email \(email) and we will add you.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                // Both deliberately reachable from behind the gate. An account
+                // that cannot use the product must still be able to leave it,
+                // and Guideline 5.1.1(v) wants deletion findable in the app —
+                // which has to include the screen a blocked account is looking at.
+                Section("Account") {
+                    Button("Sign out") { Task { await model.logout() } }
+                    Button("Delete account", role: .destructive) { showingDeleteConfirmation = true }
+                }
+            }
+            .navigationTitle("Private testing")
+            .confirmationDialog(
+                "Permanently delete your Thought Pins account?",
+                isPresented: $showingDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Delete account", role: .destructive) { Task { await model.deleteAccount() } }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Your account and anything saved with it are removed. This cannot be undone.")
+            }
         }
     }
 }

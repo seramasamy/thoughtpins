@@ -41,3 +41,9 @@ frontend/vite.config.js
 .vscode/
 pytest-basetemp/
 write_probe_*/
+
+# Android upload signing. A committed keystore is an unrecoverable mistake:
+# Play binds an app to its upload key, and a leaked one lets anyone publish.
+*.jks
+*.keystore
+mobile/android/thoughtpins-app/keystore.properties

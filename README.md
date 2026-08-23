@@ -11,10 +11,10 @@
 <!-- The live Actions badge 404s while this repository is private, which renders
      as a broken image. Restore it on the day it is published:
      [![CI](https://github.com/seramasamy/thoughtpins/actions/workflows/ci.yml/badge.svg)](https://github.com/seramasamy/thoughtpins/actions/workflows/ci.yml) -->
-[![Gates](https://img.shields.io/badge/CI-34%20gates-587465)](.github/workflows/ci.yml)
+[![Gates](https://img.shields.io/badge/CI-47%20gates-587465)](.github/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-e8612b)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.13-3776ab)](.python-version)
-[![Tests](https://img.shields.io/badge/tests-838-587465)](tests/)
+[![Tests](https://img.shields.io/badge/tests-840-587465)](tests/)
 [![Code of Conduct](https://img.shields.io/badge/contributor-covenant-6b6459)](CODE_OF_CONDUCT.md)
 
 **A memory layer for real life.** Write naturally, bring in what you read,<br>
@@ -195,10 +195,12 @@ src/thoughtpins/      FastAPI backend, memory engine, ingestion, retrieval
 frontend/             React web client (served at /app)
 mobile/               iOS and Android shells
 alembic/versions/     26 migrations, RLS policies included
-scripts/              28 check_*.py gates, operational tooling
-tests/                788 tests across 115 files
+scripts/              32 check_*.py gates, operational tooling
+tests/                840 tests across 122 files
 docs/                 architecture, operations, product, release
 site/                 the marketing site at thoughtpins.com
+apple-submission/     App Store review notes, runbook, working log
+play-submission/      Play Console readiness and the closed-test plan
 ```
 
 Before adding a feature, read **[ARCHITECTURE_MODULES.md](ARCHITECTURE_MODULES.md)** — it names

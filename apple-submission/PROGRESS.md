@@ -167,6 +167,49 @@ never been through a compiler.
 
 ## Findings log
 
+### F2 — The native apps had no closed-beta gate at all (FIXED)
+
+The web app has a full invite screen. **Neither iOS nor Android had a single
+line of invite handling.** Registration is deliberately open, so an account can
+exist before it may be used; a reviewer who registered their own account instead
+of using the demo credentials got a signed-in shell where every request returned
+403 with a generic "Chat failed" banner. Indistinguishable from a broken build,
+and a Guideline 2.1 rejection.
+
+Worse, the review notes I had written claimed the reviewer *would* see an invite
+screen. That was true of the web app and false of the thing being submitted — a
+claim a reviewer disproves in thirty seconds.
+
+Fixed on both platforms: `inviteStatus`/`redeemInvite` in each core client, a
+gate screen, and routing after the consent step so the account is fully created
+before the wall appears — matching the web order.
+
+**Found by running it, not by reading it.** The first Android build compiled,
+the screen existed, and registering still dropped straight into the main shell:
+only `bootstrap()` asked the gate, so register, login and OAuth all skipped it.
+A brand new account is precisely the one the beta has not admitted. All three
+session paths now query it, verified against production on an emulator.
+
+Account deletion is reachable from the gate on both platforms. 5.1.1(v) wants
+deletion findable in the app, and a blocked account never reaches the Account
+tab. `check_ios_submission_source.py` fails if that button disappears.
+
+### F3 — Android had no release signing config (FIXED)
+
+`buildTypes.release` had minification and resource shrinking but no
+`signingConfig`, so `bundleRelease` produced an unsigned bundle that Play
+rejects at upload. `.gitignore` also covered no keystores — a signing key
+committed to a repo about to go public is unrecoverable.
+
+Both fixed. Verified by building a genuinely signed 4.9 MB AAB against a
+throwaway key that was then destroyed.
+
+R8 was the bigger risk and it passes: the minified release build installs,
+launches, renders, reaches production over `api.thoughtpins.com` and parses the
+response, so `kotlinx.serialization` survives minification. 21.8 MB debug → 2.3 MB
+release.
+
+
 ### F0 — `api.thoughtpins.com` had no DNS record (**RESOLVED — 8/8 endpoints live**)
 
 The hostname compiled into both mobile builds returned NXDOMAIN, so the app had
