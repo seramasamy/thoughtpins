@@ -33,6 +33,7 @@ build/
 frontend/node_modules/
 .ms-playwright/
 frontend/dist/
+frontend/test-results/
 mobile/android/local.properties
 frontend/vite.config.d.ts
 frontend/vite.config.js
