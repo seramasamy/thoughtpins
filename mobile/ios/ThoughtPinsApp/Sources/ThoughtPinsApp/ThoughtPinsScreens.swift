@@ -46,28 +46,42 @@ struct ThoughtPinsRecapScreen: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Text(entry.localDate ?? entry.createdAtUtc).font(.caption).foregroundStyle(.secondary)
                         Text(entry.rawText).font(.body)
-                        HStack(spacing: 2) {
+                        // The label sits above the stars rather than beside
+                        // them. Five 44pt targets plus the clear button are
+                        // 264pt of fixed width, which leaves nothing for a
+                        // caption in a 320pt iPad Slide Over and truncates it
+                        // on an iPhone SE.
+                        VStack(alignment: .leading, spacing: 2) {
                             Text("Importance").font(.caption).foregroundStyle(.secondary)
-                            Spacer()
-                            ForEach(1...5, id: \.self) { rating in
-                                Button {
-                                    Task { await model.updateEntryImportance(entryId: entry.id, value: rating) }
-                                } label: {
-                                    Image(systemName: rating <= (entry.userImportance ?? 0) ? "star.fill" : "star")
-                                        .foregroundStyle(rating <= (entry.userImportance ?? 0) ? ThoughtPinsTheme.brand : Color.secondary)
-                                        .frame(width: 44, height: 44)
+                            HStack(spacing: 2) {
+                                ForEach(1...5, id: \.self) { rating in
+                                    Button {
+                                        Task { await model.updateEntryImportance(entryId: entry.id, value: rating) }
+                                    } label: {
+                                        Image(systemName: rating <= (entry.userImportance ?? 0) ? "star.fill" : "star")
+                                            .foregroundStyle(rating <= (entry.userImportance ?? 0) ? ThoughtPinsTheme.brand : Color.secondary)
+                                            .frame(width: 44, height: 44)
+                                            // A plain button hit-tests its label's
+                                            // glyph, not the frame around it, so
+                                            // these were 17pt targets wearing a
+                                            // 44pt box until this line.
+                                            .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityLabel("Set importance to \(rating) out of 5")
                                 }
-                                .buttonStyle(.plain)
-                                .accessibilityLabel("Set importance to \(rating) out of 5")
-                            }
-                            if entry.userImportance != nil {
-                                Button {
-                                    Task { await model.updateEntryImportance(entryId: entry.id, value: nil) }
-                                } label: {
-                                    Image(systemName: "xmark").frame(width: 44, height: 44)
+                                if entry.userImportance != nil {
+                                    Button {
+                                        Task { await model.updateEntryImportance(entryId: entry.id, value: nil) }
+                                    } label: {
+                                        Image(systemName: "xmark")
+                                            .frame(width: 44, height: 44)
+                                            .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityLabel("Clear importance rating")
                                 }
-                                .buttonStyle(.plain)
-                                .accessibilityLabel("Clear importance rating")
+                                Spacer(minLength: 0)
                             }
                         }
                     }
@@ -112,6 +126,7 @@ struct ThoughtPinsChatScreen: View {
     @ObservedObject var voiceRecorder: ThoughtPinsVoiceRecorder
     @State private var text = ""
     @State private var showingVoiceDisclosure = false
+    @Environment(\.scenePhase) private var scenePhase
     @AppStorage("thoughtpins.voiceDisclosure.2026-07-13") private var voiceDisclosureAccepted = false
 
     var body: some View {
@@ -232,6 +247,15 @@ struct ThoughtPinsChatScreen: View {
                 try? await Task.sleep(nanoseconds: 600_000_000_000)
                 guard !Task.isCancelled, voiceRecorder.isRecording else { return }
                 finishVoiceRecording()
+            }
+            // Backgrounding does not fire onDisappear, and the app has no audio
+            // background mode, so iOS tears the session down while the button
+            // still reads Stop and isRecording stays true forever. Close the
+            // recording out here and keep what was captured.
+            .onChange(of: scenePhase) { _, phase in
+                if phase != .active, voiceRecorder.isRecording {
+                    finishVoiceRecording()
+                }
             }
             .onDisappear {
                 if voiceRecorder.isRecording {

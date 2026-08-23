@@ -87,7 +87,13 @@ public final class ThoughtPinsAppModel: ObservableObject {
             self.me = try? await api.me()
             await refreshPreferences()
             await refreshVoiceArchive()
-            try? await syncDrafts()
+            // Only sync under a live session. Signed out, every draft posts
+            // into a 401, comes back marked failed and burns an attempt, so a
+            // few cold launches on the sign-in screen were enough to exhaust
+            // work the user had not lost.
+            if me != nil {
+                try? await syncDrafts()
+            }
             await refreshReadModels()
         } catch {
             banner = "Could not reach Thought Pins. You can keep drafting locally."
@@ -100,25 +106,36 @@ public final class ThoughtPinsAppModel: ObservableObject {
             banner = "Review and accept the privacy, terms, and AI processing disclosure to create an account."
             return
         }
+        // Checked before the account exists. Registering first and discovering
+        // afterwards that there is nothing to sign in with leaves an orphan.
+        guard let identifier = [email, phone].compactMap({ $0 }).first(where: { !$0.isEmpty }) else {
+            banner = "Add an email address or phone number."
+            return
+        }
         do {
             _ = try await api.register(email: email, phone: phone, password: password)
-            guard let identifier = [email, phone].compactMap({ $0 }).first(where: { !$0.isEmpty }) else {
-                banner = "Add an email address or phone number."
-                return
-            }
             _ = try await api.login(identifier: identifier, password: password)
             me = try await api.me()
-            let version = config?.legalDocumentVersion ?? "2026-07-13"
-            _ = try await api.acceptLegalDocument("privacy", version: version)
-            _ = try await api.acceptLegalDocument("terms", version: version)
-            _ = try await api.acceptLegalDocument("ai_disclosure", version: version)
-            await refreshPreferences()
-            await refreshVoiceArchive()
-            banner = "Account created."
-            await refreshReadModels()
         } catch {
             banner = "Registration failed. Check credentials and try again."
+            return
         }
+        // The account exists and the session is live from here down. A failure
+        // recording consent is not a failed registration, and saying it was
+        // sends people back to a Create account button that now collides with
+        // the account they just made.
+        do {
+            let version = config?.legalDocumentVersion ?? "2026-07-13"
+            for document in ["privacy", "terms", "ai_disclosure"] {
+                _ = try await api.acceptLegalDocument(document, version: version)
+            }
+            banner = "Account created."
+        } catch {
+            banner = "Account created, but your consent was not recorded. You will be asked again."
+        }
+        await refreshPreferences()
+        await refreshVoiceArchive()
+        await refreshReadModels()
     }
 
 
@@ -500,13 +517,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
     public func deleteAccount() async {
         do {
             _ = try await api.deleteAccount()
-            me = nil
-            chatReply = ""
-            librarySources = []
-            memoryCards = []
-            placeCards = []
-            recentEntries = []
-            voiceArchiveStatus = nil
+            await clearLocalAccountState()
             banner = "Account deleted."
         } catch {
             banner = "Deletion failed."
@@ -515,8 +526,30 @@ public final class ThoughtPinsAppModel: ObservableObject {
 
     public func logout() async {
         try? await api.logout()
-        me = nil
+        await clearLocalAccountState()
         banner = "Signed out."
+    }
+
+    /// Drops everything the departing account left on this device.
+    ///
+    /// Queued drafts matter most. They are raw journal text, the store is keyed
+    /// by device rather than by account, and `bootstrap` syncs them under
+    /// whichever session is current — so a draft surviving sign-out or deletion
+    /// is posted into the next account that opens the app here.
+    private func clearLocalAccountState() async {
+        try? await drafts.purge()
+        me = nil
+        chatReply = ""
+        routeLabel = "chat"
+        librarySources = []
+        memoryCards = []
+        placeCards = []
+        recentEntries = []
+        voiceArchiveStatus = nil
+        pendingVaultImport = nil
+        aiProcessingConsentAccepted = false
+        usePrivateMemories = false
+        await refreshDraftCount()
     }
 
     public func refreshReadModels() async {

@@ -66,6 +66,7 @@ struct ThoughtPinsAuthView: View {
     @State private var password = ""
     @State private var phone = ""
     @State private var legalAccepted = false
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         NavigationStack {
@@ -92,6 +93,7 @@ struct ThoughtPinsAuthView: View {
                         .textContentType(.telephoneNumber)
                         .keyboardType(.phonePad)
                     SecureField("Password", text: $password)
+                        .textContentType(.password)
                 }
 
                 if model.config?.oauthAppleEnabled == true || model.config?.oauthGoogleEnabled == true {
@@ -102,7 +104,10 @@ struct ThoughtPinsAuthView: View {
                             } onCompletion: { result in
                                 Task { await model.completeAppleSignIn(result) }
                             }
-                            .signInWithAppleButtonStyle(.black)
+                            // Apple's guidance is a button that contrasts with
+                            // the sheet behind it; a black button on the dark
+                            // form background reads as a blank row.
+                            .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
                             .frame(height: 44)
                         }
                         if model.config?.oauthGoogleEnabled == true && model.supportsOAuth(.google) {
@@ -111,6 +116,20 @@ struct ThoughtPinsAuthView: View {
                             }
                         }
                     }
+                }
+
+                // The consent toggle used to live in this section's footer,
+                // where SwiftUI renders it as secondary grey text. It gates
+                // Create account, so the one control that unlocks registration
+                // looked like a caption under a disabled button.
+                Section("Before you create an account") {
+                    Toggle("I consent to private AI processing of content I choose to send.", isOn: $legalAccepted)
+                    HStack(spacing: 12) {
+                        Link("Privacy", destination: model.legalURL(configured: model.config?.privacyPolicyUrl, fallbackPath: "/privacy"))
+                        Link("Terms", destination: model.legalURL(configured: model.config?.termsUrl, fallbackPath: "/terms"))
+                        Link("AI Disclosure", destination: model.legalURL(configured: model.config?.aiDisclosureUrl, fallbackPath: "/ai-disclosure"))
+                    }
+                    .font(.footnote)
                 }
 
                 Section {
@@ -127,15 +146,10 @@ struct ThoughtPinsAuthView: View {
                             )
                         }
                     }
-                    .disabled(!legalAccepted || password.count < 12 || (identifier.isEmpty && phone.isEmpty))
+                    .disabled(registrationBlocker != nil)
                 } footer: {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Toggle("I consent to private AI processing of content I choose to send.", isOn: $legalAccepted)
-                        HStack(spacing: 12) {
-                            Link("Privacy", destination: model.legalURL(configured: model.config?.privacyPolicyUrl, fallbackPath: "/privacy"))
-                            Link("Terms", destination: model.legalURL(configured: model.config?.termsUrl, fallbackPath: "/terms"))
-                            Link("AI Disclosure", destination: model.legalURL(configured: model.config?.aiDisclosureUrl, fallbackPath: "/ai-disclosure"))
-                        }
+                    if let registrationBlocker {
+                        Text(registrationBlocker)
                     }
                 }
             }
@@ -143,6 +157,29 @@ struct ThoughtPinsAuthView: View {
         }
     }
 
+    /// Why Create account is disabled, or nil when it is not.
+    ///
+    /// A disabled button with no stated reason is the shape of a failed App
+    /// Review: the reviewer cannot register, and nothing on screen says which
+    /// of three rules they have not met yet.
+    private var registrationBlocker: String? {
+        if identifier.isEmpty && phone.isEmpty {
+            return "Add an email address or phone number to create an account."
+        }
+        // Code points, matching the server's own length rule, so the client
+        // never accepts a password the API is about to reject.
+        let length = password.unicodeScalars.count
+        if length < 12 {
+            return "Choose a password of at least 12 characters."
+        }
+        if length > 256 {
+            return "Choose a password of 256 characters or fewer."
+        }
+        if !legalAccepted {
+            return "Accept AI processing above to create an account."
+        }
+        return nil
+    }
 }
 
 struct ThoughtPinsAIConsentView: View {
@@ -216,7 +253,15 @@ public final class ThoughtPinsVoiceRecorder: ObservableObject {
                 AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
             ]
             let recorder = try AVAudioRecorder(url: url, settings: settings)
-            recorder.record()
+            // record() reports whether the hardware actually started. Ignoring
+            // it showed a live recording indicator over a microphone that never
+            // opened, and stop() then uploaded an empty file.
+            guard recorder.record() else {
+                try? FileManager.default.removeItem(at: url)
+                try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+                errorMessage = "The microphone could not start. You can attach an audio file instead."
+                return
+            }
             self.recorder = recorder
             recordingURL = url
             isRecording = true

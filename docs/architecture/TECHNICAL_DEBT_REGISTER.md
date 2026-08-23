@@ -148,6 +148,30 @@ code signing, archive validation, TestFlight upload, VoiceOver, or device tests.
 - Exit: complete the signed Mac runbook, retain archive/device evidence outside
   source control, and update the handoff only after those artifacts pass.
 
+### TD-007: The Client Version Gate Is Dead Code
+
+`ClientConfig` carries `minimum_supported_clients`, `recommended_clients`, and
+`store_urls`, and both shells implement `evaluateClientVersion` — iOS in
+`mobile/ios/ThoughtPinsCore/Sources/ThoughtPinsCore/VersionPolicy.swift`,
+Android in the matching `VersionPolicy.kt`. Neither shell calls it. Nothing
+reads the decision, so no build has ever been blocked or nudged by it.
+
+- Risk: this is the only lever that retires a shipped client. Once v1.0 is on
+  the App Store, a version with a data-corrupting bug keeps running against
+  production and the server has no way to stop it. The server-side half is
+  already built and returning values into a void.
+- Containment: none in the app. The server can still refuse individual
+  endpoints, which degrades rather than directs.
+- Deliberately not fixed before submission: wiring it means a new blocking
+  screen, and a blocking screen that misjudges its own version locks every
+  install out of the product. That cannot be validated from Windows — see
+  TD-006 — and shipping an unexercised lockout path into a first review is a
+  worse risk than the gap it closes.
+- Exit: implement on the Mac alongside the first simulator run. Prove all three
+  branches (supported, recommended, blocked) against a stubbed `ClientConfig`
+  in `ThoughtPinsCore` tests, and prove the blocked screen still offers the
+  store link and sign-out before it ships.
+
 ## Closed In The 2026-08-05 Retrieval Pass
 
 Four defects found by auditing the retrieval path rather than by a failing

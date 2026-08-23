@@ -465,13 +465,29 @@ class ThoughtPinsViewModel(
 
     fun deleteAccount() = viewModelScope.launch {
         runCatching { api.deleteAccount() }
-            .onSuccess { _state.update { ThoughtPinsUiState(banner = "Account deleted.") } }
+            .onSuccess {
+                clearLocalAccountData()
+                _state.update { ThoughtPinsUiState(banner = "Account deleted.") }
+            }
             .onFailure { _state.update { it.copy(banner = "Deletion failed.") } }
     }
 
     fun logout() = viewModelScope.launch {
         runCatching { api.logout() }
+        clearLocalAccountData()
         _state.update { ThoughtPinsUiState(banner = "Signed out.") }
+    }
+
+    /**
+     * Takes the departing account's offline drafts with it.
+     *
+     * Resetting [ThoughtPinsUiState] clears the screen but not the disk. The
+     * draft queue is keyed by device, and bootstrap syncs it under whichever
+     * session is live, so drafts left behind by one account are posted into the
+     * next account that signs in here.
+     */
+    private suspend fun clearLocalAccountData() {
+        runCatching { draftQueue.purge() }
     }
 
     fun syncDrafts(silent: Boolean = false) = viewModelScope.launch {
