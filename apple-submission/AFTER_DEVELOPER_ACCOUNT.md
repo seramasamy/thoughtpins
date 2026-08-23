@@ -68,7 +68,9 @@ Do this *before* the archive, so the app the reviewer opens has data.
    ```bash
    # from the repo, with production DATABASE_PUBLIC_URL exported
    export THOUGHTPINS_REVIEW_EMAIL=review@thoughtpins.com
-   export THOUGHTPINS_REVIEW_PASSWORD='<generate 20+ chars, store in a password manager>'
+   # Generate 20+ characters, store it in your password manager, and export it
+   # into THOUGHTPINS_REVIEW_PASSWORD. Never write it into a file in this repo.
+   read -rs THOUGHTPINS_REVIEW_PASSWORD && export THOUGHTPINS_REVIEW_PASSWORD
    python scripts/seed_review_account.py --allow-production --json
    ```
    `--allow-production` is required on purpose; the seeder refuses production

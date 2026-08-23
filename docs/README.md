@@ -20,6 +20,7 @@ material grouped so each surface stays easy to audit.
 
 | | |
 | --- | --- |
+| [RETRIEVAL_ARCHITECTURE.md](architecture/RETRIEVAL_ARCHITECTURE.md) | How recall works: six channels, score fusion, the bitemporal schema, measured numbers |
 | [MEMORY_ARCHITECTURE_REVIEW.md](architecture/MEMORY_ARCHITECTURE_REVIEW.md) | The memory design and its honest gaps, graded |
 | [MEMORY_SALIENCE.md](architecture/MEMORY_SALIENCE.md) | How importance is estimated and bounded |
 | [SOCIAL_EPISODIC_RELEVANCE.md](architecture/SOCIAL_EPISODIC_RELEVANCE.md) | Query-conditioned ranking over social and episodic detail |

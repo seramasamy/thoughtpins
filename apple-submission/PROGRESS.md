@@ -50,13 +50,19 @@ also flags hardcoded credentials in review.
 
 Nothing to do here: it is already right.
 
-### Provider naming: already generic. Nothing to strip.
+### Provider naming: already generic, and already enforced.
 
-Requested: ensure the word "deepseek" appears nowhere and reads as a generic key.
+Requested: ensure a particular provider's name appears nowhere and that the
+configuration reads as a generic key.
 
-Verified — **"deepseek" appears in zero files** in the repository. The client in
-`src/thoughtpins/llm/` is written against any OpenAI-compatible endpoint, and
-the environment contract is already provider-neutral:
+Verified — that vendor name appears in **zero files**, and this is not luck:
+it is on the forbidden-term list in `scripts/forbidden_scan.py`, which runs in
+the release gate and in CI. The build fails if the word is committed anywhere.
+(This document tripped that scan on its first draft, which is how I confirmed
+the rule is live rather than aspirational.)
+
+The client in `src/thoughtpins/llm/` is written against any OpenAI-compatible
+endpoint, and the environment contract is already provider-neutral:
 
 ```
 LLM_PROVIDER=openai_compatible
@@ -94,17 +100,30 @@ the work. That is being done under "GitHub presentation" below.
 
 | # | Item | State |
 |---|---|---|
-| 1 | Review account blocked by invite gate | **IN PROGRESS** |
-| 2 | Invite gate toggle documented (server-side, global) | pending |
-| 3 | Demo account + credentials handoff | pending |
-| 4 | Apple review notes | pending |
-| 5 | `apple-submission/` package | pending |
-| 6 | Post-developer-account runbook | pending |
-| 7 | Review-trigger sweep (paywall/bypass/private API) | pending |
-| 8 | Registration + support email + legal review | pending |
-| 9 | Emulator run (Android local; iOS needs macOS) | pending |
-| 10 | GitHub presentation + architecture graphics | pending |
-| 11 | Technical debt verified fixed | pending |
+| 1 | Review account blocked by invite gate | **done** — real invite minted + redeemed, 2 tests |
+| 2 | Invite gate toggle | **done** — already `INVITE_ONLY`; stays true in prod, website gated |
+| 3 | Demo account + credentials handoff | **done** — seeder + CLI reports admission |
+| 4 | Apple review notes | **done** — `REVIEW_NOTES.md`, paste-ready |
+| 5 | `apple-submission/` package | **done** |
+| 6 | Post-developer-account runbook | **done** — `AFTER_DEVELOPER_ACCOUNT.md`, 20 steps |
+| 7 | Review-trigger sweep | **done** — no paywall bypass, no IDFA/ATT/private API |
+| 8 | Registration + support email + legal | **done in code**; you must verify the two mailboxes |
+| 9 | Emulator run | **done** — Android booted, app installed, launched, screenshotted |
+| 10 | GitHub presentation + architecture graphics | **done** — `docs/architecture/RETRIEVAL_ARCHITECTURE.md` |
+| 11 | Technical debt verified fixed | in progress |
+| 12 | **DNS: `api.` and `app.` do not exist** | **BLOCKED ON YOU** — see F0 |
+
+## What is left, and who does it
+
+**You:**
+1. Create the `api` and `app` DNS records in Cloudflare (**F0** — blocks everything)
+2. Verify `support@thoughtpins.com` and `invite@thoughtpins.com` receive mail
+3. Get a Mac (or rent one) — nothing Swift can be compiled without it
+4. Apple Developer enrollment → `AFTER_DEVELOPER_ACCOUNT.md` Stage 1
+
+**Then, on the Mac:** `swift test`, first Xcode build, simulator matrix,
+screenshots. Expect first-build compile errors — ~400 lines of SwiftUI have
+never been through a compiler.
 
 ---
 
@@ -145,6 +164,17 @@ could not fail.
 4. In Railway, add both as custom domains on the API service so it issues
    certificates and answers for that Host header.
 5. Verify with `python scripts/check_live_endpoints.py` (added in this pass).
+
+**First establish which problem you have.** Open the Railway project
+(`ef03ceb8-cf61-4ef6-bac3-28f8df5ded3e`) and look at the `api` service:
+
+- **Running, with a `*.up.railway.app` URL that answers** → this is purely a
+  missing DNS record. Do steps 2–4 above.
+- **Not running / crashed / suspended** → DNS is the second problem. Get the
+  service healthy first, then point DNS at it.
+
+No Railway URL is committed to this repo, deliberately, so this cannot be
+checked from the source tree.
 
 Until this is done, **nothing else about the submission matters** — the app is
 a login screen with no server.

@@ -148,6 +148,19 @@ flowchart LR
 SQL is the source of truth. Vectors and the graph are derived indexes that can be rebuilt at
 any time — so a bad embedding model or a corrupted index is an inconvenience, not data loss.
 
+Retrieval is not a single vector lookup. A question runs through six independent
+channels — dense vectors, SQL lexical, graph expansion, graph evidence, document
+title, raw keyword — and their *disagreement* is a ranking signal, saturating so
+that the second channel to find a candidate counts and the fifth barely does.
+Twenty bounded coefficients fuse the result, deliberately structured so personal
+importance and social structure can break a tie but never outvote the retrieval
+evidence itself.
+
+**[How recall works →](docs/architecture/RETRIEVAL_ARCHITECTURE.md)** — the
+channels and why each one exists, the score-fusion model, reciprocal rank
+fusion, the bitemporal memory schema, and the measured numbers with their sample
+sizes.
+
 ## Quick start
 
 Requires Python 3.13. Runs on SQLite with no external services.
@@ -205,6 +218,7 @@ the owning module for each concern so new code doesn't accumulate in the adapter
 | --- | --- |
 | [Docs index](docs/README.md) | Everything, organised |
 | [Architecture modules](ARCHITECTURE_MODULES.md) | Where code belongs |
+| [How recall works](docs/architecture/RETRIEVAL_ARCHITECTURE.md) | Six retrieval channels, score fusion, the bitemporal schema |
 | [Technical review guide](docs/architecture/TECHNICAL_REVIEW_GUIDE.md) | A reviewer's tour with a verification path |
 | [Memory architecture review](docs/architecture/MEMORY_ARCHITECTURE_REVIEW.md) | The design, graded honestly |
 | [Obsidian interoperability](docs/architecture/OBSIDIAN_INTEROPERABILITY.md) | The vault contract |
