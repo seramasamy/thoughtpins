@@ -1,6 +1,17 @@
 /* ---------- 8. Chat ---------- */
 
+/* One measure for the whole conversation.
+   The status row, the transcript, the empty state and the composer were three
+   different widths — 1130, 840 and 884 — so the send button did not line up
+   with the edge of a reply and the status rule ran 145px past the column it
+   belonged to. Everything below derives from this one number. */
 .chat-view {
+  --chat-measure: 840px;
+  /* Horizontal breathing room inside the composer shell. The composer's width
+     is the measure plus this on both sides, so its *content* lands on the
+     measure rather than 36px wider than every bubble. */
+  --composer-inset: 18px;
+
   display: grid;
   grid-template-rows: auto minmax(360px, 1fr) auto;
   width: 100%;
@@ -21,7 +32,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 14px;
+  width: min(var(--chat-measure), 100%);
   min-height: 58px;
+  margin: 0 auto;
   padding: 9px 2px;
   border-bottom: 1px solid var(--tp-line);
   background: transparent;
@@ -111,7 +124,13 @@
   padding: 26px clamp(16px, 3vw, 48px) 16px;
   overflow-y: auto;
   scroll-behavior: smooth;
+  /* Reserved on both edges, so the transcript's centre does not move when the
+     scrollbar appears. With the gutter on one edge only, every message sat
+     ~7px left of the composer below it — concentric enough to look accidental
+     rather than deliberate. The single-edge declaration stays first as the
+     fallback for browsers without both-edges. */
   scrollbar-gutter: stable;
+  scrollbar-gutter: stable both-edges;
   scrollbar-color: var(--tp-line-strong) transparent;
 }
 
@@ -126,10 +145,19 @@
   margin-top: auto;
 }
 
-/* The welcome state is its own composition and centres itself; the spacer would
-   otherwise push it against the composer. */
+/* The welcome state is centred rather than pushed to the composer: a spacer
+   above and below splits the free space evenly. It used to keep only the top
+   spacer disabled and lean on a clamp() margin, which left the greeting high
+   in the window with roughly 340px of dead canvas between the starter chips
+   and the input — the emptiest the product ever looks is the first thing a new
+   account sees. */
 .chat-stream:has(.chat-welcome)::before {
-  margin-top: 0;
+  margin-top: auto;
+}
+
+.chat-stream:has(.chat-welcome)::after {
+  content: "";
+  margin-bottom: auto;
 }
 
 .chat-stream:focus-visible {
@@ -140,8 +168,12 @@
 .chat-welcome {
   display: grid;
   justify-items: center;
-  width: min(620px, 100%);
-  margin: clamp(36px, 9vh, 94px) auto 20px;
+  /* On the conversation measure, not 620px. At 620 the three starter chips got
+     ~141px of text width each and every one of them wrapped mid-question. */
+  width: min(var(--chat-measure), 100%);
+  /* Centred by the stream's spacers now, so this only needs to keep itself off
+     the status rule on a short window. */
+  margin: 20px auto;
   text-align: center;
 }
 
@@ -170,7 +202,11 @@
 
 .starter-list {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* Fits three across on a full-width column and drops to two when the column
+     narrows, rather than holding three and letting every prompt break mid
+     question — "What has been on my / mind?" at tablet width. The narrow and
+     short-landscape overrides in 100-responsive.css still pin their own counts. */
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 8px;
   width: 100%;
   margin-top: 26px;
@@ -206,7 +242,7 @@
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
   gap: 11px;
-  width: min(840px, 100%);
+  width: min(var(--chat-measure), 100%);
   margin: 0 auto 22px;
   animation: tp-rise var(--motion-standard) var(--ease-quiet) both;
 }
@@ -216,7 +252,7 @@
   grid-template-columns: minmax(24px, 1fr) auto minmax(24px, 1fr);
   align-items: center;
   gap: 12px;
-  width: min(840px, 100%);
+  width: min(var(--chat-measure), 100%);
   margin: 2px auto 22px;
   color: var(--tp-ink-soft);
   font-size: 11px;
@@ -334,9 +370,11 @@
 }
 
 .chat-composer-wrap {
-  width: min(920px, 100%);
+  /* Measure plus the inset on each side, so the composer's inner edge sits on
+     the same line as a reply bubble's. */
+  width: min(calc(var(--chat-measure) + (var(--composer-inset) * 2)), 100%);
   margin: 0 auto;
-  padding: 12px 18px 10px;
+  padding: 12px var(--composer-inset) 10px;
   border-top: 0;
   background: transparent;
 }
