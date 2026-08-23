@@ -31,7 +31,7 @@ REQUIRED_PUBLIC_HOSTS = {
     "support": "https://thoughtpins.com/support",
     "account_deletion": "https://thoughtpins.com/account/delete",
     "ai_disclosure": "https://thoughtpins.com/ai-disclosure",
-    "web_app": "https://app.thoughtpins.com/app",
+    "web_app": "https://thoughtpins.com/app",
     "api": "https://api.thoughtpins.com/v1",
 }
 
@@ -333,8 +333,8 @@ def _check_repo_artifacts(packet: dict, failures: list[str]) -> None:
             failures.append(f"docker-compose.yml missing marker {marker}")
     for marker in [
         "PRIVACY_POLICY_URL=https://thoughtpins.com/privacy",
-        "WEB_APP_URL=https://app.thoughtpins.com/app",
-        "CORS_ALLOW_ORIGINS=https://app.thoughtpins.com",
+        "WEB_APP_URL=https://thoughtpins.com/app",
+        "CORS_ALLOW_ORIGINS=https://thoughtpins.com",
     ]:
         if marker not in env:
             failures.append(f".env.production.example missing marker {marker}")
@@ -351,7 +351,7 @@ def _check_repo_artifacts(packet: dict, failures: list[str]) -> None:
         if marker not in runbook:
             failures.append(f"docs/operations/PRODUCTION_RUNBOOK.md missing marker {marker}")
     for marker in [
-        "app.thoughtpins.com",
+        "thoughtpins.com",
         "api.thoughtpins.com",
         "staging.thoughtpins.com",
         "api-staging.thoughtpins.com",

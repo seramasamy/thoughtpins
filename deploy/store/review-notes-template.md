@@ -15,7 +15,7 @@ The review password is stored only in the private App Store Connect or Play Cons
 ## URLs
 
 - Marketing site: https://thoughtpins.com
-- Web app: https://app.thoughtpins.com/app
+- Web app: https://thoughtpins.com/app
 - API base URL: https://api.thoughtpins.com/v1
 - Privacy Policy: https://thoughtpins.com/privacy
 - Terms: https://thoughtpins.com/terms

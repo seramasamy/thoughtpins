@@ -11,7 +11,7 @@ production shape is:
 
 - `thoughtpins.com`: static public/legal site from `site/`.
 - `www.thoughtpins.com`: redirect to `thoughtpins.com`.
-- `app.thoughtpins.com`: backend-served web app at `/app`.
+- `thoughtpins.com`: backend-served web app at `/app`.
 - `api.thoughtpins.com`: backend `/v1` API.
 - `staging.thoughtpins.com` and `api-staging.thoughtpins.com`: staging.
 

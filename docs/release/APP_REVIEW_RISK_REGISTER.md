@@ -33,7 +33,7 @@ This register is an engineering checklist, not legal advice. It records the reas
 
 ## Remaining External Proof Before Submission
 
-- Publish `thoughtpins.com` and `app.thoughtpins.com` over HTTPS with the same legal pages.
+- Publish `thoughtpins.com` and `thoughtpins.com` over HTTPS with the same legal pages.
 - Run Docker/PostgreSQL RLS verification on a Docker-capable host.
 - Preserve the passing Playwright, axe, responsive, maintenance, and offline evidence from the final release commit.
 - Seed a private review account and enter its credentials only in App Store Connect / Play Console.

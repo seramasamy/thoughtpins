@@ -45,7 +45,7 @@ REQUIRED_PUBLIC_URLS = {
     "support": "https://thoughtpins.com/support",
     "account_deletion": "https://thoughtpins.com/account/delete",
     "ai_disclosure": "https://thoughtpins.com/ai-disclosure",
-    "web_app": "https://app.thoughtpins.com/app",
+    "web_app": "https://thoughtpins.com/app",
     "api": "https://api.thoughtpins.com/v1",
 }
 

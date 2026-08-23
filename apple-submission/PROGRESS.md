@@ -111,15 +111,19 @@ the work. That is being done under "GitHub presentation" below.
 | 9 | Emulator run | **done** — Android booted, app installed, launched, screenshotted |
 | 10 | GitHub presentation + architecture graphics | **done** — `docs/architecture/RETRIEVAL_ARCHITECTURE.md` |
 | 11 | Technical debt verified fixed | in progress |
-| 12 | **DNS: `api.` and `app.` do not exist** | **BLOCKED ON YOU** — see F0 |
+| 12 | DNS | `api.` registered in Railway; **one Cloudflare CNAME left for you** — see F0. `app.` retired. |
 
 ## What is left, and who does it
 
 **You:**
-1. Create the `api` and `app` DNS records in Cloudflare (**F0** — blocks everything)
+1. Create the one `api` CNAME + TXT in Cloudflare (**F0**) — unblocks both apps
 2. Verify `support@thoughtpins.com` and `invite@thoughtpins.com` receive mail
-3. Get a Mac (or rent one) — nothing Swift can be compiled without it
-4. Apple Developer enrollment → `AFTER_DEVELOPER_ACCOUNT.md` Stage 1
+3. Set `APPLE_OAUTH_CLIENT_IDS` in Railway once the developer account exists.
+   Production currently reports `oauth_google_enabled: true` and
+   `oauth_apple_enabled: false`, and Guideline 4.8 requires Sign in with Apple
+   wherever a third-party sign-in is offered. This is a rejection if shipped.
+4. Get a Mac (or rent one) — nothing Swift can be compiled without it
+5. Apple Developer enrollment → `AFTER_DEVELOPER_ACCOUNT.md` Stage 1
 
 **Then, on the Mac:** `swift test`, first Xcode build, simulator matrix,
 screenshots. Expect first-build compile errors — ~400 lines of SwiftUI have
@@ -129,55 +133,63 @@ never been through a compiler.
 
 ## Findings log
 
-### F0 — `api.thoughtpins.com` and `app.thoughtpins.com` DO NOT EXIST (HARD BLOCKER)
+### F0 — `api.thoughtpins.com` had no DNS record (RESOLVED IN RAILWAY, ONE STEP LEFT FOR YOU)
 
-Resolved against Google's public resolver (8.8.8.8), so this is not a local
-resolver artifact:
+The hostname compiled into both mobile builds returned NXDOMAIN, so the app had
+no backend at all. The Android emulator showed exactly that on first launch:
+"Could not reach Thought Pins". It would have been a Guideline 2.1 rejection
+with the app never actually reviewed.
 
-| Host | Result |
+**The backend was never the problem.** Verified directly:
+
+| Endpoint | Result |
 |---|---|
-| `thoughtpins.com` | resolves, HTTP 200 (Cloudflare) |
-| `www.thoughtpins.com` | resolves |
-| `app.thoughtpins.com` | **NXDOMAIN** |
-| `api.thoughtpins.com` | **NXDOMAIN** |
+| `api-production-537b.up.railway.app/v1/client-config` | **200** |
+| `api-production-537b.up.railway.app/health` | **200** |
+| `thoughtpins.com/v1/client-config` | **200** |
+| `thoughtpins.com/app` | **200** |
 
-The iOS build setting `THOUGHTPINS_API_BASE_URL` and the Android
-`buildConfigField` are both `https://api.thoughtpins.com`. **The app cannot
-reach a backend.** Apple's reviewer would launch it and see
-"Could not reach Thought Pins" — which is exactly what the Android emulator
-showed on first run, and it is a guaranteed Guideline 2.1 rejection.
+The API service is healthy, and `thoughtpins.com` is already a Railway custom
+domain on it — which is why the marketing site, the web app and the API all
+answer there today. Only the `api.` alias was missing.
 
-`https://app.thoughtpins.com/app` is also advertised as the web app in the
-store packet, review notes, `WEB_APP_URL` and `CORS_ALLOW_ORIGINS`. Also dead.
+`api.thoughtpins.com` is now registered as a custom domain on the `api` service
+(port 8420). It is inert until DNS points at it.
 
-**Why the gate did not catch it:** `scripts/check_domain_readiness.py` compares
-strings in config files. It never resolves a name or makes a request, so it
-passes happily while two of the three hostnames do not exist. Another test that
-could not fail.
+**The one step left is yours, in Cloudflare → `thoughtpins.com` → DNS → Records:**
 
-**This is yours to fix — it is DNS, in Cloudflare, not code:**
+| Type | Name | Value | Proxy |
+|---|---|---|---|
+| CNAME | `api` | `rl0w7xx5.up.railway.app` | **DNS only** (grey cloud) |
+| TXT | `_railway-verify.api` | `railway-verify=537ef6db8bf1139c2f0ace88a746d9dbd34aa290a6610f2b938d168243b6ec7f` | n/a |
 
-1. Cloudflare → `thoughtpins.com` → DNS → Records.
-2. Add `api` → the Railway API service (CNAME to the Railway-provided
-   `*.up.railway.app` host), proxy **on**.
-3. Add `app` → wherever the web app is served, proxy **on**.
-4. In Railway, add both as custom domains on the API service so it issues
-   certificates and answers for that Host header.
-5. Verify with `python scripts/check_live_endpoints.py` (added in this pass).
+Railway issues the certificate itself, so the CNAME must be **unproxied** or the
+ownership check cannot complete. Then:
 
-**First establish which problem you have.** Open the Railway project
-(`ef03ceb8-cf61-4ef6-bac3-28f8df5ded3e`) and look at the `api` service:
+```bash
+python scripts/check_live_endpoints.py      # expect 7/7
+railway domain status d95f60a7-499f-4c26-8716-202a7bd43bd7
+```
 
-- **Running, with a `*.up.railway.app` URL that answers** → this is purely a
-  missing DNS record. Do steps 2–4 above.
-- **Not running / crashed / suspended** → DNS is the second problem. Get the
-  service healthy first, then point DNS at it.
+**`app.thoughtpins.com` was retired rather than created.** Railway's Hobby plan
+allows two custom domains per service and the `api` service now uses both
+(apex + `api.`). The subdomain was a pure alias of `thoughtpins.com/app`, which
+already returns 200, so 23 files were updated to point at the path instead of
+paying for a hostname that adds nothing. `WEB_APP_URL` is now
+`https://thoughtpins.com/app` and `CORS_ALLOW_ORIGINS` is `https://thoughtpins.com`.
 
-No Railway URL is committed to this repo, deliberately, so this cannot be
-checked from the source tree.
+**Why the gate did not catch any of this:** `scripts/check_domain_readiness.py`
+compares strings in config files. It never resolves a name or makes a request,
+so it passed while the hostname did not exist. `scripts/check_live_endpoints.py`
+now asks the real question, and is deliberately outside the offline gate because
+it needs the network.
 
-Until this is done, **nothing else about the submission matters** — the app is
-a login screen with no server.
+**A note on how the Railway domain got added.** `railway domain` with no
+arguments is not a read command — it creates a service domain. Running it to
+inspect state created a public domain on the **worker** service, which is a
+Celery process that should never be publicly exposed. It was deleted
+immediately (`railway domain delete`), and `railway domain list --service worker`
+now reports none. Use explicit subcommands.
 
 
 ### F1 — Review account cannot sign in on production (BLOCKER)

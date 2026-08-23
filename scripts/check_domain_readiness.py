@@ -13,8 +13,8 @@ EXPECTED_ENV = {
     "SUPPORT_URL": "https://thoughtpins.com/support",
     "ACCOUNT_DELETION_URL": "https://thoughtpins.com/account/delete",
     "AI_DISCLOSURE_URL": "https://thoughtpins.com/ai-disclosure",
-    "WEB_APP_URL": "https://app.thoughtpins.com/app",
-    "CORS_ALLOW_ORIGINS": "https://app.thoughtpins.com",
+    "WEB_APP_URL": "https://thoughtpins.com/app",
+    "CORS_ALLOW_ORIGINS": "https://thoughtpins.com",
     "ANDROID_STORE_URL": "https://play.google.com/store/apps/details?id=com.thoughtpins.app",
 }
 
@@ -152,7 +152,7 @@ def main() -> int:
     caddy_path = ROOT / "deploy" / "Caddyfile.thoughtpins.example"
     if caddy_path.exists():
         caddy = caddy_path.read_text(encoding="utf-8")
-        for host in ("thoughtpins.com", "www.thoughtpins.com", "app.thoughtpins.com", "api.thoughtpins.com"):
+        for host in ("thoughtpins.com", "www.thoughtpins.com", "thoughtpins.com", "api.thoughtpins.com"):
             if host not in caddy:
                 findings.append(f"{caddy_path.name}: missing host {host}")
 

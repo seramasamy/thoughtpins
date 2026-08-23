@@ -453,7 +453,7 @@ function clientConfig(mode: MockMode, voiceArchiveEnabled = false) {
     legal_document_version: "2026-07-13",
     minimum_supported_clients: { ios: "1.0.0", android: "1.0.0", web: "1.0.0" },
     recommended_clients: { ios: "1.0.0", android: "1.0.0", web: "1.0.0" },
-    store_urls: { ios: null, android: null, web: "https://app.thoughtpins.com/app" },
+    store_urls: { ios: null, android: null, web: "https://thoughtpins.com/app" },
     maintenance_mode: mode === "maintenance",
     maintenance_message: mode === "maintenance" ? "Thought Pins is in maintenance for a short upgrade. Please try again soon." : null,
     maintenance_retry_after_seconds: mode === "maintenance" ? 300 : null,

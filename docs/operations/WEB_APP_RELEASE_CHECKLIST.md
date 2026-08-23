@@ -104,7 +104,7 @@ hardcode fetch paths.
 ## Domain Targets
 
 - Public site/legal pages: `https://thoughtpins.com`.
-- Production web app: `https://app.thoughtpins.com/app`.
+- Production web app: `https://thoughtpins.com/app`.
 - Production API: `https://api.thoughtpins.com/v1`.
 - Staging web app: `https://staging.thoughtpins.com/app`.
 - Staging API: `https://api-staging.thoughtpins.com/v1`.

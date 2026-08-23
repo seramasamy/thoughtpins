@@ -82,7 +82,7 @@ Do this *before* the archive, so the app the reviewer opens has data.
    check `INVITE_ONLY`.
 
 6. **Prove the demo account works end to end from outside.**
-   Sign in at https://app.thoughtpins.com/app with the review credentials. You
+   Sign in at https://thoughtpins.com/app with the review credentials. You
    must land in the product, **not** on an invite screen. Open People, send one
    chat message, open Account.
    *Done when:* you saw a chat reply and a memory card, signed out, signed back

@@ -23,7 +23,7 @@
                         "support":  "https://thoughtpins.com/support",
                         "account_deletion":  "https://thoughtpins.com/account/delete",
                         "ai_disclosure":  "https://thoughtpins.com/ai-disclosure",
-                        "web_app":  "https://app.thoughtpins.com/app",
+                        "web_app":  "https://thoughtpins.com/app",
                         "api":  "https://api.thoughtpins.com/v1"
                     },
     "store_targets":  {
@@ -40,7 +40,7 @@
                                           "distribution":  "Play internal testing before closed testing"
                                       },
                           "web":  {
-                                      "origin":  "https://app.thoughtpins.com",
+                                      "origin":  "https://thoughtpins.com",
                                       "minimum_supported_version":  "1.0.0",
                                       "distribution":  "closed beta web app before native store submission"
                                   }

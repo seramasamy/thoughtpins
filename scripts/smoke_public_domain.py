@@ -19,7 +19,7 @@ class Probe:
 
 def main() -> int:
     public_base = os.getenv("THOUGHTPINS_PUBLIC_URL", "https://thoughtpins.com").rstrip("/")
-    app_base = os.getenv("THOUGHTPINS_APP_URL", "https://app.thoughtpins.com").rstrip("/")
+    app_base = os.getenv("THOUGHTPINS_APP_URL", "https://thoughtpins.com").rstrip("/")
     api_base = os.getenv("THOUGHTPINS_API_URL", "https://api.thoughtpins.com").rstrip("/")
 
     probes = [

@@ -21,27 +21,44 @@ Existing material this builds on rather than duplicates:
 
 ## Blocking, in order
 
-### 1. `api.thoughtpins.com` does not exist — **yours to fix, in Cloudflare**
+### 1. One Cloudflare DNS record — **yours, ~2 minutes**
 
-Both mobile builds compile `https://api.thoughtpins.com` as their base URL. It
-returns NXDOMAIN. So does `app.thoughtpins.com`. The app has no backend, and a
-reviewer would see "Could not reach Thought Pins" on launch.
+`api.thoughtpins.com` is the base URL compiled into both mobile builds and it
+had no DNS record, so the app had no backend. The API service itself is healthy
+and `api.thoughtpins.com` is now registered on it in Railway; it is inert until
+DNS points at it.
+
+Cloudflare → `thoughtpins.com` → DNS → Records:
+
+| Type | Name | Value | Proxy |
+|---|---|---|---|
+| CNAME | `api` | `rl0w7xx5.up.railway.app` | **DNS only** (grey cloud) |
+| TXT | `_railway-verify.api` | `railway-verify=537ef6db8bf1139c2f0ace88a746d9dbd34aa290a6610f2b938d168243b6ec7f` | n/a |
+
+Must be unproxied — Railway issues the certificate and the grey cloud is what
+lets its ownership check complete.
 
 ```bash
-python scripts/check_live_endpoints.py
+python scripts/check_live_endpoints.py   # expect 7/7
 ```
 
-Currently reports 6 of 8 reachable. Full detail and the fix in
-[`PROGRESS.md`](PROGRESS.md) under **F0**. Nothing else matters until this is
-done.
+Full detail in [`PROGRESS.md`](PROGRESS.md) under **F0**.
 
-### 2. No Mac — **blocks everything in Stage 3**
+### 2. Sign in with Apple is off in production
+
+Production reports `oauth_google_enabled: true` and `oauth_apple_enabled: false`.
+Guideline 4.8 requires Sign in with Apple wherever a third-party sign-in is
+offered, so this is a rejection as it stands. It is not fixable yet —
+`APPLE_OAUTH_CLIENT_IDS` needs an Apple Developer account. Set it in Railway
+before submitting.
+
+### 3. No Mac — **blocks everything in Stage 3**
 
 No SwiftUI in this repository has ever been compiled. Roughly 400 lines,
 including everything changed in the last two passes. Expect first-build errors
 and treat them as normal.
 
-### 3. Screenshots — blocked on 2
+### 4. Screenshots — blocked on 3
 
 iPhone 6.9" (1290 × 2796) and iPad 13" (2064 × 2752), at least three each. iPad
 is required because the target is universal.

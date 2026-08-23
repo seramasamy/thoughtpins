@@ -2,7 +2,7 @@
 
 `check_domain_readiness.py` compares strings in config files. That is worth
 doing, and it is not the same question. It passed for months while
-`api.thoughtpins.com` and `app.thoughtpins.com` had no DNS record at all, so
+`api.thoughtpins.com` and `thoughtpins.com` had no DNS record at all, so
 the iOS and Android builds carried a base URL pointing at a hostname that did
 not exist — an App Review reviewer would have opened the app to
 "Could not reach Thought Pins".
@@ -47,7 +47,7 @@ ENDPOINTS: tuple[tuple[str, str, bool], ...] = (
     ("https://thoughtpins.com/support", "App Store support URL, which Apple fetches", True),
     ("https://thoughtpins.com/ai-disclosure", "linked from the in-app consent screen", True),
     ("https://thoughtpins.com/account/delete", "Guideline 5.1.1(v) account deletion resource", True),
-    ("https://app.thoughtpins.com/app", "web app advertised in the store packet", True),
+    ("https://thoughtpins.com/app", "web app advertised in the store packet", True),
 )
 
 

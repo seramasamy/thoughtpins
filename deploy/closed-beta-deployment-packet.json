@@ -18,7 +18,7 @@
                          "support":  "https://thoughtpins.com/support",
                          "account_deletion":  "https://thoughtpins.com/account/delete",
                          "ai_disclosure":  "https://thoughtpins.com/ai-disclosure",
-                         "web_app":  "https://app.thoughtpins.com/app",
+                         "web_app":  "https://thoughtpins.com/app",
                          "api":  "https://api.thoughtpins.com/v1"
                      },
     "staging_hosts":  {
@@ -151,7 +151,7 @@
                                      "native_submission_requires_native_shells":  true
                                  },
     "known_external_blockers_before_closed_beta":  [
-                                                       "Provision public DNS and TLS for thoughtpins.com, app.thoughtpins.com, api.thoughtpins.com, staging.thoughtpins.com, and api-staging.thoughtpins.com.",
+                                                       "Provision public DNS and TLS for thoughtpins.com, thoughtpins.com, api.thoughtpins.com, staging.thoughtpins.com, and api-staging.thoughtpins.com.",
                                                        "Deploy PostgreSQL, Redis, API, worker, and persistent vault/vector/report storage.",
                                                        "Run the Compose rehearsal and PostgreSQL RLS verification from a host with Docker daemon access.",
                                                        "Run Playwright web smoke/screenshots in an unrestricted browser environment.",

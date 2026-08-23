@@ -1,7 +1,7 @@
 # How Recall Works
 
 Thought Pins does not do RAG in the usual sense. There is no single vector index
-that a question is matched against. A question runs through six independent
+that a question is matched against. A question runs through eight independent
 retrieval channels, and their disagreement is itself a signal in the ranking.
 
 This document describes what the code actually does. Where a claim has been
@@ -16,12 +16,14 @@ is said plainly.
 flowchart TB
     Q["Question"] --> A["Query analysis<br/>tokens · phrases · temporal window · social intent"]
 
-    A --> C1["SQL lexical<br/>substring + keyword"]
-    A --> C2["Dense vector<br/>1536-d embeddings"]
-    A --> C3["Graph expansion<br/>entity neighbourhood"]
-    A --> C4["Graph evidence<br/>relationship paths"]
-    A --> C5["Document title"]
-    A --> C6["Raw keyword"]
+    A --> C1["entity_filter<br/>resolved entity scope"]
+    A --> C2["exact_phrase<br/>literal substring"]
+    A --> C3["vector<br/>1536-d embeddings"]
+    A --> C4["keyword<br/>term match over memories"]
+    A --> C5["sql_graph<br/>entity neighbourhood"]
+    A --> C6["graph_evidence<br/>relationship paths"]
+    A --> C7["document_title"]
+    A --> C8["raw_keyword<br/>unextracted entry text"]
 
     C1 --> M["Candidate merge<br/>one row per memory, sources accumulated"]
     C2 --> M
@@ -29,6 +31,8 @@ flowchart TB
     C4 --> M
     C5 --> M
     C6 --> M
+    C7 --> M
+    C8 --> M
 
     M --> R["Score fusion<br/>RankingWeights · 20 bounded coefficients"]
     R --> D["Diversification<br/>drop near-duplicate evidence"]
@@ -48,18 +52,20 @@ lexical and graph evidence.
 
 ---
 
-## Why six channels instead of one embedding index
+## Why eight channels instead of one embedding index
 
 Because they fail differently, and the failures are not correlated.
 
 | Channel | Finds what the others miss | Its blind spot |
 |---|---|---|
-| Dense vector | Paraphrase — "felt low" for "was depressed" | Rare proper nouns it never saw in training |
-| SQL lexical | Exact rare names, IDs, spellings | Any rewording at all |
-| Graph expansion | Facts about a person you did not name | Needs the entity to be resolved first |
-| Graph evidence | Multi-hop — "who introduced me to Maya" | Sparse early in a journal's life |
-| Document title | Sources by what they are called | Nothing inside the document |
-| Raw keyword | Text not yet extracted into memory | No semantic reach |
+| `vector` | Paraphrase — "felt low" for "was depressed" | Rare proper nouns it never saw in training |
+| `exact_phrase` | Literal strings vectors reliably miss on rare names | Any rewording at all |
+| `keyword` | Term overlap when the phrasing is close but not exact | Synonyms |
+| `entity_filter` | Everything scoped to a person once they are resolved | Needs the resolution to succeed first |
+| `sql_graph` | Facts about a person you did not name | Needs the entity to be resolved first |
+| `graph_evidence` | Multi-hop — "who introduced me to Maya" | Sparse early in a journal's life |
+| `document_title` | Sources by what they are called | Nothing inside the document |
+| `raw_keyword` | Entry text not yet extracted into memory | No semantic reach |
 
 Embeddings alone reliably miss rare proper nouns; that is the single most
 common failure in personal memory, because a journal is mostly proper nouns.

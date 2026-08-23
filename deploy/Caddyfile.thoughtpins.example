@@ -2,26 +2,35 @@
     email ops@thoughtpins.com
 }
 
+# The apex serves the marketing site, the web app at /app, and the API at /v1
+# from one host. There is no app.thoughtpins.com: it was a pure alias of a path
+# that already worked, and hosting plans meter custom domains.
 thoughtpins.com {
-    root * /srv/thoughtpins/site
     encode zstd gzip
-    try_files {path} {path}.html {path}/index.html
-    file_server
     header {
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
         X-Content-Type-Options "nosniff"
         Referrer-Policy "strict-origin-when-cross-origin"
         Permissions-Policy "camera=(), microphone=(self), geolocation=(), payment=()"
     }
+
+    handle /app* {
+        reverse_proxy 127.0.0.1:8420
+    }
+
+    handle /v1* {
+        reverse_proxy 127.0.0.1:8420
+    }
+
+    handle {
+        root * /srv/thoughtpins/site
+        try_files {path} {path}.html {path}/index.html
+        file_server
+    }
 }
 
 www.thoughtpins.com {
     redir https://thoughtpins.com{uri} permanent
-}
-
-app.thoughtpins.com {
-    redir / /app 302
-    reverse_proxy 127.0.0.1:8420
 }
 
 api.thoughtpins.com {

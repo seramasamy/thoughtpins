@@ -39,51 +39,43 @@ and find the right detail months later — without handing your journal to an ad
 
 ## Why not just use ChatGPT or Claude memory?
 
-Fair question, and the honest answer is that they solve a different problem. Their memory
-exists to make *the assistant* better across sessions. Thought Pins exists to make *your
-record of your own life* searchable. Those pull in different directions, and four differences
-follow from it.
+They solve a different problem. Their memory makes *the assistant* better across sessions.
+Thought Pins makes *your record of your own life* searchable. Four differences follow.
 
-**It is a record, not a summary.** Assistant memory is lossy by design — it keeps a compact
-profile of what's useful to know about you. Thought Pins keeps what you wrote, verbatim,
-alongside the structure extracted from it. You can always get back to the sentence.
+**A record, not a summary.** Assistant memory is lossy by design — a compact profile of
+what's useful to know about you. Thought Pins keeps what you wrote, verbatim, alongside the
+structure extracted from it. You can always get back to the sentence.
 
-**Attribution survives.** Your journal is full of things you did not witness: what someone
-told you, what you assumed, what you later corrected. Systems that flatten that into a
-profile will tell you "Tom is leaving." Thought Pins carries an epistemic status end to end
-and answers "Sarah told you Tom was leaving." That distinction is the difference between a
-memory you can act on and one you have to go re-check. It is the thing this codebase spends
-the most effort on, and it is
+**Attribution survives.** A journal is full of things you did not witness: what someone told
+you, what you assumed, what you later corrected. Flatten that into a profile and you get
+"Tom is leaving." Thought Pins carries epistemic status end to end and answers "Sarah told
+you Tom was leaving" — the difference between a memory you can act on and one you have to
+re-check. It is what this codebase spends the most effort on, and it is
 [measured](tests/test_retrieval_robustness.py), not asserted.
 
 **Retrieval is inspectable and reproducible.** Eight independent channels propose candidates;
-a pure ranking function with nineteen bounded coefficients orders them. Same corpus, same
-query, same result — on any process, on any run. You can ablate a signal and measure what it
-was worth. Assistant memory is a black box that occasionally surprises you, which is fine for
-a chat assistant and not fine for a system of record.
+a pure ranking function with twenty bounded coefficients orders them. Same corpus, same
+query, same result. You can ablate a signal and measure what it was worth — fine to skip for
+a chat assistant, not for a system of record.
 
-**It is yours to leave.** Everything exports as a plain Obsidian vault — Markdown, YAML
-properties, wikilinks, a JSON Canvas map. Not an export button producing a JSON blob you'd
-need us to read: a folder you open in Obsidian, or in any text editor, forever. Minor point
-next to the others, but it's the one that makes the others credible — a promise you can walk
-away from is a promise you can check.
+**Yours to leave.** Everything exports as a plain Obsidian vault: Markdown, YAML properties,
+wikilinks, a JSON Canvas map. A folder you open in any text editor, forever. Minor next to
+the others, but it makes them credible — a promise you can walk away from is one you can
+check.
 
-**Why not Claude with an Obsidian vault?** Genuinely good, and if you live in a terminal it
-may be all you need. Two things it cannot do. It cannot capture at the moment that matters —
-the record is written walking out of the meeting, not at a desk an hour later, and a CLI is
-not reachable from a taxi. And Markdown with lexical search cannot answer *"who have I not
-spoken to since March."* That is not a text query. It is a scan over `last_seen_at` on a
-typed edge between two entities, which is a schema decision you make on day one or never.
+**Claude with an Obsidian vault?** Genuinely good, and if you live in a terminal it may be
+all you need. But a CLI is not reachable from a taxi, and the record is written walking out
+of the meeting. Nor can Markdown with lexical search answer *"who have I not spoken to since
+March"* — that is a scan over `last_seen_at` on a typed edge, a schema decision you make on
+day one or never.
 
-**Why not a memory layer like Mem0 or Zep?** Those are infrastructure — SDKs for giving
-*your* application a memory. Different layer of the stack, and if you are building an app you
-should probably use one. Thought Pins is the application: an account, a phone, a voice note,
-an export you can walk away with.
+**A memory layer like Mem0 or Zep?** Infrastructure — SDKs for giving *your* application a
+memory. Different layer; if you are building an app, use one. Thought Pins is the
+application: an account, a phone, a voice note, an export you can walk away with.
 
-Where an agent framework like Hermes or a general assistant wins: breadth of tools, doing
-things on your behalf, and not being a single-purpose product. Thought Pins does one thing.
-If you want an assistant that remembers you a bit, use theirs. If you want a searchable
-record of your own life that you own, that's this.
+An agent framework like Hermes, or a general assistant, wins on breadth of tools and doing
+things on your behalf. Thought Pins does one thing. If you want an assistant that remembers
+you a bit, use theirs. If you want a searchable record of your own life that you own, this.
 
 ## What it is
 
@@ -148,7 +140,7 @@ flowchart LR
 SQL is the source of truth. Vectors and the graph are derived indexes that can be rebuilt at
 any time — so a bad embedding model or a corrupted index is an inconvenience, not data loss.
 
-Retrieval is not a single vector lookup. A question runs through six independent
+Retrieval is not a single vector lookup. A question runs through eight independent
 channels — dense vectors, SQL lexical, graph expansion, graph evidence, document
 title, raw keyword — and their *disagreement* is a ranking signal, saturating so
 that the second channel to find a candidate counts and the fifth barely does.
@@ -218,7 +210,7 @@ the owning module for each concern so new code doesn't accumulate in the adapter
 | --- | --- |
 | [Docs index](docs/README.md) | Everything, organised |
 | [Architecture modules](ARCHITECTURE_MODULES.md) | Where code belongs |
-| [How recall works](docs/architecture/RETRIEVAL_ARCHITECTURE.md) | Six retrieval channels, score fusion, the bitemporal schema |
+| [How recall works](docs/architecture/RETRIEVAL_ARCHITECTURE.md) | Eight retrieval channels, score fusion, the bitemporal schema |
 | [Technical review guide](docs/architecture/TECHNICAL_REVIEW_GUIDE.md) | A reviewer's tour with a verification path |
 | [Memory architecture review](docs/architecture/MEMORY_ARCHITECTURE_REVIEW.md) | The design, graded honestly |
 | [Obsidian interoperability](docs/architecture/OBSIDIAN_INTEROPERABILITY.md) | The vault contract |

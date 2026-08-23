@@ -40,7 +40,7 @@ REQUIRED_TEXT = [
     "private App Store Connect or Play Console review notes",
     "never committed to the repository",
     "https://thoughtpins.com",
-    "https://app.thoughtpins.com/app",
+    "https://thoughtpins.com/app",
     "https://api.thoughtpins.com/v1",
     "https://thoughtpins.com/privacy",
     "https://thoughtpins.com/terms",

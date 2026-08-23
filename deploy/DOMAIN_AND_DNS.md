@@ -9,7 +9,7 @@ metadata never depend on founder-local infrastructure.
 - `thoughtpins.com`: public site, legal pages, support, account deletion, AI
   disclosure.
 - `www.thoughtpins.com`: redirect to `thoughtpins.com`.
-- `app.thoughtpins.com`: production web app served by the backend at `/app`.
+- `thoughtpins.com`: production web app served by the backend at `/app`.
 - `api.thoughtpins.com`: production `/v1` API.
 - `staging.thoughtpins.com`: staging web app.
 - `api-staging.thoughtpins.com`: staging `/v1` API.
@@ -44,7 +44,7 @@ support channel. The app and public pages assume that mailbox exists.
 The recommended first production layout is:
 
 - Static public site from `site/` at `thoughtpins.com`.
-- Backend API/web process at `app.thoughtpins.com` and `api.thoughtpins.com`.
+- Backend API/web process at `thoughtpins.com` and `api.thoughtpins.com`.
 - `/app` is the web client path.
 - `/v1/*` is the versioned API path.
 - `/privacy`, `/terms`, `/support`, `/account/delete`, and `/ai-disclosure`
@@ -64,8 +64,8 @@ TERMS_URL=https://thoughtpins.com/terms
 SUPPORT_URL=https://thoughtpins.com/support
 ACCOUNT_DELETION_URL=https://thoughtpins.com/account/delete
 AI_DISCLOSURE_URL=https://thoughtpins.com/ai-disclosure
-WEB_APP_URL=https://app.thoughtpins.com/app
-CORS_ALLOW_ORIGINS=https://app.thoughtpins.com
+WEB_APP_URL=https://thoughtpins.com/app
+CORS_ALLOW_ORIGINS=https://thoughtpins.com
 ANDROID_STORE_URL=https://play.google.com/store/apps/details?id=com.thoughtpins.app
 ```
 

@@ -66,7 +66,7 @@ backend without App Store review latency:
    first only when `npm run build` writes `.thoughtpins-build.json`.
 5. Keep responsive breakpoints aligned with the future native app tabs: Chat,
    Memory, Capture, Library, Account.
-6. Use `thoughtpins.com` for public/legal pages and `app.thoughtpins.com` for
+6. Use `thoughtpins.com` for public/legal pages and `thoughtpins.com` for
    the web app.
 7. Deploy web staging before native TestFlight or Play internal testing.
 

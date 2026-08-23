@@ -49,7 +49,7 @@ def production_smoke_env() -> dict[str, str]:
             "RECOMMENDED_WEB_VERSION": "1.0.0",
             "IOS_STORE_URL": "https://apps.apple.com/app/id0000000000",
             "ANDROID_STORE_URL": "https://play.google.com/store/apps/details?id=com.thoughtpins.app",
-            "WEB_APP_URL": "https://app.thoughtpins.com/app",
+            "WEB_APP_URL": "https://thoughtpins.com/app",
             "REQUIRE_API_AUTH": "true",
             "API_KEY": _fake_secret("api"),
             "JWT_SECRET": _fake_secret("jwt"),
