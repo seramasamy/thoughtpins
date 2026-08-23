@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -40,6 +41,15 @@ internal fun ThoughtPinsAuthScreen(state: ThoughtPinsUiState, viewModel: Thought
     var phone by rememberSaveable { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var legalAccepted by rememberSaveable { mutableStateOf(false) }
+    // Why Create account is disabled, or null when it is not. Code points, so
+    // the client never accepts a password the API is about to reject on length.
+    val registrationBlocker: String? = when {
+        email.isBlank() && phone.isBlank() -> "Add an email address or phone number to create an account."
+        password.codePointCount(0, password.length) < 12 -> "Choose a password of at least 12 characters."
+        password.codePointCount(0, password.length) > 256 -> "Choose a password of 256 characters or fewer."
+        !legalAccepted -> "Accept AI processing above to create an account."
+        else -> null
+    }
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -85,6 +95,22 @@ internal fun ThoughtPinsAuthScreen(state: ThoughtPinsUiState, viewModel: Thought
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             modifier = Modifier.fillMaxWidth(),
         )
+        // Consent sits above the buttons it controls. It used to sit below
+        // them, so "Create account" rendered greyed out with the one control
+        // that enables it further down the screen — visible in the first
+        // emulator run, and the shape of a store rejection that says the
+        // reviewer could not create an account.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(
+                checked = legalAccepted,
+                onCheckedChange = { legalAccepted = it },
+                modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+            )
+            Text(
+                "I consent to private AI processing of content I choose to send.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Button(
                 onClick = { viewModel.login(if (email.isBlank()) phone else email, password) },
@@ -92,15 +118,14 @@ internal fun ThoughtPinsAuthScreen(state: ThoughtPinsUiState, viewModel: Thought
             ) { Text("Sign in") }
             TextButton(
                 onClick = { viewModel.register(email.ifBlank { null }, phone.ifBlank { null }, password, legalAccepted) },
-                enabled = legalAccepted && password.length >= 12 && (email.isNotBlank() || phone.isNotBlank()),
+                enabled = registrationBlocker == null,
+                modifier = Modifier.heightIn(min = 48.dp),
             ) { Text("Create account") }
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = legalAccepted, onCheckedChange = { legalAccepted = it })
-            Text(
-                "I consent to private AI processing of content I choose to send.",
-                style = MaterialTheme.typography.bodyMedium,
-            )
+        // A disabled button with no stated reason is why reviewers file
+        // "unable to create an account".
+        registrationBlocker?.let { reason ->
+            Text(reason, style = MaterialTheme.typography.bodySmall)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             TextButton(

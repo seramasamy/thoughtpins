@@ -74,6 +74,10 @@ def main() -> int:
         print(f"Email: {result.email}")
         print(f"User ID: {result.user_id}")
         print(f"Password: stored from {args.password_env} (not printed)")
+        if result.invite_admitted:
+            print("Invite gate: admitted (a single-use code was minted and redeemed for this account)")
+        else:
+            print("Invite gate: off in this environment, so no code was needed")
         print(
             "Data: "
             f"{result.entries} entries, {result.entities} entities, {result.memories} memories, "

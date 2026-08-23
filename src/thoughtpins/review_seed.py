@@ -37,6 +37,7 @@ from thoughtpins.db import (
     Relationship,
     User,
 )
+from thoughtpins.invites import create_invite_code, invite_required, redeem
 from thoughtpins.store import get_session
 from thoughtpins.users import get_user_by_email, register_user
 from thoughtpins.utils import hash_text
@@ -63,6 +64,7 @@ class ReviewSeedResult:
     devices: int
     audit_logs: int
     export_tables: int
+    invite_admitted: bool = False
     vault_path: str | None = None
     vault_files: int | None = None
     vault_validation_errors: int | None = None
@@ -104,6 +106,9 @@ def seed_review_account(
         session.commit()
         session.refresh(user)
 
+        invite_admitted = _admit_review_user(session, user)
+        session.refresh(user)
+
         rows = _seed_review_rows(session, user)
         export_payload = export_user_data(session, user.id)
         vault_info = _export_review_vault(session, user.id, package_zip=package_vault_zip) if export_vault else {}
@@ -123,6 +128,7 @@ def seed_review_account(
             devices=rows["devices"],
             audit_logs=rows["audit_logs"],
             export_tables=len(export_payload.get("tables", {})),
+            invite_admitted=invite_admitted,
             vault_path=vault_info.get("vault_path"),
             vault_files=vault_info.get("vault_files"),
             vault_validation_errors=vault_info.get("vault_validation_errors"),
@@ -131,6 +137,28 @@ def seed_review_account(
     finally:
         if owns_session:
             session.close()
+
+
+def _admit_review_user(session: Session, user: User) -> bool:
+    """Let the review account past the closed-beta invite gate.
+
+    Production runs `INVITE_ONLY=true` so the public site stays closed, and
+    nothing in this seed used to touch that. The demo account therefore signed
+    in correctly and then met the invite wall — App Review would have seen a
+    gate instead of the product, which is what a Guideline 2.1 "unable to
+    review" rejection is made of.
+
+    Admission goes through a real single-use `InviteCode`, redeemed the way any
+    invitation is. The alternative — a flag that skips the gate — would be a
+    second admission path present for every account, permanently, so that one
+    reviewer could sign in. The plaintext code is deliberately discarded: it has
+    already been consumed and is of no use to anyone afterwards.
+    """
+    if not invite_required():
+        return False
+    _record, code = create_invite_code(session, label="app-review", max_uses=1)
+    redeem(session, user, code)
+    return True
 
 
 def _prepare_review_user_slot(session: Session, email: str, *, reset: bool) -> bool:

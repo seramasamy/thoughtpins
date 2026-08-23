@@ -78,6 +78,104 @@ def test_review_seed_creates_login_ready_demo_account(isolated_db, tmp_path, mon
     assert deleted.json()["deleted"]["raw_entries"] >= 2
 
 
+def test_review_seed_admits_the_reviewer_through_the_closed_beta_gate(isolated_db, tmp_path, monkeypatch):
+    """The demo account has to reach the product, not the invite wall.
+
+    Production runs INVITE_ONLY=true so the public site stays closed. The seed
+    used to ignore that entirely, so App Review would have signed in with the
+    supplied credentials and been shown a gate — a Guideline 2.1 rejection with
+    the app never actually reviewed. Logging in successfully is not the
+    assertion that matters; reaching a gated endpoint is.
+    """
+    from fastapi.testclient import TestClient
+
+    from thoughtpins.config import config
+    from thoughtpins.review_seed import seed_review_account
+    from thoughtpins.store import get_session
+
+    for attribute, value in (
+        ("REQUIRE_API_AUTH", True),
+        ("JWT_SECRET", "review-seed-test-jwt-secret-32chars"),
+        ("VAULT_PATH", tmp_path / "vault"),
+        ("INVITE_ONLY", True),
+    ):
+        monkeypatch.setattr(config, attribute, value)
+        monkeypatch.setattr(type(config), attribute, value)
+
+    secret_for_test = _review_secret_for_test()
+
+    session = get_session()
+    try:
+        result = seed_review_account(
+            email="review@example.com",
+            password=secret_for_test,
+            session=session,
+        )
+        assert result.invite_admitted is True, "the seed must admit the review account while the gate is on"
+    finally:
+        session.close()
+
+    from thoughtpins.api import app
+
+    client = TestClient(app)
+    login = client.post("/v1/auth/login", json={"email": "review@example.com", "password": secret_for_test})
+    assert login.status_code == 200
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    # A gated route, not /v1/me: the invite check runs in middleware for every
+    # path that is not deliberately exempt, so an exempt route would pass here
+    # while the reviewer still could not open the app.
+    cards = client.get("/v1/memory/cards?section=people", headers=headers)
+    assert cards.status_code == 200, cards.text
+
+    status = client.get("/v1/invites/status", headers=headers)
+    if status.status_code == 200:
+        body = status.json()
+        assert body["invite_required"] is True, "the gate must stay on for everyone else"
+        assert body["admitted"] is True
+
+
+def test_a_normal_account_still_meets_the_gate(isolated_db, tmp_path, monkeypatch):
+    """The reviewer's admission must not be a hole for everybody.
+
+    Admission is a redeemed single-use invite rather than a flag that skips the
+    check, so this proves the check still exists for an account that has not
+    redeemed one.
+    """
+    from fastapi.testclient import TestClient
+
+    from thoughtpins.config import config
+
+    for attribute, value in (
+        ("REQUIRE_API_AUTH", True),
+        ("JWT_SECRET", "review-seed-test-jwt-secret-32chars"),
+        ("VAULT_PATH", tmp_path / "vault"),
+        ("INVITE_ONLY", True),
+    ):
+        monkeypatch.setattr(config, attribute, value)
+        monkeypatch.setattr(type(config), attribute, value)
+
+    from thoughtpins.api import app
+
+    client = TestClient(app)
+    registered = client.post(
+        "/v1/auth/register",
+        json={"email": "outsider@example.com", "password": _review_secret_for_test()},
+    )
+    assert registered.status_code in {200, 201}, registered.text
+
+    login = client.post(
+        "/v1/auth/login",
+        json={"email": "outsider@example.com", "password": _review_secret_for_test()},
+    )
+    assert login.status_code == 200
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    blocked = client.get("/v1/memory/cards?section=people", headers=headers)
+    assert blocked.status_code == 403
+    assert blocked.json()["error"]["code"] == "invite_required"
+
+
 def test_review_seed_refuses_production_by_default(isolated_db, monkeypatch):
     from thoughtpins.config import config
     from thoughtpins.review_seed import seed_review_account
