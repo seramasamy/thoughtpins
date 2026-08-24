@@ -1,5 +1,12 @@
 # Google Play — exact steps
 
+> **Parked, deliberately.** A personal account needs one Android device to
+> verify and **20 Android-owning testers opted in for 14 consecutive days**
+> before it can apply for production. With neither device nor testers to hand,
+> Apple is the faster path — TestFlight has no tester minimum. The $25 is a
+> one-time lifetime fee and the account does not expire, so nothing is lost by
+> letting this sit. See [`../apple-submission/MAC_START_HERE.md`](../apple-submission/MAC_START_HERE.md).
+
 Literal. Values are copy-paste. Do these in order; steps 1–3 are the ones that
 start the clock, so do them first even if you cannot finish the rest today.
 
@@ -51,12 +58,29 @@ forwards to unless Gmail's "Send mail as" is configured.
 
 *Done when:* the Play Console dashboard loads and you can select "Create app".
 
-**Know this before you plan anything:** a personal account created recently must
-run a **closed test with a minimum number of opted-in testers for 14 consecutive
-days** before you may apply for production access. The threshold has changed
-twice (it was 20, then reduced) — **read the exact number Play Console shows
-you**, and recruit comfortably more than it, because the count is of testers who
-actually opt in.
+**Know this before you plan anything:** a personal account must run a **closed
+test with 20 opted-in testers for 14 consecutive days** before it may apply for
+production access. Play Console states 20; treat that as the number. (An earlier
+draft of this file said the threshold had been reduced — it had not, and the
+Console is the authority.)
+
+Two things that make 20 harder than it sounds:
+
+- **Testers need Android devices.** They install from Play, so anyone without an
+  Android phone cannot participate. The constraint is not finding 20 people, it
+  is finding 20 with Android handsets.
+- **Removing a tester restarts the 14 days.** Recruit 25–30 so attrition does
+  not reset the clock.
+
+Legitimate sources beyond your own network: tester-swap communities such as
+r/AndroidClosedTesting and several developer Discords, where you join someone
+else's test and they join yours. **Do not use paid tester farms** — Google
+reviews the production-access application itself, and manufactured testing gets
+it rejected, which is slower than doing it properly.
+
+**Organisation accounts are exempt from the 20-tester rule**, but need a D-U-N-S
+number and a real registered business entity. Free to obtain, takes days to
+weeks. Worth knowing if you incorporate later; not a shortcut available today.
 
 ---
 

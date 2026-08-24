@@ -5,6 +5,7 @@ of what is not ready.
 
 | File | What it is |
 |---|---|
+| [`MAC_START_HERE.md`](MAC_START_HERE.md) | **Have the Mac? Start here.** Clone, bootstrap, first compile, simulator, archive |
 | [`REVIEW_NOTES.md`](REVIEW_NOTES.md) | The text to paste into App Store Connect → App Review Information |
 | [`AFTER_DEVELOPER_ACCOUNT.md`](AFTER_DEVELOPER_ACCOUNT.md) | Ordered runbook from enrollment to submission |
 | [`PROGRESS.md`](PROGRESS.md) | Working log, decisions with reasons, findings |
@@ -83,11 +84,11 @@ offered, so this is a rejection as it stands. It is not fixable yet —
 `APPLE_OAUTH_CLIENT_IDS` needs an Apple Developer account. Set it in Railway
 before submitting.
 
-### 2. No Mac — **blocks everything in Stage 3**
+### 2. First Swift compile — **unblocked, a Mac is available**
 
-No SwiftUI in this repository has ever been compiled. Roughly 400 lines,
-including everything changed in the last two passes. Expect first-build errors
-and treat them as normal.
+No SwiftUI here has ever been through a compiler; roughly 500 lines. Expect
+first-build errors and treat them as the expected outcome.
+[`MAC_START_HERE.md`](MAC_START_HERE.md) lists the files in likelihood order.
 
 ### 3. Screenshots — blocked on 2
 
