@@ -24,6 +24,17 @@ play.google.com/console → Get started → **Create a personal account**.
   same-day, sometimes 48 hours.
 - $25 once, not annual.
 
+**Developer name.** This is what appears under the app title on the listing.
+Your own name works and Google lets you change it later, but **"Thought Pins"**
+reads as more established and stays correct if you form a company.
+
+It is presentation, not privacy: if you distribute in the EU and declare as a
+*trader* — which you must if you monetise, now or later — Google publishes your
+legal name and address on the listing whatever the developer name says. And you
+chose Individual for Apple, where your legal name becomes the seller name
+regardless. So a brand here only means the two store listings look different,
+not that your identity is hidden on either.
+
 *Done when:* the Play Console dashboard loads and you can select "Create app".
 
 **Know this before you plan anything:** a personal account created recently must
