@@ -1,7 +1,14 @@
 name: ci
 
 on:
+  # Scoped to the trunk and tags. An unrestricted `push` alongside
+  # `pull_request` ran the whole five-job matrix twice for every branch commit
+  # that also had a PR open — 21 of 43 commits in one recent window, at roughly
+  # 35-40 billable minutes each. Branch commits are covered by pull_request; the
+  # trunk is covered here.
   push:
+    branches: [main]
+    tags: ["v*"]
   pull_request:
   # Native verification is opt-in; see the ios job below for why.
   workflow_dispatch:

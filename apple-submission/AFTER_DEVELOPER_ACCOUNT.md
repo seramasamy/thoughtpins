@@ -133,6 +133,16 @@ Do this *before* the archive, so the app the reviewer opens has data.
     iPad Pro 13". For each: launch, sign in, chat, record a voice note, export,
     and rotate to landscape.
 
+    **Give iPad the same attention as iPhone, not less.** A former reviewer's
+    account is that they test on iPad "almost all of the time" — even for apps
+    that uncheck the iPad box, because unchecking only means you are not
+    claiming native support, not that they will never launch it there. This
+    target claims universal (`TARGETED_DEVICE_FAMILY: "1,2"`), so iPad is
+    definitely tested. An iPhone layout stretched across 13 inches with a
+    1,000pt-wide text column is the kind of thing that reads as "feels broken".
+    Check the chat column measure, the memory-card grid, and Slide Over at
+    320pt specifically.
+
     Then the things only a simulator shows:
     - **Dynamic Type at AX5** (Settings → Accessibility → Display & Text Size)
     - **VoiceOver order** on Chat and Account

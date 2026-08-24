@@ -15,6 +15,36 @@ Play's waiting period runs on its own while you sort out a Mac.
 
 ---
 
+## What the process actually is
+
+From a former App Store reviewer's public account, and it changes what matters:
+
+- **Automated checks first.** They approve nothing — they only prepare the build
+  for a human.
+- **A human installs it and uses it like a normal person.** They are checking
+  trust and compliance, not hunting bugs. Three questions: does it do what you
+  say, does it follow the guidelines, and does anything feel confusing,
+  misleading, unsafe or risky.
+- **Reviewers do read the notes field.** Different person each round.
+- **Ambiguity is resolved against you.** If they cannot understand something, it
+  is safer for them to reject than to guess. This is the single highest-leverage
+  fact: clarity in the notes is worth more than polish in the app.
+- **First-pass approval is "not common at all"** — but the same reviewer said
+  the first review is only the hardest *because* people submit without proper
+  documentation, and that well-documented apps do pass first time.
+- **They test on iPad "almost all of the time"**, even when the iPad box is
+  unchecked. Unchecking only means you are not *claiming* native support; the
+  app still has to launch and not feel broken. **We claim universal
+  (`TARGETED_DEVICE_FAMILY: "1,2"`), so iPad will definitely be tested.**
+- **Anything with user-generated content is flagged risky and needs heavy
+  moderation tooling.** Ours has no sharing surface at all — verified, no feed,
+  no profiles, no user-to-user anything — and the review notes now say so
+  explicitly and first. That is the difference between "private notebook" and
+  "social app we must scrutinise".
+- **A "sent for extra review" outcome is the slow, bad path.** It happens when
+  something is unclear or sensitive. Everything above is aimed at not landing
+  there.
+
 ## The commonly-cited blockers, and where this project actually stands
 
 | What people warn about | Us |

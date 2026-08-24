@@ -40,6 +40,23 @@ to see the product working.
    Obsidian-compatible Markdown vault.
 8. **Account → Delete account** — real, immediate, irreversible deletion.
 
+**NOTHING IS SHARED — THERE IS NO SOCIAL SURFACE**
+
+Everything a person writes here is visible only to their own account. There is
+no feed, no profiles, no following, no comments, no sharing, no public links,
+and no way for one account to see another's content. The app has no
+user-to-user communication of any kind.
+
+This matters for the usual user-generated-content concerns: there is no audience
+to expose anyone to, so the risks that moderation tooling exists to address —
+harassment, distribution of harmful material, contact between adults and minors
+— have no path here. It is a private notebook.
+
+For completeness, the app still has: in-app reporting of unsafe or unexpected AI
+output (Account → Support), and a safety endpoint behind it. Retrieved journal
+text, imported articles and OCR output enter the model prompt as *evidence*,
+never as instructions, so saved content cannot redirect the assistant.
+
 **AI AND PRIVACY**
 
 Content you save or ask about is sent to a third-party AI provider over HTTPS
@@ -69,6 +86,12 @@ purchase links and no advertising. There is no account tier to upgrade.
 
 Microphone only, and only when the user taps record for a voice note. No
 location, contacts, photos, camera, or notifications.
+
+**IPAD**
+
+Universal build. The same five screens, laid out for the larger canvas.
+Everything above can be tested on iPad exactly as on iPhone — same account, same
+data, no iPhone-only paths.
 
 **SUPPORT**
 
