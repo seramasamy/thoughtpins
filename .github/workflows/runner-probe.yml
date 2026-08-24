@@ -1,0 +1,24 @@
+# Temporary diagnostic. Delete once the CI badge is understood.
+#
+# Every job in ci.yml dies in 1-2 seconds having run zero steps, including on a
+# documentation-only commit, while the same tree passes 49/49 locally. That is a
+# runner never being assigned rather than anything in the workflow. This is the
+# smallest possible workflow: if it also fails at zero steps, the cause is the
+# account, not ci.yml.
+name: runner-probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Say hello
+        run: echo "a runner was assigned"
