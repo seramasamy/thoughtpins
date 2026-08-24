@@ -35,6 +35,20 @@ chose Individual for Apple, where your legal name becomes the seller name
 regardless. So a brand here only means the two store listings look different,
 not that your identity is hidden on either.
 
+**Public developer email:** `support@thoughtpins.com`. It is published on the
+profile, so a domain address keeps a personal Gmail off it, and it is already
+the documented support contact on the site and in both store packets.
+
+Google sends a verification message here and registration stalls if it bounces.
+The domain has Cloudflare Email Routing configured (MX → `route*.mx.cloudflare.net`,
+matching SPF), but routing is **per-address** — the MX records existing does not
+mean that mailbox does. Check Cloudflare → Email → Email Routing → Routes for a
+`support@` rule or a catch-all, and send yourself a test from outside. If it is
+not set up, use a Gmail for now; the field is changeable.
+
+Cloudflare Email Routing is forward-only: replies leave from whatever inbox it
+forwards to unless Gmail's "Send mail as" is configured.
+
 *Done when:* the Play Console dashboard loads and you can select "Create app".
 
 **Know this before you plan anything:** a personal account created recently must
