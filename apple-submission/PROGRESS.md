@@ -135,7 +135,7 @@ the work. That is being done under "GitHub presentation" below.
 | # | Item | State |
 |---|---|---|
 | 1 | Review account blocked by invite gate | **done** — real invite minted + redeemed, 2 tests |
-| 2 | Invite gate toggle | **done** — already `INVITE_ONLY`; stays true in prod, website gated |
+| 2 | Invite gate toggle | **off in production** (2026-08-23). `INVITE_ONLY=false` on the api service; codes still mint and redeem, they are simply not required. Revert: set it back to `true` and redeploy. |
 | 3 | Demo account + credentials handoff | **done** — seeder + CLI reports admission |
 | 4 | Apple review notes | **done** — `REVIEW_NOTES.md`, paste-ready |
 | 5 | `apple-submission/` package | **done** |

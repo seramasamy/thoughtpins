@@ -20,17 +20,11 @@ Password: (entered in the Sign-In Information fields above)
 The account is pre-loaded with fictional demo data — no real personal
 information — so every screen has something to show immediately.
 
-**PLEASE READ: THE APP IS IN INVITE-ONLY BETA**
+**OPEN SIGN-UP**
 
-New public sign-ups currently require an invite code. This is a capacity control
-for a solo-developer launch, not a paid feature or a locked-away upgrade. There
-is nothing to buy anywhere in this app.
-
-**The demo account above is already admitted and needs no code.** Please sign in
-with it rather than registering a new account. If you do register a fresh
-account, you will correctly see an "invite code required" screen — that is the
-beta gate working, not a defect. Email invite@thoughtpins.com and I will admit
-any account you create, usually within a few hours.
+You can register your own account if you prefer — sign-up is open and requires
+no code. The demo account above is pre-loaded with data, so it is the faster way
+to see the product working.
 
 **WHAT TO TRY**
 
@@ -91,22 +85,35 @@ same day.
 
 ## Notes for you, not for Apple
 
-### Why the invite-gate paragraph is there
+### The invite gate is off for the submission window
 
-The previous template in `deploy/store/review-notes-template.md` never mentioned
-the gate. Production runs `INVITE_ONLY=true`, and until this pass the seeded
-review account was **not** admitted — the reviewer would have signed in and hit
-a wall. That is a Guideline 2.1 rejection where the app is never actually
-reviewed.
+`INVITE_ONLY=false` was set on the Railway `api` service on 2026-08-23, so
+production sign-up is open and `invite_required` reports `false`. The notes say
+so, and there is nothing for a reviewer to be blocked by.
 
-Two things fix it, and both must hold:
+**Invite codes still work.** Neither `create_invite_code` nor `redeem` consults
+the flag, so codes remain mintable and redeemable — they are simply not
+required. Turning the gate back on is one variable and a redeploy:
 
-1. `seed_review_account` now mints and redeems a real single-use invite for the
-   demo account, so it is admitted through the normal path.
-   `tests/test_review_seed.py::test_review_seed_admits_the_reviewer_through_the_closed_beta_gate`
-   proves it against a gated endpoint, and a sibling test proves an ordinary
-   account still meets the gate.
-2. The notes above tell the reviewer what they will see if they register anyway.
+```bash
+railway variables --service api --set "INVITE_ONLY=true"
+railway redeploy --service api --yes
+```
+
+Everything built for the gated case stays in place and stays tested, so flipping
+it back needs no code change:
+
+- `seed_review_account` mints and redeems a real single-use invite for the demo
+  account when the gate is on. Two tests cover it — one proves the reviewer
+  reaches a gated endpoint, its sibling proves an ordinary account still does
+  not.
+- Both native apps have a gate screen, routed after the consent step, with
+  account deletion reachable from it. Four checks in
+  `check_ios_submission_source.py` fail if any of that is removed.
+
+**If you turn it back on before submitting, restore the paragraph explaining it
+to the reviewer.** A reviewer who registers, hits a wall, and finds no
+explanation in the notes files a Guideline 2.1 rejection.
 
 ### Before you paste
 

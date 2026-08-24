@@ -149,11 +149,24 @@ def test_a_second_digest_waits_for_the_interval(client, invite_only, sent):
 
 
 def test_the_daily_ceiling_holds_even_if_the_interval_is_misconfigured(client, invite_only, sent, monkeypatch):
-    """Two independent limits, so one being wrong cannot open the floodgate."""
+    """Two independent limits, so one being wrong cannot open the floodgate.
+
+    The clock is pinned to midday. The ceiling counts digests since midnight,
+    and this test defeats the interval by ageing the ledger — eight rounds of
+    five minutes walks the earliest record forty minutes back. Run within forty
+    minutes of midnight UTC and those records land in *yesterday*, stop being
+    counted, and the cap correctly declines to fire. The daily reset is right;
+    depending on the wall clock to stay away from it is not. This failed for
+    real at 00:10 UTC, having passed all day.
+    """
+    import thoughtpins.invite_requests as invite_requests
     from thoughtpins.config import config
 
     monkeypatch.setattr(config, "INVITE_DIGEST_MIN_INTERVAL_MINUTES", 1)
     monkeypatch.setattr(type(config), "INVITE_DIGEST_MIN_INTERVAL_MINUTES", 1)
+
+    midday = datetime.now(timezone.utc).replace(hour=12, minute=0, second=0, microsecond=0, tzinfo=None)
+    monkeypatch.setattr(invite_requests, "_utcnow", lambda: midday)
 
     for index in range(8):
         token = _register(client, f"ceiling{index}@example.com")
