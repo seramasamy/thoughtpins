@@ -7,6 +7,26 @@ Keep a Changelog, and the project uses semantic versioning for public releases.
 
 ### Added
 
+- The closed-beta invite gate in both native apps: status and redemption in each
+  mobile core, a gate screen routed after the consent step, and account deletion
+  reachable from behind the gate — an account that cannot use the product yet
+  can still leave it.
+- Android release signing via a gitignored `keystore.properties` or environment
+  variables, registered only when the material is present so an unsigned local
+  release build still works. Verified end to end with a signed App Bundle.
+- Public pages answer `HEAD` as well as `GET`, so uptime monitors and link
+  checkers see the same 200 a browser does instead of a 405.
+- A documentation link-integrity gate: every relative Markdown link in the tree
+  must resolve, in CI and the release gate.
+
+### Fixed
+
+- The chat conversation is one column: the status row, transcript, date
+  dividers, empty state, and composer all derive from a single measure instead
+  of three that nearly agreed, and the empty state centres itself.
+- A daily-ceiling test failed for the forty minutes after midnight UTC because
+  it aged records across the boundary; its clock is pinned to midday.
+
 - Edit and resend a chat turn. Rewinding a conversation discards the replies
   below it, as in any chat product; because a rewound turn may have saved a
   journal entry, retired turns are marked rather than deleted and any entries

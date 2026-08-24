@@ -221,8 +221,8 @@ with the app never actually reviewed.
 
 | Endpoint | Result |
 |---|---|
-| `api-production-537b.up.railway.app/v1/client-config` | **200** |
-| `api-production-537b.up.railway.app/health` | **200** |
+| the Railway service domain, `/v1/client-config` | **200** |
+| the Railway service domain, `/health` | **200** |
 | `thoughtpins.com/v1/client-config` | **200** |
 | `thoughtpins.com/app` | **200** |
 

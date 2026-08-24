@@ -14,7 +14,7 @@ xcodebuild -project ThoughtPins.xcodeproj -scheme ThoughtPins \
 ```
 
 For a signed archive, follow
-[`docs/release/MACOS_XCODE_APP_STORE_RUNBOOK.md`](../../../../docs/release/MACOS_XCODE_APP_STORE_RUNBOOK.md).
+[`docs/release/MACOS_XCODE_APP_STORE_RUNBOOK.md`](../../../docs/release/MACOS_XCODE_APP_STORE_RUNBOOK.md).
 The repository scripts deliberately keep the Apple team, certificates,
 provisioning profiles, review credentials, and App Store Connect credentials out
 of source control:

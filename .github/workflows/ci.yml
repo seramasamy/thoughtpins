@@ -91,6 +91,7 @@ jobs:
           python scripts/forbidden_scan.py
           python scripts/check_log_privacy.py
           python scripts/check_public_export.py
+          python scripts/check_docs_links.py
           python scripts/check_workspace_hygiene.py
           python scripts/check_rls_static.py
           python scripts/check_container_supply_chain.py

@@ -167,7 +167,7 @@ def _check_web_serving_shape() -> list[Check]:
         Check(
             "Web app route served by API",
             "passed"
-            if '@router.get("/app"' in routes_text and 'Path("frontend") / "dist"' in routes_text
+            if '@page_route("/app"' in routes_text and 'Path("frontend") / "dist"' in routes_text
             else "failed",
             "/app should serve the built client from the API origin",
         ),
@@ -179,7 +179,7 @@ def _check_web_serving_shape() -> list[Check]:
         Check(
             "Static public legal pages served by API",
             "passed"
-            if "_resolve_site_dir" in routes_text and '@router.get("/assets/{path:path}"' in routes_text
+            if "_resolve_site_dir" in routes_text and '@page_route("/assets/{path:path}")' in routes_text
             else "failed",
             "API/app origin should serve the same public legal pages and assets as thoughtpins.com when packaged",
         ),

@@ -42,6 +42,32 @@ def create_public_router() -> APIRouter:
             return _file_response(file_path, cache_control="public, max-age=300")
         return _public_html_page(title, fallback_body)
 
+    def page_route(*paths: str, include_in_schema: bool = False):
+        """GET plus HEAD for a public page.
+
+        FastAPI's ``router.get`` registers GET alone — it does not add HEAD the
+        way a bare Starlette route does — so every uptime monitor, link checker,
+        and crawler that probes with HEAD got 405 from the marketing site's
+        front door while browsers saw 200. ``/health`` already carried an
+        explicit HEAD registration for exactly this reason; the public pages
+        now get the same treatment in one place.
+        """
+
+        def decorate(endpoint):
+            for path in paths:
+                # HEAD is a separate, schema-hidden registration rather than a
+                # second method on the GET route. A single route with
+                # methods={"GET", "HEAD"} iterates that set when exporting
+                # OpenAPI, and set order varies per process hash seed — the
+                # committed contract then drifts between identical runs. Two
+                # routes keep the behaviour and leave the schema deterministic,
+                # with only GET documented.
+                router.api_route(path, methods=["GET"], include_in_schema=include_in_schema)(endpoint)
+                router.api_route(path, methods=["HEAD"], include_in_schema=False)(endpoint)
+            return endpoint
+
+        return decorate
+
     def public_page(*paths: str):
         """Register a page under each path and its trailing-slash twin.
 
@@ -56,12 +82,12 @@ def create_public_router() -> APIRouter:
         def decorate(endpoint):
             for path in paths:
                 for form in (path.rstrip("/"), path.rstrip("/") + "/"):
-                    router.get(form, include_in_schema=False)(endpoint)
+                    page_route(form)(endpoint)
             return endpoint
 
         return decorate
 
-    @router.get("/")
+    @page_route("/", include_in_schema=True)
     async def root():
         return site_page_or_fallback(
             "index.html",
@@ -143,8 +169,7 @@ def create_public_router() -> APIRouter:
             """,
         )
 
-    @router.get("/classic", include_in_schema=False)
-    @router.get("/classic/", include_in_schema=False)
+    @page_route("/classic", "/classic/")
     async def classic_home():
         """The alternate landing page linked from the homepage header and footer.
 
@@ -160,30 +185,28 @@ def create_public_router() -> APIRouter:
             """,
         )
 
-    @router.get("/robots.txt", include_in_schema=False)
+    @page_route("/robots.txt")
     async def robots_txt():
         file_path = safe_site_file("robots.txt")
         if file_path is None:
             raise HTTPException(status_code=404, detail="robots.txt not found")
         return _file_response(file_path, cache_control="public, max-age=300")
 
-    @router.get("/sitemap.xml", include_in_schema=False)
+    @page_route("/sitemap.xml")
     async def sitemap_xml():
         file_path = safe_site_file("sitemap.xml")
         if file_path is None:
             raise HTTPException(status_code=404, detail="sitemap.xml not found")
         return _file_response(file_path, cache_control="public, max-age=300")
 
-    @router.get("/assets/{path:path}", include_in_schema=False)
+    @page_route("/assets/{path:path}")
     async def site_asset(path: str):
         file_path = safe_site_file(Path("assets") / path)
         if file_path is None:
             raise HTTPException(status_code=404, detail="Public asset not found")
         return _file_response(file_path, cache_control="public, max-age=86400")
 
-    @router.get("/app", include_in_schema=False)
-    @router.get("/app/", include_in_schema=False)
-    @router.get("/app/{path:path}", include_in_schema=False)
+    @page_route("/app", "/app/", "/app/{path:path}")
     async def web_app(path: str = ""):
         file_path = safe_frontend_file(path)
         if file_path is None:

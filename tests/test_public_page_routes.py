@@ -88,3 +88,17 @@ def test_normalising_the_slash_did_not_open_anything_else(path: str) -> None:
     from thoughtpins.api_route_policy import is_public_path
 
     assert not is_public_path(path), path
+
+
+@pytest.mark.parametrize("path", [*PUBLIC_PATHS, "/robots.txt", "/sitemap.xml"])
+def test_public_pages_answer_head_requests(client: TestClient, path: str) -> None:
+    """HEAD parity with GET, because that is what non-browsers send.
+
+    FastAPI's `router.get` registers GET alone — it does not add HEAD the way a
+    bare Starlette route does — so uptime monitors, `curl -I`, and link checkers
+    got 405 from the marketing site's front door while every browser saw 200.
+    `/health` had carried an explicit HEAD registration for exactly this reason;
+    this pins the same guarantee across every published page.
+    """
+    response = client.head(path)
+    assert response.status_code == 200, f"HEAD {path} answered {response.status_code}"

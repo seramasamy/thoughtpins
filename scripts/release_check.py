@@ -117,6 +117,7 @@ def main() -> int:
     ok &= step("forbidden reference and secret scan", [py, "scripts/forbidden_scan.py"], timeout=30)
     ok &= step("runtime log privacy", [py, "scripts/check_log_privacy.py"], timeout=30)
     ok &= step("public export hygiene", [py, "scripts/check_public_export.py"], timeout=60)
+    ok &= step("documentation link integrity", [py, "scripts/check_docs_links.py"], timeout=30)
     ok &= step("workspace package hygiene", [py, "scripts/check_workspace_hygiene.py"], timeout=30)
     ok &= step("release dependency SBOM", [py, "scripts/generate_sbom.py"], timeout=180)
     ok &= step("domain readiness", [py, "scripts/check_domain_readiness.py"], timeout=30)
