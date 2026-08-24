@@ -9,7 +9,7 @@ of what is not ready.
 | [`AFTER_DEVELOPER_ACCOUNT.md`](AFTER_DEVELOPER_ACCOUNT.md) | Ordered runbook from enrollment to submission |
 | [`PROGRESS.md`](PROGRESS.md) | Working log, decisions with reasons, findings |
 
-**Considering Play first?** See [`../play-submission/`](../play-submission/).
+**Considering Play first?** See [`../play-submission/STEPS.md`](../play-submission/STEPS.md).
 Short answer: start it in parallel, not instead — Android is buildable today and
 Play's waiting period runs on its own while you sort out a Mac.
 

@@ -15,7 +15,7 @@ is not Xcode.
 
 | Thing | Why | Status |
 |---|---|---|
-| Apple Developer Program membership, **Account Holder** role | Nothing below works without it | you said this is in progress |
+| Apple Developer Program membership, **Individual** | Nothing below works without it | decided: individual, not organisation |
 | A Mac running current macOS with Xcode 26+ | The only host that can compile SwiftUI or sign an archive | **you do not have this yet** |
 | `invite@thoughtpins.com` receiving mail | Reviewers email it if the gate stops them | verify |
 | `support@thoughtpins.com` receiving mail | Apple requires a working support contact | verify |
@@ -29,6 +29,20 @@ rejection round-trip.
 ---
 
 ## Stage 1 — Enrollment and identifiers (no Mac needed)
+
+0. **Enrol as an Individual.** developer.apple.com/programs → Enroll.
+   - Sign in with an Apple ID that has **two-factor authentication on**.
+     Enrolment refuses without it, and turning it on later is a detour.
+   - Entity type: **Individual / Sole Proprietor**. No D-U-N-S number, no
+     business documents. Apple verifies you with a government photo ID through
+     their app or website.
+   - $99/year. Approval is usually 24-48 hours, occasionally longer if the ID
+     check needs a second pass.
+   - **Your legal name becomes the seller name shown on the App Store listing.**
+     That is the trade for skipping the D-U-N-S wait. It cannot be changed to a
+     company name later without transferring the app to a new organisation
+     account.
+   *Done when:* the email says your membership is active.
 
 1. **Confirm the membership is active.** developer.apple.com → Account. It
    should say "Apple Developer Program" with an expiry roughly a year out.

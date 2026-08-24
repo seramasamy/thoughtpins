@@ -1,5 +1,7 @@
 # Google Play Submission
 
+**Doing it now? → [`STEPS.md`](STEPS.md)** — literal, copy-paste, in order.
+
 **Recommendation: start Play now, in parallel — not instead of Apple.**
 
 Not because Play is faster to launch. It probably is not. Because Play is the
