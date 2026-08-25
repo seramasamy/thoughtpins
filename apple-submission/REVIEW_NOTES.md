@@ -185,10 +185,18 @@ wall, and finds no explanation files a 2.1 rejection.
 - [ ] Confirm the backend is not in maintenance mode for the whole window.
 - [ ] Re-run `StoreScreenshotTests` if the UI changes, so the screenshots match
       the build being reviewed.
-- [ ] Check `store_urls.web` in `/v1/client-config`. It currently reads
-      `C:/Program Files/Git/app`, which is a Windows path that escaped into
-      production config. Nothing in the iOS app follows it today, but it is
-      served to every client and should not say that.
+- [ ] **Fix `WEB_APP_URL` on Railway.** It holds
+      `C:/Program Files/Git/app` — Git Bash rewrote a leading-slash value before
+      it reached the service. The API no longer serves it (a Windows path is
+      now sent as `null`, so no client shows it), and
+      `scripts/validate_production.py` blocks a deploy while it is wrong, but
+      the variable itself is still wrong:
+
+      ```bash
+      MSYS_NO_PATHCONV=1 railway variables --service api --set "WEB_APP_URL=/app"
+      # or set it to the full URL and avoid the problem entirely:
+      railway variables --service api --set "WEB_APP_URL=https://thoughtpins.com/app"
+      ```
 
 ### Things deliberately not claimed
 

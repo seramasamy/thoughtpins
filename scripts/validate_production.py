@@ -12,7 +12,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from thoughtpins.config import config
+from thoughtpins.config import config, is_shell_mangled_path
 
 
 def oauth_web_build_problems(
@@ -38,6 +38,35 @@ def oauth_web_build_problems(
     return problems
 
 
+def client_url_problems() -> list[str]:
+    """Catch URLs a Windows shell rewrote into filesystem paths.
+
+    Git Bash and MSYS rewrite a bare leading-slash argument before the program
+    sees it, so `WEB_APP_URL=/app` set from that shell is stored as
+    `C:/Program Files/Git/app`. Production served exactly that, and every client
+    reads store_urls to build its update link -- the web app printed it verbatim
+    in the legal screen.
+
+    This is checked here rather than in Config.validate_startup on purpose:
+    init_db raises on a startup problem, and refusing to boot the API over a
+    wrong store link would turn a bad link into an outage. Blocking the deploy
+    is the proportionate place to stop it.
+    """
+    problems: list[str] = []
+    for name, value in (
+        ("WEB_APP_URL", config.WEB_APP_URL),
+        ("IOS_STORE_URL", config.IOS_STORE_URL),
+        ("ANDROID_STORE_URL", config.ANDROID_STORE_URL),
+    ):
+        if is_shell_mangled_path(value):
+            problems.append(
+                f"{name} is a filesystem path, not a URL: {value!r}. "
+                "A leading-slash value set from Git Bash on Windows is rewritten before it "
+                "reaches the service. Re-set it with MSYS_NO_PATHCONV=1, or use a full https:// URL."
+            )
+    return problems
+
+
 def main() -> int:
     problems = config.validate_startup()
 
@@ -59,6 +88,7 @@ def main() -> int:
             config.APPLE_OAUTH_CLIENT_IDS,
         )
     )
+    problems.extend(client_url_problems())
     if problems:
         print("Production validation failed:")
         for problem in problems:

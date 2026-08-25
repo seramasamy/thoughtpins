@@ -11,7 +11,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel
 
-from thoughtpins.config import config
+from thoughtpins.config import config, public_client_url
 from thoughtpins.runtime_health import build_deep_health_checks, build_readiness_checks, deep_health_status
 
 ERROR_CODE_DOCS: dict[str, str] = {
@@ -158,10 +158,14 @@ def create_metadata_router(
                 "android": config.RECOMMENDED_ANDROID_VERSION,
                 "web": config.RECOMMENDED_WEB_VERSION,
             },
+            # public_client_url, not `or None`: a value a Windows shell rewrote
+            # into a filesystem path is served to every client, used to build
+            # update links, and printed verbatim in the web app's legal screen.
+            # Serving nothing is better than serving a path that goes nowhere.
             store_urls={
-                "ios": config.IOS_STORE_URL or None,
-                "android": config.ANDROID_STORE_URL or None,
-                "web": config.WEB_APP_URL or None,
+                "ios": public_client_url(config.IOS_STORE_URL),
+                "android": public_client_url(config.ANDROID_STORE_URL),
+                "web": public_client_url(config.WEB_APP_URL),
             },
             maintenance_mode=config.MAINTENANCE_MODE,
             maintenance_message=config.MAINTENANCE_MESSAGE if config.MAINTENANCE_MODE else None,

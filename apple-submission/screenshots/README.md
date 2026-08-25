@@ -10,11 +10,11 @@ asks Chat a question, waits for the real answer, and walks the tabs.
 
 ## What is here
 
-| Folder | Device | Pixels |
-|---|---|---|
-| `iphone-1290x2796/` | iPhone 15 Pro Max, iOS 17.2 | 1290 × 2796 |
-| `ipad-2048x2732/` | iPad Pro 12.9-inch (6th generation), iOS 17.2 | 2048 × 2732 |
-| `evidence/` | Not for upload — sign-in and consent screens, kept as proof of the review path | 1290 × 2796 |
+| Folder | Device | Pixels | Slot |
+|---|---|---|---|
+| `iphone-1284x2778/` | iPhone 13 Pro Max, iOS 17.2 | 1284 × 2778 | iPhone 6.5-inch |
+| `ipad-2048x2732/` | iPad Pro 12.9-inch (6th generation), iOS 17.2 | 2048 × 2732 | iPad 12.9-inch |
+| `evidence/` | Not for upload — the sign-in screen and the AI-processing consent screen, kept as proof of the review path | — | — |
 
 Six shots per device, in upload order:
 
@@ -27,30 +27,26 @@ Six shots per device, in upload order:
 5. `06-pins` — saved readings
 6. `07-account` — export and delete, in plain sight
 
-## Sizes: what Apple requires, and what these are
+## Sizes: which slot these fill, and why
 
 Apple requires **one iPhone set**, and — because this target is universal
-(`TARGETED_DEVICE_FAMILY: "1,2"`) — **one iPad set**. Sets for smaller display
-classes are optional; App Store Connect scales the largest set down for the
-rest.
+(`TARGETED_DEVICE_FAMILY: "1,2"`) — **one iPad set**. Smaller display classes
+are optional; App Store Connect scales the supplied set down for the rest.
 
-What is here is the largest of each that this toolchain can produce:
+**The iPhone set is 6.5-inch by choice, not because 6.9-inch was unavailable.**
+6.5-inch (1284 × 2778) is an accepted alternative when no 6.9-inch set is
+supplied, and it is produced natively by the iPhone 13 Pro Max simulator, which
+this Xcode has. An earlier set was captured at 1290 × 2796; that is the iPhone
+15 Pro Max's native resolution but is **not a listed iPhone size in App Store
+Connect**, so it would have been rejected at upload. It has been replaced.
 
-- **1290 × 2796** is the native resolution of the iPhone 15 Pro Max (6.7-inch),
-  and has been the standard accepted upload for the top iPhone slot.
-- **2048 × 2732** is the native resolution of the iPad Pro 12.9-inch, and is
-  the long-standing required iPad size.
+The iPad set is 2048 × 2732, the iPad Pro 12.9-inch native resolution, which is
+still an accepted iPad size.
 
-**Confirm the slot in App Store Connect before uploading, and do not take the
-above as final.** Apple added a 6.9-inch iPhone class (1320 × 2868, iPhone 16
-Pro Max) and a 13-inch iPad class (2064 × 2752), and if App Store Connect
-insists on those exact pixel dimensions rather than accepting these, they
-cannot be produced here: those simulators need a newer Xcode than macOS 13
-can install. That is a parked item, not a fixed one — see the outstanding list
-in `MAC_START_HERE.md`.
-
-Nothing about the layout would change, only the canvas: the same six screens
-at a larger frame.
+If you later want the 6.9-inch (1320 × 2868) or 13-inch (2064 × 2752) slots
+filled instead, those need an iPhone 16 Pro Max or iPad Pro 13-inch simulator,
+which need a newer Xcode than macOS 13 can install. Nothing about the layout
+would change, only the canvas — the same six screens at a larger frame.
 
 ## Rules these already satisfy
 

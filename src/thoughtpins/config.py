@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 
+from thoughtpins.config_urls import is_shell_mangled_path, public_client_url  # noqa: F401
 from thoughtpins.config_validation import graph_backend_problems, llm_pricing_problems
 
 load_dotenv()
@@ -29,7 +30,14 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 # Re-exported: validation policy lives in config_validation, but callers and
 # tests have always reached it through this module.
-__all__ = ["Config", "config", "graph_backend_problems", "llm_pricing_problems"]
+__all__ = [
+    "Config",
+    "config",
+    "graph_backend_problems",
+    "is_shell_mangled_path",
+    "llm_pricing_problems",
+    "public_client_url",
+]
 
 
 def _llm_provider() -> str:
