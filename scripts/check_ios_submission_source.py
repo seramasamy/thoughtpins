@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import plistlib
+import re
 import struct
 import sys
 from pathlib import Path
@@ -25,6 +26,7 @@ def main() -> int:
     _check_local_data_cleanup(failures)
     _check_review_shell(failures)
     _check_core_client(failures)
+    _check_swift_key_decoding(failures)
     _check_google_and_release_wiring(failures)
     _check_brand_mark(failures)
     return finish(failures)
@@ -325,6 +327,74 @@ def _check_core_client(failures: list[str]) -> None:
         lines = [line.strip() for line in swift_file.read_text(encoding="utf-8").splitlines() if line.strip()]
         if lines and lines[-1].startswith("@"):
             failures.append(f"dangling Swift attribute at end of {swift_file.relative_to(ROOT)}")
+
+
+def _check_swift_key_decoding(failures: list[str]) -> None:
+    """Two ways to map JSON keys, and using both cancels them out.
+
+    ThoughtPinsAPIClient sets `keyDecodingStrategy = .convertFromSnakeCase`,
+    which rewrites an incoming `access_token` to `accessToken` and then looks
+    for a CodingKey spelled `accessToken`. A model that *also* declares
+    `case accessToken = "access_token"` is asking for a key the strategy has
+    already consumed, so decoding throws and the model can never be built.
+
+    Four models carried such enums and every one was undecodable: email login,
+    OAuth login, token refresh, client config, ingest and device registration
+    would all have failed against the live backend. Nothing catches it until
+    the code runs, which on iOS meant nothing caught it at all.
+
+    Two rules, both cheap:
+
+    1. No `CodingKeys` enum may coexist with the global strategy.
+    2. No property may carry an acronym run like `userID` or `apiURL`.
+       `convertFromSnakeCase` produces `userId` from `user_id` and can never
+       produce `userID`, so such a property is undecodable for the same reason
+       even without an enum.
+    """
+    core = ROOT / "mobile" / "ios" / "ThoughtPinsCore" / "Sources" / "ThoughtPinsCore"
+    client = (core / "APIClient.swift").read_text(encoding="utf-8")
+    if "convertFromSnakeCase" not in client:
+        # The rules below only hold while the strategy is in force.
+        return
+
+    # Only types that actually decode. ClientVersionDecision is Equatable and
+    # built locally, so its `storeURL` never meets a JSON key and is fine — an
+    # unscoped version of this check failed on it, which would have taught the
+    # next reader that the rule is noise.
+    declaration = re.compile(r"^(?:public\s+)?(?:struct|final class|class)\s+(\w+)\s*(?::\s*([^{]+?))?\s*\{", re.M)
+
+    for swift_file in sorted(core.glob("*.swift")):
+        text = swift_file.read_text(encoding="utf-8")
+        name = swift_file.name
+
+        for match in declaration.finditer(text):
+            type_name, conformances = match.group(1), (match.group(2) or "")
+            if "Codable" not in conformances and "Decodable" not in conformances:
+                continue
+            end = text.find("\n}", match.end())
+            body = text[match.end() : end if end != -1 else len(text)]
+
+            # A CodingKeys enum with explicit raw values re-does what the
+            # strategy already did, and the two cancel out. Without raw values
+            # it only selects which properties participate, which is safe.
+            if re.search(r"enum\s+CodingKeys[^{]*\{[^}]*=\s*\"", body, re.S):
+                failures.append(
+                    f"{name}: {type_name} declares CodingKeys with explicit raw values while the "
+                    f"client uses convertFromSnakeCase; the two cancel out and it cannot decode"
+                )
+
+            for prop in re.findall(r"^\s*(?:public\s+)?(?:let|var)\s+([A-Za-z_][A-Za-z0-9_]*)\s*:", body, re.M):
+                # Two consecutive capitals is the whole test. convertFromSnakeCase
+                # turns `user_id` into `userId` — one capital, then lowercase — so
+                # `userID` is unreachable. An earlier version used
+                # `([A-Z][a-z0-9]*)*`, which matches `userID` happily because the
+                # lowercase run may be empty, and so passed on the very bug it
+                # was written to catch.
+                if re.search(r"[A-Z]{2,}", prop):
+                    failures.append(
+                        f"{name}: {type_name}.{prop} contains an acronym run, which "
+                        f"convertFromSnakeCase can never produce, so it cannot decode"
+                    )
 
 
 def _check_google_and_release_wiring(failures: list[str]) -> None:
