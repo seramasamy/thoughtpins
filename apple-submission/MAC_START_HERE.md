@@ -74,19 +74,101 @@ XcodeGen, and attempts an unsigned generic Simulator build. Add
 
 ---
 
-## Stage 2 — The first compile (expect it to fail)
+## Stage 2 — The first compile
 
-**This is the first time any Swift in this project has been through a
-compiler.** Roughly 500 lines have only ever been read, never built. Failures
-here are the expected outcome, not a sign anything is wrong.
+**Status as of 2026-08-25:** this has been done on a Ventura / Xcode 15.2
+machine. `ThoughtPinsCore` and `ThoughtPinsApp` both compile clean under
+`SWIFT_STRICT_CONCURRENCY: complete`, and 15 of 15 core tests pass. Exactly one
+file remains uncompiled anywhere — see **GoogleSignIn** below. Read the two
+traps here before running anything; both cost a session real time.
 
 ```bash
-swift test --package-path mobile/ios/ThoughtPinsCore
+cd mobile/ios/ThoughtPinsCore
+xcodebuild test -scheme ThoughtPinsCore \
+  -destination 'platform=iOS Simulator,name=iPhone 15 Pro'
 ```
 
-That runs `APIClientTests` and `DraftStoreTests` — the shared client and the
-draft store, including the three tests proving a deleted account's offline
-drafts cannot reach the next person on the device.
+That runs `APIClientTests`, `AuthFailureTests` and `DraftStoreTests` — the
+shared client, the sign-in failure mapping, and the draft store, including the
+three tests proving a deleted account's offline drafts cannot reach the next
+person on the device.
+
+### Trap 1: `swift test` fails silently on Ventura
+
+**Do not use `swift test --package-path mobile/ios/ThoughtPinsCore` on macOS
+13.** It compiles everything and then cannot run any of it. `swift test` builds
+for the *host*, `Package.swift` declares `.macOS(.v14)`, and this machine is
+13.7, so the bundle comes out stamped `minos 14.0`:
+
+```
+$ otool -l .build/x86_64-apple-macosx/debug/ThoughtPinsCorePackageTests.xctest/Contents/MacOS/ThoughtPinsCorePackageTests \
+    | grep -A4 LC_BUILD_VERSION
+      cmd LC_BUILD_VERSION
+ platform 1
+    minos 14.0
+      sdk 14.2
+```
+
+The reason it wastes time is that it fails with **no diagnostic whatsoever**.
+`swift test` prints `Build complete!` and exits 1, printing nothing. Running the
+bundle by hand exits 83 — XCTest's "unable to load bundle" — also silently. It
+reads as though the tests passed and something odd happened afterwards. They
+never ran.
+
+**Do not lower `.macOS(.v14)` to fix this.** The comment in `Package.swift`
+explains what that floor is for. The simulator command above builds for iOS,
+which is what the app ships for, and sidesteps the host entirely. On a Mac
+running macOS 14+, plain `swift test` works fine.
+
+### Trap 2: GoogleSignIn 9.1.0 cannot resolve on Xcode 15.2
+
+Confirmed, not hypothetical. Verbatim:
+
+```
+$ xcodebuild -project ThoughtPins.xcodeproj -scheme ThoughtPins \
+    -destination 'platform=iOS Simulator,name=iPhone 15 Pro' \
+    CODE_SIGNING_ALLOWED=NO build
+
+xcodebuild: error: Could not resolve package dependencies:
+  Dependencies could not be resolved because 'googlesignin-ios' >= 9.1.0
+  contains incompatible tools version (6.0.0) and root depends on
+  'googlesignin-ios' 9.1.0.
+```
+
+GoogleSignIn 9.1.0 ships a `swift-tools-version:6.0` manifest, and a 5.9
+toolchain cannot parse a manifest above its own version — it fails before
+compiling a line. There is no flag for it and no workaround short of a newer
+Xcode.
+
+**Do not remove or downgrade the dependency.** `project.yml` pins
+`exactVersion: 9.1.0` and `scripts/check_ios_submission_source.py` fails the
+build without it. Google sign-in cannot be exercised on this machine anyway: it
+needs client IDs that only exist in a signed release build, and with
+`GOOGLE_IOS_CLIENT_ID` empty the provider's `supports(_:)` returns false.
+
+The consequence: **`GoogleOAuthTokenProvider.swift` is the one file in this
+repository no compiler has ever read**, because it is the only importer of
+GoogleSignIn. It is compiled by the `ios` job in `.github/workflows/ci.yml` on
+`macos-latest`, which is the only place it can be. Everything else in the app
+compiles here.
+
+### Running the app on a Ventura machine anyway
+
+The rest of the app can be built and run by excluding that single file. Do it in
+a scratch copy outside the repository — never by editing `project.yml`, which
+the submission gate checks. Two things that are not obvious:
+
+- **Build ad-hoc signed, not `CODE_SIGNING_ALLOWED=NO`, if you intend to sign
+  in.** An unsigned app has no `application-identifier` entitlement, so
+  `KeychainSessionStore.save` fails and sign-in reports failure even though the
+  network call succeeded. Use `CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO
+  CODE_SIGNING_ALLOWED=YES`. (`ThoughtPinsAuthFailure.sessionNotStored` now
+  names this case explicitly rather than blaming the password.)
+- **Seed a local backend** rather than pointing at production:
+  `scripts/seed_review_account.py` with `DATABASE_URL` on SQLite and
+  `REQUIRE_API_AUTH=true` gives a populated account. Without `REQUIRE_API_AUTH`
+  the dev server serves an empty default user to unauthenticated calls, and the
+  app looks signed in with no data.
 
 Then the app target:
 
@@ -106,20 +188,20 @@ xcodebuild -project ThoughtPins.xcodeproj -scheme ThoughtPins \
 `iPhone 15 Pro` is the right destination on Xcode 15.2; the iPhone 17 simulators
 do not exist there. On Xcode 26 substitute the current handset.
 
-### Where errors will be, in likelihood order
+### What the first compile actually found
 
-| File | What is unverified in it |
+For the record, since the list of "where errors will be" guesses was mostly
+wrong. The real ones, all fixed:
+
+| Where | What |
 |---|---|
-| `ThoughtPinsReviewShell.swift` | The invite gate view, auth form restructure, `registrationBlocker`, colour-scheme Apple button |
-| `ThoughtPinsAppModel.swift` | `refreshInviteStatus`, `redeemInvite`, `isBlockedByInviteGate`, reworked `register` |
-| `ThoughtPinsScreens.swift` | `scenePhase` recording teardown, importance row restructure, `contentShape` |
-| `APIClient.swift` / `Models.swift` | `InviteStatusResponse`, `inviteStatus()`, `redeemInvite()` |
-| `ThoughtPinsNativeApp.swift` | Base-URL validation replacing a force-unwrap |
-| `DraftStore.swift` | `purge()` |
+| `ThoughtPinsAppModel.swift` | `ThoughtPinsApiClient` — the actor is `ThoughtPinsAPIClient` |
+| `ThoughtPinsNativeProviders.swift` | Two `init`s used as default arguments needed `nonisolated`; Swift 5.9 type-checks a default argument as nonisolated whatever isolation encloses it (SE-0411 fixes this in Swift 6) |
+| `Models.swift` | Four models declared snake_case `CodingKeys` while the decoder sets `convertFromSnakeCase`. The two cancel out, so `TokenResponse`, `ClientConfig`, `IngestResponse` and `DeviceRegistration` were all undecodable — login, OAuth, refresh, client config, ingest and device registration could not complete. Caught by a test, not the compiler. |
 
-Most likely categories: a missing `import`, an `@MainActor` isolation
-complaint (the target builds with `SWIFT_STRICT_CONCURRENCY: complete`), or a
-SwiftUI `ViewBuilder` type-inference error asking you to break up a large body.
+The concurrency guesses were right in kind — the isolation complaint was real.
+The decoding bug was the one no amount of reading had found, and it is now
+gated by `scripts/check_ios_submission_source.py`.
 
 Fix, commit, push. The gates on Windows will keep verifying everything else.
 
@@ -143,16 +225,36 @@ Minimum device set — take whichever of each pair your Xcode offers:
 For each: launch, sign in with the demo account, send a chat message, record a
 voice note, open Account, export, rotate to landscape.
 
-Then the four things only a simulator shows:
+Then the four things only a simulator shows. **All four were run on
+2026-08-25** (iPhone 15 Pro and iPad Pro 12.9-inch 6th gen, iOS 17.2); what they
+found is recorded here so it is not re-derived:
 
-- **Dynamic Type at AX5** — Settings → Accessibility → Display & Text Size
-- **VoiceOver order** on Chat and Account
-- **Dark mode cold launch** — confirm no white flash (fixed, never verified)
-- **iPad Slide Over at 320pt** — drag the app into a Slide Over window
+- **Dynamic Type at AX5** — Settings → Accessibility → Display & Text Size.
+  Found: the chat composer could not fit mic, field and Send on one row; the
+  field collapsed to about two visible characters. Fixed — the composer picks
+  an `HStack` or `VStack` from `dynamicTypeSize`.
+- **VoiceOver order** on Chat and Account. Both read in visual order; no change
+  needed. Note the chat field is exposed as a `TextView` carrying its
+  placeholder, which is correct, not a missing label.
+- **Dark mode cold launch** — no white flash. The launch background was
+  `#1A1714` while the app settles on `systemGroupedBackground`, so dark launches
+  stepped warm-black to pure black; `LaunchBackground` now matches where the app
+  lands. Verify by frame-sampling, not by eye: the background is `#000000` on
+  every frame in dark and `#F2F2F7` in light.
+- **iPad Slide Over at 320pt** — drag the app into a Slide Over window. Holds:
+  nothing clips, all five tabs stay labelled. `simctl` cannot drive Slide Over,
+  so this was checked by reproducing what it changes — a 320pt frame plus a
+  compact `horizontalSizeClass`.
 
 On iPad specifically, look at the chat column measure and the memory-card grid.
 An iPhone layout stretched across 13 inches is exactly what "feels broken" means
-to a reviewer.
+to a reviewer. **This was the worst of what the run found:** nothing in the app
+constrained width anywhere — no `horizontalSizeClass`, no max width in any of
+the six screens — so the "Use private memories" switch sat ~1200pt from its
+label and the composer ran 1270pt. `thoughtPinsReadableColumn` in
+`ThoughtPinsTheme.swift` now caps the chat column and the memory-card list at
+680pt in regular width only, leaving every iPhone untouched. If you add a
+screen, apply it.
 
 ---
 
