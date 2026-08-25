@@ -29,6 +29,21 @@ LINK = re.compile(r"!?\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 SKIP_PREFIXES = ("http://", "https://", "mailto:", "tel:", "#", "data:")
 
 
+def read_tracked(path: Path) -> str:
+    """Read a tracked file, or return empty when it is staged for deletion.
+
+    `git ls-files` lists what the index knows about, which includes a file
+    deleted from the working tree but not yet committed. Reading it blind
+    raised FileNotFoundError and took the whole check down with a traceback —
+    a gate that crashes is worse than one that fails, because the output tells
+    you nothing about the repository. A file that is not there has no links.
+    """
+    try:
+        return path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return ""
+
+
 def tracked_markdown() -> list[Path]:
     output = subprocess.run(
         ["git", "ls-files", "*.md"],
@@ -43,7 +58,7 @@ def tracked_markdown() -> list[Path]:
 def link_targets(path: Path) -> list[tuple[int, str]]:
     findings: list[tuple[int, str]] = []
     inside_fence = False
-    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+    for number, line in enumerate(read_tracked(path).splitlines(), start=1):
         # Links inside fenced code blocks are examples, not navigation.
         if line.lstrip().startswith("```"):
             inside_fence = not inside_fence

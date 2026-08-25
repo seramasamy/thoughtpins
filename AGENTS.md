@@ -62,10 +62,11 @@ On macOS, use `scripts/bootstrap_macos.sh` for a clean development environment
 and `scripts/ios_release.sh` for the signed archive preflight. Signing material
 stays in Apple Keychain and the developer portal, never in this repository.
 
-**Working on a Mac? Read [`MAC_HANDOFF.md`](MAC_HANDOFF.md) first.** The Swift in
-this repository has never been compiled — the primary development machine runs
-Windows — so a Mac session has a specific job, a specific toolchain ceiling, and
-a specific set of files where the first errors will appear.
+**Working on a Mac?** Read
+[`apple-submission/MAC_START_HERE.md`](apple-submission/MAC_START_HERE.md)
+first. The primary development machine runs Windows, so a Mac session has a
+specific job, a toolchain ceiling worth knowing before starting, and a known set
+of files where the first compile errors appear.
 
 ## Review Standard
 

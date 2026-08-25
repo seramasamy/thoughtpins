@@ -181,13 +181,29 @@ Do this *before* the archive, so the app the reviewer opens has data.
 
 ## Stage 4 — App Store Connect metadata
 
-13. **Screenshots.** Required, and you cannot make them until step 11.
-    - iPhone 6.9" — 1290 × 2796 — **at least 3**
-    - iPad 13" — 2064 × 2752 — **at least 3** (required because
-      `TARGETED_DEVICE_FAMILY` is `1,2`; dropping iPad support is the only way
-      to avoid this, and it is not worth it)
-    Suggested: Chat with a reply, a People memory card, Recap.
-    No device frames, no added marketing text over the UI.
+13. **Screenshots.** Apple requires only the largest size in each family and
+    scales the rest down automatically, so this is two sets, not six.
+
+    | Family | Accepted sizes | How we get it | Cost |
+    |---|---|---|---|
+    | iPhone 6.9" | 1320 × 2868, 1290 × 2796, or 1260 × 2736 | **iPhone 17 Pro Max, on-device** — its native screenshot is 1320 × 2868 | £0 |
+    | iPad 13" | 2064 × 2752 **or 2048 × 2732** | **iPad Pro 12.9" (6th gen) simulator** — 2048 × 2732, and it ships with Xcode 15.2 | £0 |
+
+    The second row is the one worth noticing. The 13-inch class accepts
+    2048 × 2732 as well as 2064 × 2752, and 2048 × 2732 is exactly what the
+    12.9-inch simulator produces — which the Ventura MacBook already has. No
+    newer Xcode, no rented Mac, no iPad hardware.
+
+    Take the iPhone set from a TestFlight build on the real phone (side button
+    plus volume up), then AirDrop to the Mac. Take the iPad set from the
+    simulator with `Cmd-S`, or:
+
+    ```bash
+    xcrun simctl io booted screenshot ipad-chat.png
+    ```
+
+    At least 3 of each. Suggested: Chat with a reply, a People memory card,
+    Recap. No device frames, no marketing text over the UI.
 
 14. **App Privacy.** Answers are pre-derived in
     [`docs/release/APPLE_REVIEW_ANSWERS.md`](../docs/release/APPLE_REVIEW_ANSWERS.md)
