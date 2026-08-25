@@ -424,7 +424,9 @@ struct ThoughtPinsMemoryScreen: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(card.name).font(.system(.headline, design: .serif))
                     Text(card.subtitle ?? card.type).font(.subheadline)
-                    Text("\(card.memoryCount) memories | \(card.relationshipCount) links")
+                    // "1 memories | 2 links" read wrong on a card with a
+                    // single memory, and VoiceOver announced the pipe.
+                    Text("^[\(card.memoryCount) memory](inflect: true), ^[\(card.relationshipCount) link](inflect: true)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     if let path = card.obsidianPath {
