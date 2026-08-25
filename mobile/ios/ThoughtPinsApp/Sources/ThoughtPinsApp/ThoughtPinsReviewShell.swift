@@ -73,6 +73,23 @@ struct ThoughtPinsAuthView: View {
     @State private var legalAccepted = false
     @Environment(\.colorScheme) private var colorScheme
 
+    /// Whether a provider can actually produce a button.
+    ///
+    /// These gate the section header as well as the rows inside it. The header
+    /// used to be gated on the server flags alone while the Google row also
+    /// required `supportsOAuth`, so a build without a Google client ID drew an
+    /// "Other ways to sign in" header over an empty section. That is the
+    /// current production shape: client-config reports google enabled and apple
+    /// disabled, and GIDClientID is empty in any build that has not had the
+    /// client IDs injected.
+    private var appleSignInAvailable: Bool {
+        model.config?.oauthAppleEnabled == true
+    }
+
+    private var googleSignInAvailable: Bool {
+        model.config?.oauthGoogleEnabled == true && model.supportsOAuth(.google)
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -101,9 +118,9 @@ struct ThoughtPinsAuthView: View {
                         .textContentType(.password)
                 }
 
-                if model.config?.oauthAppleEnabled == true || model.config?.oauthGoogleEnabled == true {
+                if appleSignInAvailable || googleSignInAvailable {
                     Section("Other ways to sign in") {
-                        if model.config?.oauthAppleEnabled == true {
+                        if appleSignInAvailable {
                             SignInWithAppleButton(.signIn) { request in
                                 model.configureAppleSignInRequest(request)
                             } onCompletion: { result in
@@ -115,7 +132,7 @@ struct ThoughtPinsAuthView: View {
                             .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
                             .frame(height: 44)
                         }
-                        if model.config?.oauthGoogleEnabled == true && model.supportsOAuth(.google) {
+                        if googleSignInAvailable {
                             Button(ThoughtPinsOAuthProvider.google.label) {
                                 Task { await model.oauthLogin(provider: .google) }
                             }
