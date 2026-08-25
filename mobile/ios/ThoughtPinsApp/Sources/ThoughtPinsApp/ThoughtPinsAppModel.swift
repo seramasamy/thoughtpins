@@ -295,6 +295,16 @@ public final class ThoughtPinsAppModel: ObservableObject {
             chatReply = response.reply
             routeLabel = response.routeType
             await refreshReadModels()
+        } catch APIClientError.httpStatus(403, let message) where usePrivateMemories {
+            // The deployment can refuse to put private entries in front of the
+            // model at all (PRIVATE_ALLOW_LLM). The toggle cannot know that
+            // ahead of time -- client-config does not report it -- so the first
+            // send is where it surfaces. Turning the switch back off is the
+            // honest thing to show: leaving it on advertises a setting the
+            // server will refuse every time, and "Chat failed" made a policy
+            // decision look like a broken build.
+            usePrivateMemories = false
+            banner = message ?? "Private memories cannot be used for replies on this server."
         } catch {
             banner = "Chat failed. Your account and drafts are still safe."
         }

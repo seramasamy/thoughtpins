@@ -86,8 +86,23 @@ struct ThoughtPinsAuthView: View {
         model.config?.oauthAppleEnabled == true
     }
 
+    /// Google is only offered when Sign in with Apple is offered alongside it.
+    ///
+    /// Guideline 4.8 requires that an app using a third-party login service
+    /// also offer an equivalent option that limits collection to name and
+    /// email **and lets the person keep their email address private**. Our
+    /// email-and-password sign-up does not meet the second half of that: it
+    /// needs a real, working address. Sign in with Apple is the option that
+    /// does, so Google without Apple is a 4.8 rejection waiting to happen.
+    ///
+    /// Deciding it here rather than in server config means no flag flipped
+    /// during the review window can put the binary out of compliance. To offer
+    /// Google, configure Apple sign-in and turn `oauth_apple_enabled` on; the
+    /// two then appear together. Email and password are unaffected either way.
     private var googleSignInAvailable: Bool {
-        model.config?.oauthGoogleEnabled == true && model.supportsOAuth(.google)
+        model.config?.oauthGoogleEnabled == true
+            && model.supportsOAuth(.google)
+            && appleSignInAvailable
     }
 
     var body: some View {

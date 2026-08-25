@@ -129,6 +129,7 @@ struct ThoughtPinsChatScreen: View {
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("thoughtpins.voiceDisclosure.2026-07-13") private var voiceDisclosureAccepted = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @FocusState private var composerFocused: Bool
 
     private var composerLayout: AnyLayout {
         dynamicTypeSize.isAccessibilitySize
@@ -173,7 +174,7 @@ struct ThoughtPinsChatScreen: View {
                             )
                             .padding(.top, 24)
                         } else {
-                            Text(model.chatReply)
+                            Text(thoughtPinsFormattedReply(model.chatReply))
                                 .font(.body)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 11)
@@ -199,6 +200,7 @@ struct ThoughtPinsChatScreen: View {
                     .animation(.easeInOut(duration: 0.22), value: model.chatReply)
                     .animation(.easeInOut(duration: 0.22), value: model.isThinking)
                 }
+                .scrollDismissesKeyboard(.interactively)
                 // At the accessibility text sizes the mic, the field and Send
                 // cannot share a row: the field collapses to about two visible
                 // characters and Send is pushed against the screen edge. Stack
@@ -228,8 +230,14 @@ struct ThoughtPinsChatScreen: View {
                         .submitLabel(.send)
                         .onSubmit(submit)
                         .disabled(model.isThinking)
+                        .focused($composerFocused)
                     Button("Send", action: submit)
                         .disabled(model.isThinking || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        // The keyboard's return key also carries a "Send"
+                        // accessibility label, because the field sets
+                        // submitLabel(.send). Without an identifier the two are
+                        // indistinguishable to anything driving the app.
+                        .accessibilityIdentifier("thoughtpins-chat-send")
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 if voiceRecorder.isRecording {
@@ -293,6 +301,11 @@ struct ThoughtPinsChatScreen: View {
         let payload = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !payload.isEmpty, !model.isThinking else { return }
         text = ""
+        // Put the keyboard away. It covers roughly half the screen, which is
+        // where the answer is about to appear, and nothing else on this screen
+        // dismisses it -- a person had to swipe the field away to read the
+        // reply they just asked for.
+        composerFocused = false
         Task { await model.sendChat(payload) }
     }
 }
@@ -641,4 +654,21 @@ private func thoughtPinsReferenceTitle(_ path: String, fallback: String) -> Stri
     let leaf = path.split(whereSeparator: { $0 == "/" || $0 == "\\" }).last.map(String.init) ?? ""
     let title = leaf.hasSuffix(".md") ? String(leaf.dropLast(3)) : leaf
     return title.isEmpty ? fallback : title
+}
+
+/// Render a model reply's inline Markdown instead of showing its syntax.
+///
+/// Replies come back with `**emphasis**` in them, and `Text(String)` prints
+/// that verbatim, so the answer a person reads is littered with asterisks.
+/// `.inlineOnlyPreservingWhitespace` is the right level here: it resolves
+/// bold, italic and links while leaving the paragraph and list-dash structure
+/// of the reply exactly as the model laid it out. If a reply is not valid
+/// Markdown, it is shown unchanged rather than dropped.
+func thoughtPinsFormattedReply(_ raw: String) -> AttributedString {
+    (try? AttributedString(
+        markdown: raw,
+        options: AttributedString.MarkdownParsingOptions(
+            interpretedSyntax: .inlineOnlyPreservingWhitespace
+        )
+    )) ?? AttributedString(raw)
 }

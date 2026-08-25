@@ -274,9 +274,39 @@ def _check_icon(failures: list[str]) -> None:
     check_png_icon(TARGET / "Resources" / "Assets.xcassets" / "AppIcon.appiconset" / "AppIcon-1024.png", failures)
 
 
+def _check_login_service_parity(shell: str, failures: list[str]) -> None:
+    """Guideline 4.8: never offer Google without Sign in with Apple.
+
+    An app that uses a third-party login service must also offer an option that
+    limits collection to name and email *and* lets the person keep their email
+    address private. Email-and-password sign-up fails the second half, so Sign
+    in with Apple is the only qualifying alternative here, and Google shown
+    without it is a rejection.
+
+    Deciding this in the client rather than in server config is deliberate: a
+    flag flipped during a review window must not be able to put the shipped
+    binary out of compliance. This check exists so the coupling is not quietly
+    removed later.
+    """
+    declaration = "private var googleSignInAvailable: Bool {"
+    start = shell.find(declaration)
+    if start == -1:
+        failures.append("iOS auth view must derive googleSignInAvailable in one place")
+        return
+    body = shell[start : start + 600]
+    end = body.find("}")
+    body = body[:end] if end != -1 else body
+    if "appleSignInAvailable" not in body:
+        failures.append(
+            "Guideline 4.8: googleSignInAvailable must require appleSignInAvailable, "
+            "so Google is never offered without Sign in with Apple"
+        )
+
+
 def _check_review_shell(failures: list[str]) -> None:
     source_root = ROOT / "mobile" / "ios" / "ThoughtPinsApp" / "Sources" / "ThoughtPinsApp"
     shell = "\n".join(path.read_text(encoding="utf-8") for path in sorted(source_root.glob("*.swift")))
+    _check_login_service_parity(shell, failures)
     for marker in [
         "SignInWithAppleButton",
         "credential.authorizationCode",
