@@ -188,9 +188,7 @@ def _check_privacy_and_entitlements(failures: list[str]) -> None:
         collected = privacy.get("NSPrivacyCollectedDataTypes")
         if not isinstance(collected, list) or not collected:
             failures.append("privacy manifest must declare collected app data")
-        declared_types = {
-            item.get("NSPrivacyCollectedDataType") for item in collected or [] if isinstance(item, dict)
-        }
+        declared_types = {item.get("NSPrivacyCollectedDataType") for item in collected or [] if isinstance(item, dict)}
         if "NSPrivacyCollectedDataTypeAudioData" not in declared_types:
             failures.append("privacy manifest must declare optional audio data used by voice notes")
 
@@ -212,7 +210,9 @@ def _check_privacy_and_entitlements(failures: list[str]) -> None:
         # collection on the product page.
         app_sources = "\n".join(
             path.read_text(encoding="utf-8")
-            for path in sorted((ROOT / "mobile" / "ios" / "ThoughtPinsApp" / "Sources" / "ThoughtPinsApp").glob("*.swift"))
+            for path in sorted(
+                (ROOT / "mobile" / "ios" / "ThoughtPinsApp" / "Sources" / "ThoughtPinsApp").glob("*.swift")
+            )
         ) + (TARGET / "Sources" / "ThoughtPinsNativeApp.swift").read_text(encoding="utf-8")
         collects_device_id = "registerForRemoteNotifications" in app_sources or "registerDevice(" in app_sources
         if not collects_device_id and "NSPrivacyCollectedDataTypeDeviceID" in declared_types:
