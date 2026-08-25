@@ -33,7 +33,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
     @Published public private(set) var draftCount: Int = 0
     @Published public var banner: String?
 
-    public let api: ThoughtPinsApiClient
+    public let api: ThoughtPinsAPIClient
     private let drafts: FileDraftStore
     private let oauthTokenProvider: any ThoughtPinsOAuthTokenProvider
     private let uploadProvider: any ThoughtPinsUploadProvider
@@ -47,7 +47,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
         oauthTokenProvider: any ThoughtPinsOAuthTokenProvider = UnconfiguredThoughtPinsOAuthTokenProvider(),
         uploadProvider: any ThoughtPinsUploadProvider = UnconfiguredThoughtPinsUploadProvider()
     ) {
-        self.api = ThoughtPinsApiClient(baseURL: baseURL, sessionStore: sessionStore)
+        self.api = ThoughtPinsAPIClient(baseURL: baseURL, sessionStore: sessionStore)
         self.drafts = FileDraftStore(directory: draftDirectory.appendingPathComponent("ThoughtPins", isDirectory: true))
         self.oauthTokenProvider = oauthTokenProvider
         self.uploadProvider = uploadProvider

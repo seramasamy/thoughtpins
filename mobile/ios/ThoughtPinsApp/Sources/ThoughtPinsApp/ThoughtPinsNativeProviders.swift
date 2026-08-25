@@ -47,7 +47,14 @@ public protocol ThoughtPinsOAuthTokenProvider: Sendable {
 }
 
 public struct UnconfiguredThoughtPinsOAuthTokenProvider: ThoughtPinsOAuthTokenProvider {
-    public init() {}
+    // `nonisolated` because this is used as a default argument value, and on
+    // Swift 5.9 a default argument expression is type-checked as nonisolated
+    // regardless of the enclosing function's isolation (SE-0411, which allows
+    // isolated default values, is not available until Swift 6). Conforming to
+    // the @MainActor protocol above would otherwise make this init main-actor
+    // isolated and unusable as a default. The type is stateless, so there is
+    // nothing for the isolation to protect.
+    public nonisolated init() {}
 
     public func supports(_ provider: ThoughtPinsOAuthProvider) -> Bool { false }
 
@@ -116,7 +123,9 @@ public protocol ThoughtPinsUploadProvider: Sendable {
 }
 
 public struct UnconfiguredThoughtPinsUploadProvider: ThoughtPinsUploadProvider {
-    public init() {}
+    // nonisolated for the same reason as
+    // UnconfiguredThoughtPinsOAuthTokenProvider.init above.
+    public nonisolated init() {}
 
     public func payload(for destination: ThoughtPinsUploadDestination) async throws -> ThoughtPinsUploadPayload {
         throw ThoughtPinsNativeUploadError.filePickerNotConfigured(destination.rawValue)
