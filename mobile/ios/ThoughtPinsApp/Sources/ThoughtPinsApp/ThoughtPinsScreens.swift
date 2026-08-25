@@ -225,6 +225,7 @@ struct ThoughtPinsChatScreen: View {
                 }
             }
             .padding()
+            .thoughtPinsReadableColumn()
             .navigationTitle("Chat")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -416,6 +417,12 @@ struct ThoughtPinsMemoryScreen: View {
                     }
                 }
             }
+            // Hide the List's own backdrop first: once the list is narrower
+            // than the window it would otherwise draw a visible band down the
+            // middle of the screen with a hard edge on either side.
+            .scrollContentBackground(.hidden)
+            .thoughtPinsReadableColumn()
+            .background(Color(.systemGroupedBackground))
             .refreshable { await model.refreshReadModels() }
             .overlay {
                 if cards.isEmpty {

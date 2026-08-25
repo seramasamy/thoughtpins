@@ -87,3 +87,32 @@ struct ThoughtPinsEmptyState: View {
         .accessibilityElement(children: .combine)
     }
 }
+
+/// Holds content to a comfortable reading measure and centres it.
+///
+/// Every screen here was laid out for a phone. On a 12.9" iPad that gives the
+/// chat column a ~1000pt line of body text — roughly 150 characters, about
+/// twice the measure text stays readable at — and it strands the switch of a
+/// Toggle row an inch and a half from the label it belongs to. The app claims
+/// universal (`TARGETED_DEVICE_FAMILY: "1,2"`), so it gets opened on iPad.
+///
+/// Only regular width is constrained. Every iPhone, and an iPad in Slide Over
+/// or a narrow Split View, stays compact and is left exactly as it was.
+struct ThoughtPinsReadableColumn: ViewModifier {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    let maxWidth: CGFloat
+
+    func body(content: Content) -> some View {
+        content
+            .frame(maxWidth: horizontalSizeClass == .regular ? maxWidth : .infinity)
+            .frame(maxWidth: .infinity)
+    }
+}
+
+extension View {
+    /// - Parameter maxWidth: 680pt holds body text near 75 characters, the wide
+    ///   end of what stays comfortable to read.
+    func thoughtPinsReadableColumn(maxWidth: CGFloat = 680) -> some View {
+        modifier(ThoughtPinsReadableColumn(maxWidth: maxWidth))
+    }
+}
