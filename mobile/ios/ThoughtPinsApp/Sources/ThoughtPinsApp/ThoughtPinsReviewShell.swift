@@ -158,6 +158,7 @@ struct ThoughtPinsAuthView: View {
                     Button("Sign in") {
                         Task { await model.login(identifier: identifier.isEmpty ? phone : identifier, password: password) }
                     }
+                    .disabled(model.authBusy)
                     Button("Create account") {
                         Task {
                             await model.register(
@@ -168,7 +169,16 @@ struct ThoughtPinsAuthView: View {
                             )
                         }
                     }
-                    .disabled(registrationBlocker != nil)
+                    .disabled(model.authBusy || registrationBlocker != nil)
+                    if model.authBusy {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                            Text("Signing in…")
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("Signing in")
+                        .accessibilityIdentifier("thoughtpins-auth-progress")
+                    }
                 } footer: {
                     if let registrationBlocker {
                         Text(registrationBlocker)

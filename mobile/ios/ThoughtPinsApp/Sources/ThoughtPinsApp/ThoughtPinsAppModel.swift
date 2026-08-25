@@ -24,6 +24,13 @@ public final class ThoughtPinsAppModel: ObservableObject {
     // account on every cold start.
     @Published public private(set) var inviteStatus: InviteStatusResponse?
     @Published public private(set) var inviteBusy: Bool = false
+    /// A sign-in or account-creation request is in flight.
+    ///
+    /// The API session sets waitsForConnectivity, with a 60s resource timeout.
+    /// An unreachable server therefore does not fail fast: it can sit for up to
+    /// a minute. Without this the buttons stayed enabled and nothing on screen
+    /// changed, so the app looked broken exactly where App Review starts.
+    @Published public private(set) var authBusy: Bool = false
     @Published public private(set) var voiceArchiveStatus: VoiceArchiveStatusResponse?
     @Published public private(set) var librarySources: [LibrarySourceResponse] = []
     @Published public private(set) var memoryCards: [MemoryCardResponse] = []
@@ -127,12 +134,16 @@ public final class ThoughtPinsAppModel: ObservableObject {
             banner = "Add an email address or phone number."
             return
         }
+        authBusy = true
+        defer { authBusy = false }
         do {
             _ = try await api.register(email: email, phone: phone, password: password)
             _ = try await api.login(identifier: identifier, password: password)
             me = try await api.me()
         } catch {
-            banner = "Registration failed. Check credentials and try again."
+            // "Check credentials" was wrong for most of what lands here -- a
+            // dropped connection, a 500, a Keychain that refused the write.
+            banner = ThoughtPinsAuthFailure(error).registrationMessage
             return
         }
         // A brand new account is exactly the one the closed beta has not
@@ -249,6 +260,8 @@ public final class ThoughtPinsAppModel: ObservableObject {
     }
 
     public func login(identifier: String, password: String) async {
+        authBusy = true
+        defer { authBusy = false }
         do {
             _ = try await api.login(identifier: identifier, password: password)
             me = try await api.me()
@@ -257,7 +270,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
             banner = "Signed in."
             await refreshReadModels()
         } catch {
-            banner = "Sign in failed."
+            banner = ThoughtPinsAuthFailure(error).signInMessage
         }
     }
 
