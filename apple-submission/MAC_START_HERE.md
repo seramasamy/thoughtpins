@@ -146,11 +146,25 @@ build without it. Google sign-in cannot be exercised on this machine anyway: it
 needs client IDs that only exist in a signed release build, and with
 `GOOGLE_IOS_CLIENT_ID` empty the provider's `supports(_:)` returns false.
 
-The consequence: **`GoogleOAuthTokenProvider.swift` is the one file in this
-repository no compiler has ever read**, because it is the only importer of
-GoogleSignIn. It is compiled by the `ios` job in `.github/workflows/ci.yml` on
-`macos-latest`, which is the only place it can be. Everything else in the app
-compiles here.
+The consequence: **`GoogleOAuthTokenProvider.swift` cannot be compiled here in
+the normal way**, because it is the only importer of GoogleSignIn. Everything
+else in the app compiles.
+
+It has since been compiled against a stand-in. Each declaration the file uses
+was checked against the real 9.1.0 public headers and reproduced with the same
+nullability — `GIDSignIn.sharedInstance` (class property), `handleURL:`,
+`signInWithPresentingViewController:completion:` (the async form the file
+calls), `GIDSignInResult.user` (non-null), `GIDGoogleUser.idToken` and
+`.profile` (both nullable), `GIDToken.tokenString` and `GIDProfileData.name`
+(both non-null). Against that, the file compiles clean under
+`SWIFT_STRICT_CONCURRENCY: complete` for the iOS 17 simulator, and its symbols
+link into the app binary.
+
+So its syntax, its isolation, and its use of that API are no longer unknown.
+What a stand-in cannot prove is that the real package resolves, links, and
+behaves — that still needs the `ios` job in `.github/workflows/ci.yml` on
+`macos-latest`, and it is the last thing standing between here and a verified
+archive.
 
 ### Running the app on a Ventura machine anyway
 
