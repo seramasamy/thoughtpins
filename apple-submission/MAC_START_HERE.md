@@ -10,12 +10,51 @@ state, and any way to get the fixes home.
 
 ---
 
+## Stage 0 — Check what this Mac can actually do
+
+```bash
+sw_vers                         # ProductVersion: the number that decides everything
+xcodebuild -version 2>/dev/null || echo "no Xcode yet"
+```
+
+**If `ProductVersion` starts with 13 (Ventura), this Mac can compile the app but
+cannot submit it.** Three verified facts, and they do not bend:
+
+| | |
+|---|---|
+| macOS 13 Ventura runs at most **Xcode 15.2** | 15.3+ requires macOS 14 |
+| Xcode 15.2 ships **Swift 5.9** and the **iOS 17.2 SDK** | this target needs Swift 5.9 and iOS 17.0 — it fits |
+| App Store uploads have required **Xcode 26+** since **28 April 2026** | Xcode 26 needs macOS Sequoia 15.6+ |
+
+So Ventura is genuinely useful for Stages 1–3 and genuinely cannot do Stage 4.
+Split the work accordingly — this is not a reason to stop.
+
+**If `ProductVersion` is 13.0–13.4**, run Software Update first. Ventura's last
+release is 13.7.x, it is free, and Xcode 15.2 refuses to install below 13.5.
+
+**Where the archive comes from instead.** `.github/workflows/ci.yml` already has
+an `ios` job on `macos-latest`, which carries a current Xcode. It runs
+`swift test` and `prepare_ios_submission.sh` today, and is the natural place to
+grow the signed archive. Trigger it by hand:
+
+```bash
+gh workflow run ci.yml --ref main -f run_native=true
+```
+
+Other routes if that does not suit: Xcode Cloud (Apple's own, 25 compute
+hours/month with the developer programme), an hourly cloud Mac, or a used Apple
+silicon machine. All of them are Stage 4 problems, not today's.
+
+---
+
 ## Stage 1 — Get the tree onto the Mac (15 minutes)
 
 ```bash
 # Xcode from the App Store first, then launch it once to accept the licence.
+# On Ventura the App Store may offer nothing: download Xcode 15.2 from
+# https://developer.apple.com/download/all/ instead — a free Apple ID is enough.
 xcode-select --install          # command line tools, if not already there
-xcodebuild -version             # expect Xcode 26 or newer
+xcodebuild -version             # 15.2 on Ventura; 26+ on Sequoia or newer
 
 git clone https://github.com/seramasamy/thoughtpins.git
 cd thoughtpins
@@ -54,10 +93,18 @@ Then the app target:
 ```bash
 cd mobile/ios/ThoughtPinsNative
 xcodegen generate
+
+# List what this Xcode actually has before naming a destination. An unknown
+# simulator name fails with an error that reads like a build failure but is not.
+xcrun simctl list devicetypes | grep iPhone
+
 xcodebuild -project ThoughtPins.xcodeproj -scheme ThoughtPins \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+  -destination 'platform=iOS Simulator,name=iPhone 15 Pro' \
   CODE_SIGNING_ALLOWED=NO build
 ```
+
+`iPhone 15 Pro` is the right destination on Xcode 15.2; the iPhone 17 simulators
+do not exist there. On Xcode 26 substitute the current handset.
 
 ### Where errors will be, in likelihood order
 
@@ -85,13 +132,13 @@ iPad **almost always**, even when the iPad box is unchecked — and this target
 claims universal (`TARGETED_DEVICE_FAMILY: "1,2"`), so iPad is certain to be
 opened.
 
-Minimum device set:
+Minimum device set — take whichever of each pair your Xcode offers:
 
-- iPhone SE (3rd gen) — the narrowest supported
-- iPhone 17 Pro
-- iPhone 17 Pro Max
-- iPad mini (A17 Pro)
-- iPad Pro 13"
+- **iPhone SE (3rd gen)** — the narrowest supported, present in both
+- **iPhone 15 Pro** (Xcode 15.2) or iPhone 17 Pro (Xcode 26)
+- **iPhone 15 Pro Max** or iPhone 17 Pro Max — the widest
+- **iPad mini** (6th gen or A17 Pro)
+- **iPad Pro** (12.9-inch 6th gen, or 13-inch)
 
 For each: launch, sign in with the demo account, send a chat message, record a
 voice note, open Account, export, rotate to landscape.
@@ -116,8 +163,11 @@ from section 5. It covers signing, the private release values, the archive and
 validation. [`AFTER_DEVELOPER_ACCOUNT.md`](AFTER_DEVELOPER_ACCOUNT.md) has the
 App Store Connect metadata and the order to do it in.
 
-Screenshots come from Stage 3: iPhone 6.9" at 1290 × 2796 and iPad 13" at
-2064 × 2752, at least three each.
+Screenshots come from Stage 3 — but **read the exact required pixel sizes off
+App Store Connect itself** when you get there rather than trusting a number
+written down months earlier. Apple moves the required display class roughly
+yearly, and the current one may want a simulator Xcode 15.2 does not have. If
+so, capture them wherever the archive is built.
 
 ---
 

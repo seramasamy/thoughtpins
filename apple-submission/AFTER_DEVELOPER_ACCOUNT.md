@@ -16,15 +16,23 @@ is not Xcode.
 | Thing | Why | Status |
 |---|---|---|
 | Apple Developer Program membership, **Individual** | Nothing below works without it | decided: individual, not organisation |
-| A Mac running current macOS with Xcode 26+ | The only host that can compile SwiftUI or sign an archive | **you do not have this yet** |
+| A Mac | Compiles SwiftUI; the archive needs Xcode 26+ | **have one, on macOS 13 Ventura** — see below |
 | `invite@thoughtpins.com` receiving mail | Reviewers email it if the gate stops them | verify |
 | `support@thoughtpins.com` receiving mail | Apple requires a working support contact | verify |
 
-**The Mac is the real blocker, not the account.** If you do not own one:
-a Mac mini (M4, base) is the cheapest route and is reusable for every future
-release. Cloud Mac rental (MacStadium, Scaleway Apple silicon) works for a
-one-off submission but you will need it again for every update and every
-rejection round-trip.
+**The Ventura MacBook compiles but cannot upload.** App Store uploads have
+required Xcode 26 or later since 28 April 2026; Xcode 26 needs macOS Sequoia
+15.6+, and macOS 13 tops out at Xcode 15.2. That is still Swift 5.9 with the
+iOS 17.2 SDK, which is exactly what this target asks for, so the machine does
+every job up to the archive: first compile, error fixing, simulator passes,
+Dynamic Type, VoiceOver, iPad.
+
+For the archive itself, the `ios` job in `.github/workflows/ci.yml` already runs
+on `macos-latest` with a current Xcode and is the natural place to grow it —
+`gh workflow run ci.yml --ref main -f run_native=true`. Xcode Cloud (25 compute
+hours a month with the developer programme), an hourly cloud Mac, or a used
+Apple silicon machine are the alternatives. Full detail in
+[`MAC_START_HERE.md`](MAC_START_HERE.md).
 
 ---
 
@@ -135,7 +143,7 @@ Do this *before* the archive, so the app the reviewer opens has data.
     brew install xcodegen
     cd mobile/ios/ThoughtPinsNative && xcodegen generate
     xcodebuild -project ThoughtPins.xcodeproj -scheme ThoughtPins \
-      -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+      -destination 'platform=iOS Simulator,name=iPhone 15 Pro' \
       CODE_SIGNING_ALLOWED=NO build
     ```
     *Expect compile errors on the first attempt.* Roughly 400 lines of SwiftUI
@@ -143,8 +151,10 @@ Do this *before* the archive, so the app the reviewer opens has data.
     "Known-unverified Swift" in [`README.md`](README.md).
 
 11. **Simulator pass across the device matrix.** Run on, at minimum:
-    iPhone SE (3rd gen), iPhone 17 Pro, iPhone 17 Pro Max, iPad mini (A17 Pro),
-    iPad Pro 13". For each: launch, sign in, chat, record a voice note, export,
+    iPhone SE (3rd gen), the current Pro and Pro Max your Xcode offers
+    (iPhone 15 Pro / Pro Max on Xcode 15.2), an iPad mini, and an iPad Pro.
+    Run `xcrun simctl list devicetypes` first — naming a simulator this
+    Xcode does not have fails in a way that reads like a build error. For each: launch, sign in, chat, record a voice note, export,
     and rotate to landscape.
 
     **Give iPad the same attention as iPhone, not less.** A former reviewer's

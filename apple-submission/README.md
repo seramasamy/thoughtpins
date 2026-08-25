@@ -84,11 +84,18 @@ offered, so this is a rejection as it stands. It is not fixable yet —
 `APPLE_OAUTH_CLIENT_IDS` needs an Apple Developer account. Set it in Railway
 before submitting.
 
-### 2. First Swift compile — **unblocked, a Mac is available**
+### 2. First Swift compile — **unblocked**; the archive is not
 
-No SwiftUI here has ever been through a compiler; roughly 500 lines. Expect
-first-build errors and treat them as the expected outcome.
+A Mac is available, on macOS 13 Ventura. That compiles: Ventura runs Xcode 15.2,
+which ships Swift 5.9 and the iOS 17.2 SDK, and this target asks for Swift 5.9
+and iOS 17.0. No SwiftUI here has ever been through a compiler — roughly 500
+lines — so expect first-build errors and treat them as the expected outcome.
 [`MAC_START_HERE.md`](MAC_START_HERE.md) lists the files in likelihood order.
+
+**Uploading is a separate problem.** App Store uploads have required Xcode 26+
+since 28 April 2026 and Xcode 26 needs macOS Sequoia 15.6+, so the archive has
+to come from somewhere else: the `ios` job on `macos-latest` in CI, Xcode Cloud,
+an hourly cloud Mac, or newer hardware.
 
 ### 3. Screenshots — blocked on 2
 
