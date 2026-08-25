@@ -44,9 +44,6 @@ targets:
         TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTS_MACCATALYST: NO
         SWIFT_STRICT_CONCURRENCY: complete
-        GOOGLE_IOS_CLIENT_ID: ""
-        GOOGLE_IOS_SERVER_CLIENT_ID: ""
-        GOOGLE_IOS_REVERSED_CLIENT_ID: ""
         THOUGHTPINS_API_BASE_URL: https://api.thoughtpins.com
         GENERATE_INFOPLIST_FILE: NO
 

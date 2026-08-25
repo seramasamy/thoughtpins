@@ -119,7 +119,47 @@ is missing is configuration, not code:
    `APPLE_OAUTH_PRIVATE_KEY` already exist in config for this.
 3. `oauth_apple_enabled` true in client-config.
 
-Do those and both buttons appear together, with no app change.
+Do those and the Apple button appears, with no app change.
+
+### Restoring the Google plist wiring
+
+Google needs three things put back that v1 removed, because with no client ID
+they resolved to empty strings and an empty `CFBundleURLSchemes` entry is
+malformed:
+
+- `mobile/ios/ThoughtPinsNative/project.yml`, under the target's `settings.base`:
+
+  ```yaml
+  GOOGLE_IOS_CLIENT_ID: ""
+  GOOGLE_IOS_SERVER_CLIENT_ID: ""
+  GOOGLE_IOS_REVERSED_CLIENT_ID: ""
+  ```
+
+- `mobile/ios/ThoughtPinsNative/Resources/Info.plist`:
+
+  ```xml
+  <key>GIDClientID</key>
+  <string>$(GOOGLE_IOS_CLIENT_ID)</string>
+  <key>GIDServerClientID</key>
+  <string>$(GOOGLE_IOS_SERVER_CLIENT_ID)</string>
+  <key>CFBundleURLTypes</key>
+  <array>
+      <dict>
+          <key>CFBundleTypeRole</key>
+          <string>Editor</string>
+          <key>CFBundleURLSchemes</key>
+          <array>
+              <string>$(GOOGLE_IOS_REVERSED_CLIENT_ID)</string>
+          </array>
+      </dict>
+  </array>
+  ```
+
+`scripts/ios_release.sh` refuses to build if you supply the `GOOGLE_IOS_*`
+values while the plist has nowhere to put them, so this cannot be half done
+silently. `scripts/check_ios_submission_source.py` then requires the keys to
+resolve to something real rather than an empty string, in the source and — via
+the `ios` CI job — in the built app.
 
 Routes that do **not** work, so they are not worth trying:
 

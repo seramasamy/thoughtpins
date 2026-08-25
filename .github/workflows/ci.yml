@@ -332,6 +332,15 @@ jobs:
           echo "Archived binary architectures:"
           lipo -info "$APP/Thought Pins"
 
+      # The source gate reasons about $(...) placeholders; this is the same
+      # rules against the plist Xcode actually produced, where an unset build
+      # setting has become an empty string. An empty CFBundleURLSchemes entry
+      # is malformed and is what v1 was shipping.
+      - name: Check the built Info.plist
+        run: |
+          python3 scripts/check_ios_submission_source.py --built-app \
+            "$RUNNER_TEMP/ThoughtPins.xcarchive/Products/Applications/Thought Pins.app"
+
   container:
     runs-on: ubuntu-latest
     timeout-minutes: 20

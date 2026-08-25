@@ -321,8 +321,18 @@ public final class ThoughtPinsAppModel: ObservableObject {
             banner = response.jobId == nil ? "Journal saved." : "Journal queued for memory extraction."
             await refreshReadModels()
         } catch {
-            _ = try? await drafts.enqueue(text: text)
-            banner = "Saved as an offline draft."
+            // `try?` here claimed "Saved as an offline draft." whether or not
+            // anything was saved. The queue can refuse, and a person told their
+            // thought was kept when it was not is exactly the failure this app
+            // exists to avoid.
+            do {
+                _ = try await drafts.enqueue(text: text)
+                banner = "Saved as an offline draft."
+            } catch DraftStoreError.queueFull(let limit) {
+                banner = "\(limit) drafts are still waiting to send. Nothing saved has been lost — reconnect to send them, then this one will save."
+            } catch {
+                banner = "Could not save this offline. Keep a copy before leaving this screen."
+            }
             await refreshDraftCount()
         }
     }

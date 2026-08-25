@@ -60,8 +60,95 @@ def _check_project(failures: list[str]) -> None:
         "HTTPS iOS API build setting",
         failures,
     )
-    for marker in ["GOOGLE_IOS_CLIENT_ID", "GOOGLE_IOS_SERVER_CLIENT_ID", "GOOGLE_IOS_REVERSED_CLIENT_ID"]:
-        require(project, marker, f"iOS Google build setting {marker}", failures)
+    # The GOOGLE_IOS_* build settings used to be required here. v1 does not ship
+    # Google sign-in -- the app refuses to offer it without Sign in with Apple,
+    # which is not configured -- so those settings fed placeholders that resolved
+    # to empty strings, and an empty URL scheme in a built Info.plist is
+    # malformed. They are gone, and _check_google_config_is_all_or_nothing below
+    # is what now holds the line: present and real, or absent.
+
+
+def _resolved_build_setting(name: str) -> str | None:
+    """The value project.yml gives a build setting, or None if it sets none."""
+    project = (TARGET / "project.yml").read_text(encoding="utf-8")
+    match = re.search(rf"^\s*{re.escape(name)}:\s*(.*)$", project, re.M)
+    if not match:
+        return None
+    return match.group(1).strip().strip('"').strip("'")
+
+
+def _check_google_config_is_all_or_nothing(info: dict, failures: list[str]) -> None:
+    """Google keys must be absent, or present with a value that resolves.
+
+    v1 shipped GIDClientID and GIDServerClientID as `$(GOOGLE_IOS_CLIENT_ID)`
+    style placeholders whose build settings were empty strings, plus a
+    CFBundleURLTypes entry whose only scheme was also empty. None of it
+    described anything the binary did once Google sign-in was gated behind Sign
+    in with Apple, and an empty URL scheme is malformed.
+
+    So: declare them properly or not at all. Restoring Google means restoring
+    the keys *and* the build settings together, which is what this enforces.
+    """
+    google_keys = [key for key in ("GIDClientID", "GIDServerClientID") if key in info]
+    if not google_keys:
+        return
+    for key in google_keys:
+        raw = str(info.get(key) or "")
+        if not raw.strip():
+            failures.append(f"Info.plist declares {key} with no value")
+            continue
+        placeholder = re.fullmatch(r"\$\((\w+)\)", raw.strip())
+        if not placeholder:
+            continue
+        setting = placeholder.group(1)
+        value = _resolved_build_setting(setting)
+        if not value:
+            failures.append(
+                f"Info.plist binds {key} to $({setting}), which project.yml leaves empty. "
+                "A built Info.plist would carry an empty Google client ID. Configure it or remove the key."
+            )
+    if len(google_keys) == 1:
+        failures.append("Info.plist declares only one of GIDClientID / GIDServerClientID")
+
+
+def _check_no_empty_url_schemes(info: dict, where: str, failures: list[str]) -> None:
+    """No CFBundleURLTypes entry may carry an empty or unresolvable scheme."""
+    for index, entry in enumerate(info.get("CFBundleURLTypes") or []):
+        schemes = entry.get("CFBundleURLSchemes")
+        if not schemes:
+            failures.append(f"{where}: CFBundleURLTypes[{index}] declares no URL scheme")
+            continue
+        for scheme in schemes:
+            text = str(scheme or "").strip()
+            if not text:
+                failures.append(f"{where}: CFBundleURLTypes[{index}] declares an empty URL scheme")
+                continue
+            placeholder = re.fullmatch(r"\$\((\w+)\)", text)
+            if placeholder and not _resolved_build_setting(placeholder.group(1)):
+                failures.append(
+                    f"{where}: CFBundleURLTypes[{index}] scheme is $({placeholder.group(1)}), "
+                    "which resolves to an empty string in a built app"
+                )
+
+
+def check_built_info_plist(app_path: Path) -> list[str]:
+    """Validate a *built* app's Info.plist, where placeholders are resolved.
+
+    The source checks reason about placeholders; this is the same rules applied
+    to what actually ships. Called by the ios CI job after the archive.
+    """
+    failures: list[str] = []
+    plist = app_path / "Info.plist"
+    if not plist.is_file():
+        return [f"no Info.plist in {app_path}"]
+    info = load_plist(plist, failures)
+    if not info:
+        return failures
+    _check_no_empty_url_schemes(info, str(plist), failures)
+    for key in ("GIDClientID", "GIDServerClientID"):
+        if key in info and not str(info.get(key) or "").strip():
+            failures.append(f"{plist}: {key} is present but empty")
+    return failures
 
 
 def _check_info_plist(failures: list[str]) -> None:
@@ -76,12 +163,8 @@ def _check_info_plist(failures: list[str]) -> None:
         failures.append("Info.plist must declare the current export-compliance posture")
     if not str(info.get("NSMicrophoneUsageDescription") or "").strip():
         failures.append("Info.plist must explain the user-initiated voice-note microphone access")
-    for key in ("GIDClientID", "GIDServerClientID"):
-        if key not in info:
-            failures.append(f"Info.plist must declare {key} as a release build setting")
-    url_types = info.get("CFBundleURLTypes") or []
-    if not any("$(GOOGLE_IOS_REVERSED_CLIENT_ID)" in (item.get("CFBundleURLSchemes") or []) for item in url_types):
-        failures.append("Info.plist must bind the Google callback URL scheme to its release build setting")
+    _check_google_config_is_all_or_nothing(info, failures)
+    _check_no_empty_url_schemes(info, "Info.plist", failures)
     required_phone_orientations = {
         "UIInterfaceOrientationPortrait",
         "UIInterfaceOrientationLandscapeLeft",
@@ -528,5 +611,23 @@ def finish(failures: list[str]) -> int:
     return 0
 
 
+def main_built_app(app_path: str) -> int:
+    """`--built-app <path>`: check a built .app's Info.plist.
+
+    The source checks reason about `$(...)` placeholders; this runs the same
+    rules against what actually ships, after Xcode has resolved them.
+    """
+    failures = check_built_info_plist(Path(app_path))
+    if failures:
+        print("built iOS Info.plist check failed:")
+        for failure in failures:
+            print(f"- {failure}")
+        return 1
+    print(f"built iOS Info.plist check passed: {app_path}")
+    return 0
+
+
 if __name__ == "__main__":
+    if len(sys.argv) == 3 and sys.argv[1] == "--built-app":
+        sys.exit(main_built_app(sys.argv[2]))
     sys.exit(main())

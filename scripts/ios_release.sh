@@ -119,6 +119,20 @@ fi
 
 google_build_settings=()
 if [[ "$google_configured" == 3 ]]; then
+  # These build settings only do anything if Info.plist still references them.
+  # v1 removed GIDClientID, GIDServerClientID and CFBundleURLTypes, because with
+  # no values they resolved to empty strings and an empty URL scheme is
+  # malformed. Passing real values now would be a silent no-op: the archive
+  # would claim Google sign-in and ship without the client ID or the callback
+  # scheme. Refuse instead, and say what to restore.
+  info_plist="$ROOT/mobile/ios/ThoughtPinsNative/Resources/Info.plist"
+  if ! grep -q "GOOGLE_IOS_REVERSED_CLIENT_ID" "$info_plist"; then
+    echo "GOOGLE_IOS_* values were supplied, but Info.plist has no Google keys to fill." >&2
+    echo "Restore GIDClientID, GIDServerClientID and the CFBundleURLTypes entry bound to" >&2
+    echo "\$(GOOGLE_IOS_REVERSED_CLIENT_ID), and re-add the three build settings to project.yml." >&2
+    echo "See apple-submission/AFTER_DEVELOPER_ACCOUNT.md, 'What v1 ships for sign-in'." >&2
+    exit 2
+  fi
   google_build_settings+=(
     GOOGLE_IOS_CLIENT_ID="$GOOGLE_CLIENT_ID"
     GOOGLE_IOS_SERVER_CLIENT_ID="$GOOGLE_SERVER_CLIENT_ID"

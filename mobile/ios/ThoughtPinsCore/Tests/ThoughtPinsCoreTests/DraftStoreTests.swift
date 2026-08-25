@@ -59,3 +59,104 @@ final class ThoughtPinsDraftStoreTests: XCTestCase {
         XCTAssertEqual(draft.status, .queued)
     }
 }
+
+/// A store that cannot be read must not be able to stop someone capturing.
+final class ThoughtPinsDraftStoreResilienceTests: XCTestCase {
+    private var directory: URL!
+
+    override func setUpWithError() throws {
+        directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("draft-resilience-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    }
+
+    override func tearDownWithError() throws {
+        try? FileManager.default.removeItem(at: directory)
+    }
+
+    private var storeFile: URL {
+        directory.appendingPathComponent("thoughtpins-capture-drafts.json")
+    }
+
+    private func corruptFiles() throws -> [URL] {
+        try FileManager.default
+            .contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
+            .filter { $0.lastPathComponent.contains("corrupt") }
+    }
+
+    func testACorruptStoreIsMovedAsideAndCaptureKeepsWorking() async throws {
+        try Data("this is not json".utf8).write(to: storeFile)
+        let store = FileDraftStore(directory: directory)
+
+        // list() must not throw, or enqueue() -- which calls it first -- can
+        // never run again.
+        let listed = try await store.list()
+        XCTAssertEqual(listed, [])
+
+        let saved = try await store.enqueue(text: "a thought that must survive")
+        XCTAssertEqual(saved.text, "a thought that must survive")
+        let after = try await store.list()
+        XCTAssertEqual(after.count, 1)
+    }
+
+    func testTheCorruptFileIsKeptRatherThanDeleted() async throws {
+        let original = "this is not json, but it is someone's journal"
+        try Data(original.utf8).write(to: storeFile)
+        let store = FileDraftStore(directory: directory)
+
+        _ = try await store.list()
+
+        let quarantined = try corruptFiles()
+        XCTAssertEqual(quarantined.count, 1, "the unreadable file must be kept, not deleted")
+        XCTAssertEqual(try String(contentsOf: quarantined[0], encoding: .utf8), original)
+    }
+
+    func testAFullQueueRefusesRatherThanDiscardingTheOldest() async throws {
+        let store = FileDraftStore(directory: directory)
+        for index in 0..<FileDraftStore.queueLimit {
+            _ = try await store.enqueue(text: "draft \(index)")
+        }
+        let full = try await store.list()
+        XCTAssertEqual(full.count, FileDraftStore.queueLimit)
+
+        do {
+            _ = try await store.enqueue(text: "one too many")
+            XCTFail("Expected the queue to refuse")
+        } catch DraftStoreError.queueFull(let limit) {
+            XCTAssertEqual(limit, FileDraftStore.queueLimit)
+        }
+
+        // The point of refusing: the oldest is still there.
+        let drafts = try await store.list()
+        XCTAssertEqual(drafts.count, FileDraftStore.queueLimit)
+        XCTAssertEqual(drafts.first?.text, "draft 0")
+        XCTAssertFalse(drafts.contains { $0.text == "one too many" })
+    }
+
+    func testUpdateKeepsCreationOrderInsteadOfMovingTheDraftToTheEnd() async throws {
+        let store = FileDraftStore(directory: directory)
+        let first = try await store.enqueue(text: "first")
+        _ = try await store.enqueue(text: "second")
+        _ = try await store.enqueue(text: "third")
+
+        var retried = first
+        retried.status = .failed
+        retried.attemptCount = 1
+        retried.updatedAtUtc = Date().addingTimeInterval(60)
+        try await store.update(retried)
+
+        let texts = try await store.list().map(\.text)
+        XCTAssertEqual(texts, ["first", "second", "third"], "order must follow creation, not last touch")
+    }
+
+    func testSyncedDraftsDrainOnWrite() async throws {
+        let store = FileDraftStore(directory: directory)
+        let draft = try await store.enqueue(text: "sent")
+        var done = draft
+        done.status = .synced
+        try await store.update(done)
+
+        let remaining = try await store.list()
+        XCTAssertEqual(remaining, [])
+    }
+}
