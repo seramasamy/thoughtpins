@@ -47,3 +47,14 @@ write_probe_*/
 *.jks
 *.keystore
 mobile/android/thoughtpins-app/keystore.properties
+
+# macOS and Xcode local state. None of this describes the project: .DS_Store is
+# Finder's, .build is SwiftPM's cache, and xcuserdata/xcworkspace hold one
+# developer's window and scheme state. ThoughtPins.xcodeproj is generated from
+# project.yml by XcodeGen on each machine and is not the source of truth.
+.DS_Store
+.build/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/
+mobile/ios/ThoughtPinsNative/ThoughtPins.xcodeproj/
+/Thought Pins/
