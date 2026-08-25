@@ -306,6 +306,32 @@ jobs:
           THOUGHTPINS_IOS_DESTINATION: generic/platform=iOS Simulator
         run: ./scripts/prepare_ios_submission.sh
 
+      # The simulator build above compiles for the simulator SDK in Debug. This
+      # is the only step that compiles the app the way a submission does:
+      # Release configuration, whole-module optimisation, the device arm64
+      # slice, and the archive packaging itself. Unsigned, so it needs no
+      # release account -- signing and upload stay release-account work -- but
+      # everything up to signing is exercised.
+      - name: Build unsigned archive
+        run: |
+          cd mobile/ios/ThoughtPinsNative
+          xcodebuild \
+            -project ThoughtPins.xcodeproj \
+            -scheme ThoughtPins \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/ThoughtPins.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            archive
+
+      - name: Confirm the archive contains the app
+        run: |
+          APP="$RUNNER_TEMP/ThoughtPins.xcarchive/Products/Applications/Thought Pins.app"
+          test -d "$APP" || { echo "No app in archive at $APP" >&2; exit 1; }
+          echo "Archived binary architectures:"
+          lipo -info "$APP/Thought Pins"
+
   container:
     runs-on: ubuntu-latest
     timeout-minutes: 20

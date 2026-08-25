@@ -175,6 +175,36 @@ final class ThoughtPinsAPIClientTests: XCTestCase {
         XCTAssertFalse(device.pushTokenPresent)
     }
 
+    /// The fourth model that used to carry a snake_case CodingKeys enum. The
+    /// other three are covered by the two tests above and the OAuth test.
+    func testIngestResponseDecodesThroughTheConversionStrategy() async throws {
+        URLProtocolStub.handler = { request in
+            let body = try XCTUnwrap(request.bodyData)
+            let payload = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+            XCTAssertEqual(payload["user_importance"] as? Int, 4)
+            XCTAssertEqual(payload["text"] as? String, "a note")
+            XCTAssertNil(payload["userImportance"])
+            return try Self.response(for: request, status: 200, body: [
+                "status": "queued",
+                "entry_id": "entry-1",
+                "job_id": "job-1",
+                "user_importance": 4,
+            ])
+        }
+        let client = ThoughtPinsAPIClient(
+            baseURL: URL(string: "https://api.example.com")!,
+            sessionStore: TestSessionStore(ApiSession(accessToken: "access", refreshToken: "refresh")),
+            urlSession: makeSession()
+        )
+
+        let response = try await client.ingest(text: "a note", userImportance: 4)
+
+        XCTAssertEqual(response.status, "queued")
+        XCTAssertEqual(response.entryId, "entry-1")
+        XCTAssertEqual(response.jobId, "job-1")
+        XCTAssertEqual(response.userImportance, 4)
+    }
+
     private static func response(
         for request: URLRequest,
         status: Int,
