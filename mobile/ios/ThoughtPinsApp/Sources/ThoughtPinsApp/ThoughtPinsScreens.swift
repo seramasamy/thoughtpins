@@ -128,6 +128,13 @@ struct ThoughtPinsChatScreen: View {
     @State private var showingVoiceDisclosure = false
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("thoughtpins.voiceDisclosure.2026-07-13") private var voiceDisclosureAccepted = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var composerLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(alignment: .bottom, spacing: 8))
+    }
 
     var body: some View {
         NavigationStack {
@@ -143,6 +150,11 @@ struct ThoughtPinsChatScreen: View {
                         : "Private memories stay out of replies.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        // Without this the line is truncated to "Private
+                        // memories…" at the accessibility sizes: SwiftUI gives
+                        // the transcript below the remaining height and clips
+                        // this instead of wrapping it.
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 ScrollView {
                     VStack(alignment: .leading, spacing: 10) {
@@ -187,7 +199,11 @@ struct ThoughtPinsChatScreen: View {
                     .animation(.easeInOut(duration: 0.22), value: model.chatReply)
                     .animation(.easeInOut(duration: 0.22), value: model.isThinking)
                 }
-                HStack(alignment: .bottom, spacing: 8) {
+                // At the accessibility text sizes the mic, the field and Send
+                // cannot share a row: the field collapses to about two visible
+                // characters and Send is pushed against the screen edge. Stack
+                // them instead once the type is that large.
+                composerLayout {
                     Button {
                         if voiceRecorder.isRecording {
                             finishVoiceRecording()
@@ -215,6 +231,7 @@ struct ThoughtPinsChatScreen: View {
                     Button("Send", action: submit)
                         .disabled(model.isThinking || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 if voiceRecorder.isRecording {
                     Label("Recording voice note", systemImage: "waveform")
                         .font(.caption)
