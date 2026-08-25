@@ -133,19 +133,26 @@ install, and expired-session state.
 Required product flows:
 
 1. Email/phone registration, disclosure consent, login, refresh, and logout.
-2. Sign in with Apple for a new and returning account.
-3. Google sign-in with a native token accepted by the backend audience.
-4. Chat with visible thinking state and a memory-backed answer.
-5. Automatic journal routing, correction, undo, and importance rating.
-6. Voice recording, denied permission, transcription, and configured audio
+2. **Not applicable to v1.** Sign in with Apple and Google sign-in are both
+   built, but neither appears: production reports `oauth_apple_enabled: false`,
+   and the app refuses to offer Google without Apple alongside it, because
+   Guideline 4.8 requires an option that can keep the address private and
+   email-and-password cannot. v1 ships first-party sign-in only, which is the
+   4.8 exemption for an app that "exclusively uses your company's own account
+   setup and sign-in systems". Test these two only after `oauth_apple_enabled`
+   is switched on; until then, confirm the sign-in screen offers email and
+   password and shows no third-party section at all.
+3. Chat with visible thinking state and a memory-backed answer.
+4. Automatic journal routing, correction, undo, and importance rating.
+5. Voice recording, denied permission, transcription, and configured audio
    deletion behavior.
-7. Allowed link/document import, source detail, search, and provenance.
-8. People/place/concept/source cards and daily/weekly/monthly recaps.
-9. Offline draft replay exactly once after reconnection.
-10. Obsidian vault export and account export.
-11. In-app account deletion, token revocation, local session removal, and a
+6. Allowed link/document import, source detail, search, and provenance.
+7. People/place/concept/source cards and daily/weekly/monthly recaps.
+8. Offline draft replay exactly once after reconnection.
+9. Obsidian vault export and account export.
+10. In-app account deletion, token revocation, local session removal, and a
     clean reinstall that does not restore the deleted session.
-12. Every privacy, terms, support, AI disclosure, and deletion link.
+11. Every privacy, terms, support, AI disclosure, and deletion link.
 
 **Go gate:** no crash, clipped text, blocked dismissal, inaccessible control,
 duplicate write, leaked provider detail, stale deleted session, or misleading

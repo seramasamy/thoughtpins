@@ -64,6 +64,12 @@ Apple silicon machine are the alternatives. Full detail in
    - Capabilities: tick **Sign in with Apple** only. Nothing else — the
      entitlements file requests only `com.apple.developer.applesignin`, and an
      App ID with capabilities the app does not use fails provisioning.
+
+     Tick it **even though v1 does not show an Apple button.** The entitlement
+     is in the binary, and an entitlement absent from the provisioning profile
+     fails signing with "Provisioning profile doesn't include the
+     com.apple.developer.applesignin entitlement". See *What v1 ships for
+     sign-in* below.
    *Done when:* the identifier appears in the list.
 
 3. **Create the App Store Connect record.** appstoreconnect.apple.com → Apps →
@@ -81,6 +87,53 @@ Apple silicon machine are the alternatives. Full detail in
    characters. You need it for `APPLE_TEAM_ID` later.
 
 ---
+
+## What v1 ships for sign-in
+
+**Email and password only.** No Apple button, no Google button, no third-party
+section on the sign-in screen at all.
+
+That is a decision, not an omission. Production reports
+`oauth_google_enabled: true` and `oauth_apple_enabled: false`, and the app now
+refuses to offer Google unless Apple is available alongside it.
+
+Guideline 4.8 requires that an app using a third-party login service also offer
+an option that limits collection to name and email **and lets the person keep
+their email address private**. Email-and-password fails the second half: it
+needs a real, working address. So Google on its own is a rejection.
+
+Shipping first-party sign-in only lands in 4.8's own exemption — *"Your app
+exclusively uses your company's own account setup and sign-in systems"* — so
+there is nothing to satisfy and nothing to explain.
+
+### If you want the Google button back
+
+There is one practical route: **turn on Sign in with Apple.** It is the option
+that meets the private-address requirement, and the app already implements it
+in full — the button, the nonce, the state check, the authorization code. What
+is missing is configuration, not code:
+
+1. The App ID capability (Stage 1 above) — needed for signing regardless.
+2. A Services ID, a key, and the team id, so the backend can verify the
+   identity token. `APPLE_OAUTH_TEAM_ID`, `APPLE_OAUTH_KEY_ID` and
+   `APPLE_OAUTH_PRIVATE_KEY` already exist in config for this.
+3. `oauth_apple_enabled` true in client-config.
+
+Do those and both buttons appear together, with no app change.
+
+Routes that do **not** work, so they are not worth trying:
+
+- **Magic link.** Enabled server-side, unimplemented on iOS, and it still needs
+  a real address — it does not satisfy the private-address requirement.
+- **Email and password as the "equivalent option".** This is the one people
+  assume works. It does not: there is no way to keep the address private.
+- **Another social provider.** The requirement is about the *properties* of the
+  alternative, and in practice Sign in with Apple is the only login service that
+  has them.
+
+Removing the entitlement to simplify provisioning is also not worth it: the gate
+in `scripts/check_ios_submission_source.py` requires it, and keeping it costs
+one tick on the App ID while leaving the door open.
 
 ## Stage 2 — Production backend readiness (no Mac needed)
 
