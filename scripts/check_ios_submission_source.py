@@ -105,11 +105,40 @@ def _check_privacy_and_entitlements(failures: list[str]) -> None:
         collected = privacy.get("NSPrivacyCollectedDataTypes")
         if not isinstance(collected, list) or not collected:
             failures.append("privacy manifest must declare collected app data")
-        if not any(
-            isinstance(item, dict) and item.get("NSPrivacyCollectedDataType") == "NSPrivacyCollectedDataTypeAudioData"
-            for item in collected or []
-        ):
+        declared_types = {
+            item.get("NSPrivacyCollectedDataType") for item in collected or [] if isinstance(item, dict)
+        }
+        if "NSPrivacyCollectedDataTypeAudioData" not in declared_types:
             failures.append("privacy manifest must declare optional audio data used by voice notes")
+
+        # The file importer accepts .image, and the upload provider reads the
+        # chosen file's bytes and base64-encodes them for the server, so a photo
+        # a person picks is transmitted. Apple has a distinct data type for that
+        # and it is not covered by Other User Content.
+        root_view = (
+            ROOT / "mobile" / "ios" / "ThoughtPinsApp" / "Sources" / "ThoughtPinsApp" / "ThoughtPinsReviewShell.swift"
+        ).read_text(encoding="utf-8")
+        if ".image" in root_view and "NSPrivacyCollectedDataTypePhotosorVideos" not in declared_types:
+            failures.append(
+                "the file importer accepts images, so the privacy manifest must declare "
+                "NSPrivacyCollectedDataTypePhotosorVideos"
+            )
+
+        # Nothing in the app registers for push or calls registerDevice, so no
+        # device identifier leaves the device. Declaring one would overstate
+        # collection on the product page.
+        app_sources = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in sorted((ROOT / "mobile" / "ios" / "ThoughtPinsApp" / "Sources" / "ThoughtPinsApp").glob("*.swift"))
+        ) + (TARGET / "Sources" / "ThoughtPinsNativeApp.swift").read_text(encoding="utf-8")
+        collects_device_id = "registerForRemoteNotifications" in app_sources or "registerDevice(" in app_sources
+        if not collects_device_id and "NSPrivacyCollectedDataTypeDeviceID" in declared_types:
+            failures.append(
+                "privacy manifest declares a device identifier the app never collects: "
+                "nothing registers for push or calls registerDevice"
+            )
+        if collects_device_id and "NSPrivacyCollectedDataTypeDeviceID" not in declared_types:
+            failures.append("the app now collects a device identifier, so the privacy manifest must declare it")
 
     entitlements = load_plist(TARGET / "Resources" / "ThoughtPins.entitlements", failures)
     if entitlements and entitlements.get("com.apple.developer.applesignin") != ["Default"]:
