@@ -94,6 +94,87 @@ final class ThoughtPinsAPIClientTests: XCTestCase {
         return URLSession(configuration: configuration)
     }
 
+    // The client's decoder sets .convertFromSnakeCase, so a model must NOT also
+    // declare snake_case CodingKeys: the strategy rewrites "app_name" to
+    // "appName" and then looks for a key spelled "appName", which an explicit
+    // `case appName = "app_name"` does not provide. Four models used to carry
+    // such enums, which made every one of them undecodable. These two tests
+    // pin both directions of that boundary.
+    func testSnakeCasedResponseFieldsDecodeThroughTheConversionStrategy() async throws {
+        URLProtocolStub.handler = { request in
+            try Self.response(for: request, status: 200, body: [
+                "app_name": "Thought Pins",
+                "api_version": "v1",
+                "auth_required": true,
+                "registration_locked": false,
+                "oauth_google_enabled": true,
+                "privacy_policy_url": "https://example.com/privacy",
+                "minimum_supported_clients": ["ios": "1.0.0"],
+                "recommended_clients": ["ios": "1.2.0"],
+                "store_urls": ["ios": "https://example.com/app"],
+                "maintenance_mode": false,
+                "maintenance_allow_reads": true,
+            ])
+        }
+        let client = ThoughtPinsAPIClient(
+            baseURL: URL(string: "https://api.example.com")!,
+            sessionStore: TestSessionStore(),
+            urlSession: makeSession()
+        )
+
+        let config = try await client.clientConfig()
+
+        XCTAssertEqual(config.appName, "Thought Pins")
+        XCTAssertEqual(config.apiVersion, "v1")
+        XCTAssertTrue(config.authRequired)
+        XCTAssertFalse(config.registrationLocked)
+        XCTAssertEqual(config.oauthGoogleEnabled, true)
+        XCTAssertEqual(config.privacyPolicyUrl, "https://example.com/privacy")
+        XCTAssertEqual(config.minimumSupportedClients["ios"], "1.0.0")
+        XCTAssertTrue(config.maintenanceAllowReads)
+    }
+
+    func testDeviceRegistrationIsPostedWithSnakeCasedKeys() async throws {
+        URLProtocolStub.handler = { request in
+            let body = try XCTUnwrap(request.bodyData)
+            let payload = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+            XCTAssertEqual(payload["installation_id"] as? String, "install-1")
+            XCTAssertEqual(payload["app_version"] as? String, "1.0.0")
+            XCTAssertEqual(payload["notifications_enabled"] as? Bool, true)
+            XCTAssertNil(payload["installationId"])
+            return try Self.response(for: request, status: 200, body: [
+                "id": "device-1",
+                "installation_id": "install-1",
+                "platform": "ios",
+                "push_token_present": false,
+                "notifications_enabled": true,
+            ])
+        }
+        let client = ThoughtPinsAPIClient(
+            baseURL: URL(string: "https://api.example.com")!,
+            sessionStore: TestSessionStore(ApiSession(accessToken: "access", refreshToken: "refresh")),
+            urlSession: makeSession()
+        )
+
+        let device = try await client.registerDevice(
+            DeviceRegistration(
+                installationId: "install-1",
+                deviceName: "iPhone",
+                appVersion: "1.0.0",
+                buildNumber: "42",
+                osVersion: "17.2",
+                locale: "en_US",
+                timezone: "America/New_York",
+                pushProvider: nil,
+                pushToken: nil,
+                notificationsEnabled: true
+            )
+        )
+
+        XCTAssertEqual(device.installationId, "install-1")
+        XCTAssertFalse(device.pushTokenPresent)
+    }
+
     private static func response(
         for request: URLRequest,
         status: Int,

@@ -15,13 +15,6 @@ public struct TokenResponse: Codable, Sendable {
     public let refreshToken: String
     public let tokenType: String
     public let expiresIn: Int
-
-    enum CodingKeys: String, CodingKey {
-        case accessToken = "access_token"
-        case refreshToken = "refresh_token"
-        case tokenType = "token_type"
-        case expiresIn = "expires_in"
-    }
 }
 
 public struct ClientConfig: Codable, Sendable {
@@ -46,30 +39,6 @@ public struct ClientConfig: Codable, Sendable {
     public let maintenanceMessage: String?
     public let maintenanceRetryAfterSeconds: Int?
     public let maintenanceAllowReads: Bool
-
-    enum CodingKeys: String, CodingKey {
-        case appName = "app_name"
-        case apiVersion = "api_version"
-        case authRequired = "auth_required"
-        case registrationLocked = "registration_locked"
-        case oauthGoogleEnabled = "oauth_google_enabled"
-        case oauthAppleEnabled = "oauth_apple_enabled"
-        case voiceArchiveEnabled = "voice_archive_enabled"
-        case memoryContextMode = "memory_context_mode"
-        case privacyPolicyUrl = "privacy_policy_url"
-        case termsUrl = "terms_url"
-        case supportUrl = "support_url"
-        case accountDeletionUrl = "account_deletion_url"
-        case aiDisclosureUrl = "ai_disclosure_url"
-        case legalDocumentVersion = "legal_document_version"
-        case minimumSupportedClients = "minimum_supported_clients"
-        case recommendedClients = "recommended_clients"
-        case storeUrls = "store_urls"
-        case maintenanceMode = "maintenance_mode"
-        case maintenanceMessage = "maintenance_message"
-        case maintenanceRetryAfterSeconds = "maintenance_retry_after_seconds"
-        case maintenanceAllowReads = "maintenance_allow_reads"
-    }
 }
 
 public struct IngestResponse: Codable, Sendable {
@@ -77,13 +46,6 @@ public struct IngestResponse: Codable, Sendable {
     public let entryId: String
     public let jobId: String?
     public let userImportance: Int?
-
-    enum CodingKeys: String, CodingKey {
-        case status
-        case entryId = "entry_id"
-        case jobId = "job_id"
-        case userImportance = "user_importance"
-    }
 }
 
 public struct UploadIngestResponse: Codable, Sendable {
@@ -203,20 +165,6 @@ public struct DeviceRegistration: Codable, Sendable {
         self.pushProvider = pushProvider
         self.pushToken = pushToken
         self.notificationsEnabled = notificationsEnabled
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case installationId = "installation_id"
-        case platform
-        case deviceName = "device_name"
-        case appVersion = "app_version"
-        case buildNumber = "build_number"
-        case osVersion = "os_version"
-        case locale
-        case timezone
-        case pushProvider = "push_provider"
-        case pushToken = "push_token"
-        case notificationsEnabled = "notifications_enabled"
     }
 }
 
