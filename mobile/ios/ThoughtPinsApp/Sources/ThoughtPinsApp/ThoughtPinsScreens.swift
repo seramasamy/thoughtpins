@@ -92,7 +92,9 @@ struct ThoughtPinsRecapScreen: View {
                     if filteredEntries.isEmpty {
                         ThoughtPinsEmptyState(
                             "Nothing here yet",
-                            detail: "Entries you save this \(period.lowercased()) will appear here."
+                            detail: "Entries you save this \(period.lowercased()) will appear here.",
+                            actionTitle: "Write your first note",
+                            destination: AnyView(ThoughtPinsCaptureScreen(model: model))
                         )
                     }
                 }
@@ -408,7 +410,9 @@ struct ThoughtPinsLibraryScreen: View {
                 if model.librarySources.isEmpty {
                     ThoughtPinsEmptyState(
                         "No sources yet",
-                        detail: "Links and documents you save will appear here with their source details."
+                        detail: "Links and documents you save will appear here with their source details.",
+                        actionTitle: "Save a link or document",
+                        destination: AnyView(ThoughtPinsCaptureScreen(model: model))
                     )
                 }
             }
@@ -460,7 +464,9 @@ struct ThoughtPinsMemoryScreen: View {
                 if cards.isEmpty {
                     ThoughtPinsEmptyState(
                         "No \(title.lowercased()) yet",
-                        detail: "People and places from your journal become connected cards here."
+                        detail: "People and places from your journal become connected cards here.",
+                        actionTitle: "Write your first note",
+                        destination: AnyView(ThoughtPinsCaptureScreen(model: model))
                     )
                 }
             }

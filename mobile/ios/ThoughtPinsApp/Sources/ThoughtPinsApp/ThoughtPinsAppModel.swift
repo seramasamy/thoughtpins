@@ -39,8 +39,20 @@ public final class ThoughtPinsAppModel: ObservableObject {
     @Published public private(set) var pendingVaultImport: VaultImportSessionResponse?
     @Published public private(set) var draftCount: Int = 0
     @Published public var banner: String?
+    /// A session exists on this device, whether or not the server has confirmed it.
+    ///
+    /// Being signed in used to mean `me != nil`, which only a successful network
+    /// call could produce. So a person with a valid session in the Keychain and
+    /// drafts on the device was shown the sign-in screen the moment they had no
+    /// network -- and Capture, the whole point of an offline draft, sits behind
+    /// that screen. "Saved as an offline draft" was a promise the app could not
+    /// keep.
+    @Published public private(set) var hasStoredSession: Bool = false
+    /// The last attempt to reach the server failed at the transport layer.
+    @Published public private(set) var isOffline: Bool = false
 
     public let api: ThoughtPinsAPIClient
+    private let sessionStore: SessionStore
     private let drafts: FileDraftStore
     private let oauthTokenProvider: any ThoughtPinsOAuthTokenProvider
     private let uploadProvider: any ThoughtPinsUploadProvider
@@ -55,6 +67,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
         uploadProvider: any ThoughtPinsUploadProvider = UnconfiguredThoughtPinsUploadProvider()
     ) {
         self.api = ThoughtPinsAPIClient(baseURL: baseURL, sessionStore: sessionStore)
+        self.sessionStore = sessionStore
         self.drafts = FileDraftStore(directory: draftDirectory.appendingPathComponent("ThoughtPins", isDirectory: true))
         self.oauthTokenProvider = oauthTokenProvider
         self.uploadProvider = uploadProvider
@@ -77,6 +90,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
             let version = config?.legalDocumentVersion ?? "2026-07-13"
             let preferences = try await api.acceptLegalDocument(document, version: version)
             aiProcessingConsentAccepted = preferences.legalAcceptances["ai_disclosure"] != nil
+            UserDefaults.standard.set(aiProcessingConsentAccepted, forKey: Self.consentDefaultsKey)
             banner = document == "ai_disclosure" ? "AI processing permission saved." : "Legal acknowledgement saved."
         } catch {
             banner = "Could not save legal acknowledgement."
@@ -84,7 +98,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
     }
 
     public var isAuthenticated: Bool {
-        me != nil
+        me != nil || hasStoredSession
     }
 
     /// Nil status means "not asked yet", which must not read as blocked.
@@ -97,7 +111,22 @@ public final class ThoughtPinsAppModel: ObservableObject {
         oauthTokenProvider.supports(provider)
     }
 
+    private static let consentDefaultsKey = "thoughtpins.aiProcessingConsentAccepted"
+
+    /// Whether a session is on this device, asked before any network call.
+    private func refreshStoredSessionFlag() {
+        hasStoredSession = (try? sessionStore.load()) != nil
+        if hasStoredSession {
+            // Consent is server state, and offline we cannot fetch it. Without a
+            // local copy `saveJournal` refused with "Allow AI processing before
+            // saving journal content" on every offline launch -- so the offline
+            // draft could not be written at all.
+            aiProcessingConsentAccepted = UserDefaults.standard.bool(forKey: Self.consentDefaultsKey)
+        }
+    }
+
     public func bootstrap() async {
+        refreshStoredSessionFlag()
         do {
             let config = try await api.clientConfig()
             self.config = config
@@ -117,8 +146,18 @@ public final class ThoughtPinsAppModel: ObservableObject {
                 try? await syncDrafts()
             }
             await refreshReadModels()
+            isOffline = false
+        } catch APIClientError.sessionExpired {
+            // The server rejected the session and ThoughtPinsAPIClient has
+            // already cleared it. Drop to sign-in rather than showing a shell
+            // where every request fails.
+            await clearLocalAccountState()
+            banner = "Your session expired. Please sign in again."
         } catch {
-            banner = "Could not reach Thought Pins. You can keep drafting locally."
+            // A transport failure is not a signed-out state. Keep whatever
+            // session is on the device and say plainly that we are offline.
+            isOffline = ThoughtPinsAuthFailure(error) == .unreachable
+                || ThoughtPinsAuthFailure(error) == .timedOut
         }
         await refreshDraftCount()
     }
@@ -139,6 +178,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
         do {
             _ = try await api.register(email: email, phone: phone, password: password)
             _ = try await api.login(identifier: identifier, password: password)
+            refreshStoredSessionFlag()
             me = try await api.me()
         } catch {
             // "Check credentials" was wrong for most of what lands here -- a
@@ -179,6 +219,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
                 redirectUri: credential.redirectUri,
                 nonce: credential.nonce
             )
+            refreshStoredSessionFlag()
             me = try await api.me()
             await refreshPreferences()
             await refreshInviteStatus()
@@ -224,6 +265,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
                 authorizationCode: authorizationCode,
                 nonce: expectedNonce
             )
+            refreshStoredSessionFlag()
             me = try await api.me()
             await refreshPreferences()
             await refreshInviteStatus()
@@ -264,6 +306,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
         defer { authBusy = false }
         do {
             _ = try await api.login(identifier: identifier, password: password)
+            refreshStoredSessionFlag()
             me = try await api.me()
             await refreshPreferences()
             await refreshInviteStatus()
@@ -549,6 +592,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
         importancePromptsEnabled = preferences.importancePromptsEnabled ?? false
         usePrivateMemories = preferences.privateEntriesInAsk
         aiProcessingConsentAccepted = preferences.legalAcceptances["ai_disclosure"] != nil
+        UserDefaults.standard.set(aiProcessingConsentAccepted, forKey: Self.consentDefaultsKey)
     }
 
     private func refreshInviteStatus() async {
@@ -630,6 +674,9 @@ public final class ThoughtPinsAppModel: ObservableObject {
         voiceArchiveStatus = nil
         pendingVaultImport = nil
         aiProcessingConsentAccepted = false
+        UserDefaults.standard.removeObject(forKey: Self.consentDefaultsKey)
+        hasStoredSession = false
+        isOffline = false
         inviteStatus = nil
         usePrivateMemories = false
         await refreshDraftCount()

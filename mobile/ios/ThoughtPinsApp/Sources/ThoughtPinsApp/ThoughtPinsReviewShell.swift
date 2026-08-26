@@ -44,6 +44,27 @@ public struct ThoughtPinsRootView: View {
                 ThoughtPinsAuthView(model: model)
             }
         }
+        // A standing condition, so it inserts rather than overlays: it pushes the
+        // content down instead of sitting on the navigation bar the way the
+        // transient banner does. The wording deliberately does not claim we are
+        // showing anything fresh -- offline the read screens are empty because
+        // we could not load them, not because there is nothing there.
+        .safeAreaInset(edge: .top) {
+            if model.isOffline, model.isAuthenticated {
+                HStack(spacing: 6) {
+                    Image(systemName: "wifi.slash")
+                    Text("Offline. Anything you write is saved on this device and sent when you reconnect.")
+                }
+                .font(.footnote)
+                .foregroundStyle(ThoughtPinsTheme.inkSoft)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity)
+                .background(ThoughtPinsTheme.brandSoft)
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("thoughtpins-offline-notice")
+            }
+        }
         .task { await model.bootstrap() }
         .fileImporter(
             isPresented: $uploadProvider.isImporterPresented,

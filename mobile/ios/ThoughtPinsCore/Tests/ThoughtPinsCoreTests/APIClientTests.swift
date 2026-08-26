@@ -17,7 +17,7 @@ final class ThoughtPinsAPIClientTests: XCTestCase {
             let payload = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
             XCTAssertEqual(payload["authorization_code"] as? String, "one-time-code")
             XCTAssertEqual(payload["id_token"] as? String, "identity-token")
-            return try Self.response(for: request, status: 200, body: [
+            return try StubResponse.make(for: request, status: 200, body: [
                 "access_token": "new-access",
                 "refresh_token": "new-refresh",
                 "token_type": "bearer",
@@ -42,7 +42,7 @@ final class ThoughtPinsAPIClientTests: XCTestCase {
     func testLogoutClearsLocalSessionWhenServerIsUnavailable() async throws {
         let store = TestSessionStore(ApiSession(accessToken: "access", refreshToken: "refresh"))
         URLProtocolStub.handler = { request in
-            try Self.response(for: request, status: 503, body: [
+            try StubResponse.make(for: request, status: 503, body: [
                 "error": ["code": "maintenance", "message": "Try again later", "request_id": "req-1"]
             ])
         }
@@ -63,7 +63,7 @@ final class ThoughtPinsAPIClientTests: XCTestCase {
     func testErrorUsesEnvelopeMessageInsteadOfReturningTheRawBody() async throws {
         let store = TestSessionStore(ApiSession(accessToken: "access", refreshToken: "refresh"))
         URLProtocolStub.handler = { request in
-            try Self.response(for: request, status: 400, body: [
+            try StubResponse.make(for: request, status: 400, body: [
                 "error": [
                     "code": "bad_request",
                     "message": "Safe message",
@@ -102,7 +102,7 @@ final class ThoughtPinsAPIClientTests: XCTestCase {
     // pin both directions of that boundary.
     func testSnakeCasedResponseFieldsDecodeThroughTheConversionStrategy() async throws {
         URLProtocolStub.handler = { request in
-            try Self.response(for: request, status: 200, body: [
+            try StubResponse.make(for: request, status: 200, body: [
                 "app_name": "Thought Pins",
                 "api_version": "v1",
                 "auth_required": true,
@@ -142,7 +142,7 @@ final class ThoughtPinsAPIClientTests: XCTestCase {
             XCTAssertEqual(payload["app_version"] as? String, "1.0.0")
             XCTAssertEqual(payload["notifications_enabled"] as? Bool, true)
             XCTAssertNil(payload["installationId"])
-            return try Self.response(for: request, status: 200, body: [
+            return try StubResponse.make(for: request, status: 200, body: [
                 "id": "device-1",
                 "installation_id": "install-1",
                 "platform": "ios",
@@ -184,7 +184,7 @@ final class ThoughtPinsAPIClientTests: XCTestCase {
             XCTAssertEqual(payload["user_importance"] as? Int, 4)
             XCTAssertEqual(payload["text"] as? String, "a note")
             XCTAssertNil(payload["userImportance"])
-            return try Self.response(for: request, status: 200, body: [
+            return try StubResponse.make(for: request, status: 200, body: [
                 "status": "queued",
                 "entry_id": "entry-1",
                 "job_id": "job-1",
@@ -205,88 +205,4 @@ final class ThoughtPinsAPIClientTests: XCTestCase {
         XCTAssertEqual(response.userImportance, 4)
     }
 
-    private static func response(
-        for request: URLRequest,
-        status: Int,
-        body: [String: Any]
-    ) throws -> (HTTPURLResponse, Data) {
-        let response = try XCTUnwrap(
-            HTTPURLResponse(
-                url: try XCTUnwrap(request.url),
-                statusCode: status,
-                httpVersion: "HTTP/1.1",
-                headerFields: ["Content-Type": "application/json"]
-            )
-        )
-        return (response, try JSONSerialization.data(withJSONObject: body))
-    }
-}
-
-private final class TestSessionStore: SessionStore, @unchecked Sendable {
-    private let lock = NSLock()
-    private var value: ApiSession?
-
-    init(_ value: ApiSession? = nil) {
-        self.value = value
-    }
-
-    func load() throws -> ApiSession? {
-        lock.lock()
-        defer { lock.unlock() }
-        return value
-    }
-
-    func save(_ session: ApiSession?) throws {
-        lock.lock()
-        defer { lock.unlock() }
-        value = session
-    }
-}
-
-private final class URLProtocolStub: URLProtocol {
-    static var handler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
-
-    override class func canInit(with request: URLRequest) -> Bool { true }
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
-
-    override func startLoading() {
-        guard let handler = Self.handler else {
-            client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
-            return
-        }
-        do {
-            let (response, data) = try handler(request)
-            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-            client?.urlProtocol(self, didLoad: data)
-            client?.urlProtocolDidFinishLoading(self)
-        } catch {
-            client?.urlProtocol(self, didFailWithError: error)
-        }
-    }
-
-    override func stopLoading() {}
-}
-
-private extension URLRequest {
-    /// The request body as URLProtocol actually receives it.
-    ///
-    /// URLSession converts httpBody into httpBodyStream before handing the
-    /// request to a protocol, so reading httpBody here always returns nil and
-    /// the assertion about the posted payload could never have passed.
-    var bodyData: Data? {
-        if let httpBody { return httpBody }
-        guard let stream = httpBodyStream else { return nil }
-        stream.open()
-        defer { stream.close() }
-        var data = Data()
-        let capacity = 4096
-        let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: capacity)
-        defer { buffer.deallocate() }
-        while stream.hasBytesAvailable {
-            let read = stream.read(buffer, maxLength: capacity)
-            if read <= 0 { break }
-            data.append(buffer, count: read)
-        }
-        return data
-    }
 }

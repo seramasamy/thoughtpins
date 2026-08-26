@@ -62,10 +62,21 @@ struct ThoughtPinsThinkingDots: View {
 struct ThoughtPinsEmptyState: View {
     let title: String
     var detail: String?
+    /// Somewhere to go. Every one of these screens fills up as a consequence of
+    /// writing something, so an empty one that only explains itself leaves a
+    /// new account reading a description of a thing it cannot reach from here.
+    var action: (title: String, destination: AnyView)?
 
     init(_ title: String, detail: String? = nil) {
         self.title = title
         self.detail = detail
+        self.action = nil
+    }
+
+    init(_ title: String, detail: String? = nil, actionTitle: String, destination: AnyView) {
+        self.title = title
+        self.detail = detail
+        self.action = (actionTitle, destination)
     }
 
     var body: some View {
@@ -75,16 +86,28 @@ struct ThoughtPinsEmptyState: View {
                 .opacity(0.3)
             Text(title)
                 .font(.system(.headline, design: .serif))
+                .accessibilityAddTraits(.isHeader)
             if let detail {
                 Text(detail)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
+            if let action {
+                NavigationLink { action.destination } label: {
+                    Text(action.title)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(ThoughtPinsTheme.brand)
+                .padding(.top, 4)
+                .accessibilityIdentifier("thoughtpins-empty-action")
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 36)
-        .accessibilityElement(children: .combine)
+        // Combined only when there is nothing to tap; otherwise the button has
+        // to stay its own element for VoiceOver.
+        .accessibilityElement(children: action == nil ? .combine : .contain)
     }
 }
 

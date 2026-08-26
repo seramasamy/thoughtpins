@@ -602,8 +602,36 @@ def check_png_icon(path: Path, failures: list[str]) -> None:
     color_type = data[25]
     if (width, height) != (1024, 1024):
         failures.append(f"app icon must be 1024x1024, found {width}x{height}")
-    if color_type not in {0, 2, 3}:
+    # Colour types 4 and 6 carry an alpha channel outright. Type 3 (indexed)
+    # does not, but a tRNS chunk gives its palette per-entry transparency, and
+    # types 0 and 2 can use tRNS to mark one colour transparent. Apple rejects
+    # the upload for any of them, so the chunk has to be checked as well as the
+    # colour type -- the old check let an indexed PNG with tRNS straight
+    # through.
+    if color_type in {4, 6}:
         failures.append("app icon must not contain an alpha channel")
+    elif color_type not in {0, 2, 3}:
+        failures.append(f"app icon has an unexpected PNG colour type: {color_type}")
+    if _png_has_chunk(data, b"tRNS"):
+        failures.append("app icon must not carry transparency: it contains a tRNS chunk")
+
+
+def _png_has_chunk(data: bytes, name: bytes) -> bool:
+    """Walk the PNG chunk list rather than searching the whole file.
+
+    A raw `name in data` would also match the bytes appearing inside compressed
+    image data, which is a false positive waiting to happen.
+    """
+    position = 8
+    while position + 8 <= len(data):
+        length = struct.unpack(">I", data[position : position + 4])[0]
+        chunk = data[position + 4 : position + 8]
+        if chunk == name:
+            return True
+        if chunk == b"IEND":
+            return False
+        position += 12 + length
+    return False
 
 
 def require(text: str, marker: str, label: str, failures: list[str]) -> None:

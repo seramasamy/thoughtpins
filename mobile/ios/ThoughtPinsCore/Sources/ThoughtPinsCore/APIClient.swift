@@ -612,16 +612,40 @@ public actor ThoughtPinsAPIClient {
         guard let http = response as? HTTPURLResponse else {
             throw APIClientError.invalidResponse
         }
-        if http.statusCode == 401, auth, allowRefresh, try await refreshSession() {
-            return try await self.request(
-                path: path,
-                method: method,
-                auth: auth,
-                queryItems: queryItems,
-                body: body,
-                idempotencyKey: resolvedIdempotencyKey,
-                allowRefresh: false
-            )
+        if http.statusCode == 401, auth {
+            if allowRefresh {
+                let refreshed: Bool
+                do {
+                    refreshed = try await refreshSession()
+                } catch APIClientError.httpStatus(let refreshStatus, _)
+                    where refreshStatus == 401 || refreshStatus == 403 {
+                    // The server has rejected the refresh token itself. Nothing
+                    // this session holds will ever work again, and leaving it in
+                    // the Keychain left the app in a signed-in shell where every
+                    // request failed and the only way out was finding Sign out.
+                    // A 5xx during refresh is transient and deliberately not
+                    // caught here: that session may still be good.
+                    try? sessionStore.save(nil)
+                    throw APIClientError.sessionExpired
+                }
+                if refreshed {
+                    return try await self.request(
+                        path: path,
+                        method: method,
+                        auth: auth,
+                        queryItems: queryItems,
+                        body: body,
+                        idempotencyKey: resolvedIdempotencyKey,
+                        allowRefresh: false
+                    )
+                }
+            } else {
+                // A 401 while carrying a token we refreshed moments ago. The
+                // refresh succeeded and the result is still unauthorised, so the
+                // account is gone or revoked server-side.
+                try? sessionStore.save(nil)
+                throw APIClientError.sessionExpired
+            }
         }
         guard (200..<300).contains(http.statusCode) else {
             throw APIClientError.httpStatus(http.statusCode, sanitizedErrorMessage(from: data))
@@ -669,13 +693,22 @@ public actor ThoughtPinsAPIClient {
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             let tokens = try decoder.decode(TokenResponse.self, from: data)
-            return ApiSession(accessToken: tokens.accessToken, refreshToken: tokens.refreshToken)
+            let session = ApiSession(accessToken: tokens.accessToken, refreshToken: tokens.refreshToken)
+            // Stored here, inside the task, and not by whoever happens to be
+            // awaiting it. When the task finishes, the owner and every waiter
+            // become runnable in an unspecified order, and a waiter resuming
+            // first went straight back into request() -- a same-actor call, so
+            // no suspension -- and read the old access token for its retry.
+            // That retry carries allowRefresh: false, so it could not recover:
+            // one concurrent 401 out of several surfaced as a spurious auth
+            // failure. Saving before the task returns removes the window.
+            try self.sessionStore.save(session)
+            return session
         }
         refreshTask = task
         do {
             let refreshed = try await task.value
             refreshTask = nil
-            try sessionStore.save(refreshed)
             return refreshed != nil
         } catch {
             refreshTask = nil
@@ -698,7 +731,15 @@ public actor ThoughtPinsAPIClient {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.urlCache = nil
         configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
-        configuration.waitsForConnectivity = true
+        // Fail fast rather than wait for the network to come back.
+        //
+        // waitsForConnectivity made an unreachable server indistinguishable from
+        // a slow one for a full minute: sign-in sat with no result, and after
+        // launch the app showed empty screens with nothing saying why, which is
+        // the app implying it has loaded when it has not. Queueing is this app's
+        // answer to no network -- a draft is written locally and sent later --
+        // and that only works if the request admits it failed.
+        configuration.waitsForConnectivity = false
         configuration.timeoutIntervalForRequest = 30
         configuration.timeoutIntervalForResource = 60
         return URLSession(configuration: configuration)
@@ -712,6 +753,11 @@ public struct EmptyResponse: Codable, Sendable {
 public enum APIClientError: Error, Equatable {
     case invalidResponse
     case httpStatus(Int, String?)
+    /// The stored session was rejected and has been cleared.
+    ///
+    /// Distinct from a plain 401 so the app can drop to sign-in instead of
+    /// showing a signed-in shell in which everything fails.
+    case sessionExpired
 }
 
 private struct InviteRedeemRequest: Encodable {
