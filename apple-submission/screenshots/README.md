@@ -8,6 +8,12 @@ set. Nothing here is a mockup, a device frame, or an empty state.
 Regenerate with `StoreScreenshotTests` (see `MAC_START_HERE.md`); it signs in,
 asks Chat a question, waits for the real answer, and walks the tabs.
 
+**Assert that each screen actually opened.** An earlier set shipped an
+`07-account.png` that was really the Pins screen: the status banner was
+covering the Account button, the tap was swallowed, and the test screenshotted
+whatever was still on screen. The banner no longer takes hit tests, but a
+capture run with no assertion will happily record the wrong screen again.
+
 ## What is here
 
 | Folder | Device | Pixels | Slot |
