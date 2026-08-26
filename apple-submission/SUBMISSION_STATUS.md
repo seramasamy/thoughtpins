@@ -98,6 +98,26 @@ caught by an acceptance test rather than by reading the code.
 - mypy reports 24 pre-existing errors in 9 files, none in anything this work
   touched. Unchanged from `HEAD` before this pass.
 
+## CI, on this commit
+
+Run `32943286763` on `2ed3d2d`, all six jobs green:
+
+| Job | Result |
+|---|---|
+| `python` | success |
+| `postgres` | success |
+| `web` | success |
+| `container` | success |
+| `android` | success |
+| **`ios`** | **success** — XcodeGen, shared Swift package tests, unsigned simulator build, **unsigned archive**, archive contains the app, Info.plist checked |
+
+The `ios` job is the one that matters here: it is the only place
+`GoogleOAuthTokenProvider.swift` compiles, because GoogleSignIn 9.1.0 declares
+`swift-tools-version:6.0` and this Mac runs Swift 5.9.2.
+
+The three steps that fail locally (SBOM, approval tilt, frontend audit) all
+pass in the `web` and `python` jobs, which have Node.
+
 ## A note on the simulator UI tests
 
 The tests that produced the evidence above live outside this repository, in a
