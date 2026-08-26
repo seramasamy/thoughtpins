@@ -60,6 +60,25 @@ public struct ThoughtPinsRootView: View {
                     .frame(maxWidth: .infinity)
                     .background(.thinMaterial)
                     .accessibilityIdentifier("thoughtpins-status-banner")
+                    // This overlay sits on top of the navigation bar. Measured
+                    // on an iPhone 13 Pro Max it spans y 0-82.7 while the
+                    // Account button occupies y 52-86, so it covered about 90%
+                    // of the only route to export, sign out, and account
+                    // deletion -- which Guideline 5.1.1(v) requires to be
+                    // reachable. Taps now pass through to what is underneath.
+                    .allowsHitTesting(false)
+                    // And it used to stay forever: nothing anywhere set
+                    // `banner` back to nil, so "Signed in." was still sitting
+                    // over the toolbar days later. Maintenance is excluded
+                    // because that is a standing condition, not a status
+                    // message.
+                    .task(id: message) {
+                        guard model.maintenanceMessage == nil else { return }
+                        try? await Task.sleep(nanoseconds: 4_000_000_000)
+                        if model.banner == message {
+                            model.banner = nil
+                        }
+                    }
             }
         }
     }
