@@ -165,16 +165,27 @@ def _check_info_plist(failures: list[str]) -> None:
         failures.append("Info.plist must explain the user-initiated voice-note microphone access")
     _check_google_config_is_all_or_nothing(info, failures)
     _check_no_empty_url_schemes(info, "Info.plist", failures)
-    required_phone_orientations = {
+    # iPhone is portrait only, deliberately. The app is a single reading and
+    # writing column -- chat transcript over a composer, and Forms -- with no
+    # landscape-specific layout anywhere, and landscape leaves 375pt of height
+    # on the smallest supported phone, which the composer and the toggle above
+    # it already fill at the accessibility text sizes. Declaring an orientation
+    # nobody has looked at is how a reviewer finds a broken screen by rotating.
+    # iPad keeps all four, where there is room and where multitasking expects it.
+    phone_orientations = set(info.get("UISupportedInterfaceOrientations") or [])
+    if phone_orientations != {"UIInterfaceOrientationPortrait"}:
+        failures.append(
+            "iPhone target must declare portrait only; add landscape back only "
+            "with a landscape layout and a test that exercises it"
+        )
+    all_four = {
         "UIInterfaceOrientationPortrait",
+        "UIInterfaceOrientationPortraitUpsideDown",
         "UIInterfaceOrientationLandscapeLeft",
         "UIInterfaceOrientationLandscapeRight",
     }
-    phone_orientations = set(info.get("UISupportedInterfaceOrientations") or [])
-    if not required_phone_orientations.issubset(phone_orientations):
-        failures.append("iPhone target must support portrait and both landscape orientations")
     ipad_orientations = set(info.get("UISupportedInterfaceOrientations~ipad") or [])
-    if not (required_phone_orientations | {"UIInterfaceOrientationPortraitUpsideDown"}).issubset(ipad_orientations):
+    if not all_four.issubset(ipad_orientations):
         failures.append("iPad target must support all four interface orientations")
 
 
