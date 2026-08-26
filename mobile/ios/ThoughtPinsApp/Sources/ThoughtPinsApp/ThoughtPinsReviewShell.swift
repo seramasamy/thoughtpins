@@ -73,8 +73,33 @@ public struct ThoughtPinsRootView: View {
         ) { result in
             Task { @MainActor in uploadProvider.completeFileImport(result) }
         }
+        // Problems inset rather than overlay, so one that stays does not sit on
+        // the navigation bar, and so it can carry its own dismiss control.
+        .safeAreaInset(edge: .top) {
+            if model.maintenanceMessage == nil, model.bannerIsProblem, let message = model.banner {
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Image(systemName: "exclamationmark.circle")
+                    Text(message)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        // The identifier belongs on the text, not the stack: a
+                        // plain HStack is not an accessibility element, so an
+                        // identifier there never reaches the tree at all. It
+                        // also must not be combined with the button, or the
+                        // button stops being separately reachable.
+                        .accessibilityIdentifier("thoughtpins-problem-banner")
+                    Button("Dismiss") { model.dismissBanner() }
+                        .font(.footnote.weight(.semibold))
+                        .accessibilityIdentifier("thoughtpins-problem-dismiss")
+                }
+                .font(.footnote)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity)
+                .background(ThoughtPinsTheme.brandSoft)
+            }
+        }
         .overlay(alignment: .top) {
-            if let message = model.maintenanceMessage ?? model.banner {
+            if let message = model.maintenanceMessage ?? (model.bannerIsProblem ? nil : model.banner) {
                 Text(message)
                     .font(.footnote)
                     .padding(10)
@@ -93,11 +118,14 @@ public struct ThoughtPinsRootView: View {
                     // over the toolbar days later. Maintenance is excluded
                     // because that is a standing condition, not a status
                     // message.
+                    // Only successes time out. A problem is something the
+                    // person may need to act on, and four seconds was hiding
+                    // failures before they could be read.
                     .task(id: message) {
-                        guard model.maintenanceMessage == nil else { return }
+                        guard model.maintenanceMessage == nil, !model.bannerIsProblem else { return }
                         try? await Task.sleep(nanoseconds: 4_000_000_000)
-                        if model.banner == message {
-                            model.banner = nil
+                        if model.banner == message, !model.bannerIsProblem {
+                            model.dismissBanner()
                         }
                     }
             }

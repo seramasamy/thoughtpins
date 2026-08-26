@@ -1,0 +1,61 @@
+import Foundation
+import ThoughtPinsCore
+
+// Wording the app shows a person, kept apart from the model that decides when
+// to show it. Extracted when ThoughtPinsAppModel.swift reached its size budget:
+// these are pure functions of their input and have no business sitting inside
+// an ObservableObject.
+
+/// A message fit to show a person, from an arbitrary Swift error.
+///
+/// `error.localizedDescription` on a bare Swift enum reads
+/// "The operation couldn't be completed. (ThoughtPinsCore.APIClientError
+/// error 1.)" — a type name, on screens including sign-in, which is where App
+/// Review starts. Provider SDKs conform to LocalizedError and already say
+/// something plain, so those are preferred; transport and server failures go
+/// through the mapping the app already has; anything else gets the caller's
+/// own sentence rather than Foundation's.
+func thoughtPinsPlainMessage(for error: Error, fallback: String) -> String {
+    if let described = (error as? LocalizedError)?.errorDescription, !described.isEmpty {
+        return described
+    }
+    switch ThoughtPinsAuthFailure(error) {
+    case .unreachable:
+        return "Could not reach Thought Pins. Check your connection and try again."
+    case .timedOut:
+        return "That took too long. Check your connection and try again."
+    case .rateLimited:
+        return "Too many attempts. Wait a minute and try again."
+    case .serverUnavailable:
+        return "Thought Pins is unavailable right now. Try again shortly."
+    case .rejected(let message):
+        return message
+    case .sessionNotStored, .badCredentials, .unexpected:
+        return fallback
+    }
+}
+
+/// What the router did, said to the person rather than to the log.
+///
+/// `route_type` is the router's own classification, in snake_case: the badge
+/// above a reply read "JOURNAL_ENTRY", "NATURAL_COMMAND", "UPLOAD_NEEDS_TEXT".
+/// Returns nil where nothing happened beyond the reply already on screen, so
+/// the badge disappears rather than announcing which code path ran.
+public func thoughtPinsRouteLabel(_ routeType: String) -> String? {
+    switch routeType {
+    case "journal_entry", "private_entry":
+        return "Saved to your journal"
+    case "document_link", "document_text", "library_upload":
+        return "Saved to your library"
+    case "query", "report_request", "search":
+        return "Answered from your memories"
+    case "correction":
+        return "Updated an earlier note"
+    case "natural_command", "command":
+        return "Account action"
+    default:
+        // chat, conversation, mixed, ambiguous, and anything new the server
+        // starts sending: nothing worth a badge.
+        return nil
+    }
+}

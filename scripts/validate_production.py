@@ -67,6 +67,41 @@ def client_url_problems() -> list[str]:
     return problems
 
 
+def invite_gate_problems() -> list[str]:
+    """Refuse a production deploy that would stop new accounts working.
+
+    INVITE_ONLY closes the product to anyone without a redeemed code. During the
+    closed beta that was the point. For an open launch it is a Guideline 2.1
+    rejection waiting on an environment variable: a reviewer who ignores the
+    demo credentials registers, hits the wall, and files.
+
+    The gate can still be turned on -- deliberately, by also setting
+    ALLOW_INVITE_ONLY_LAUNCH. Requiring two variables rather than one means a
+    partially restored environment fails the deploy instead of silently closing
+    the product.
+    """
+    problems: list[str] = []
+    if config.INVITE_ONLY and not config.ALLOW_INVITE_ONLY_LAUNCH:
+        problems.append(
+            "INVITE_ONLY is true, which walls every newly registered account behind an "
+            "invite code. If that is intended, set ALLOW_INVITE_ONLY_LAUNCH=true as well. "
+            "If this is the open launch, unset INVITE_ONLY."
+        )
+    # SYSTEM_LOCKED is the same failure through a different variable, and a
+    # blunter one: registration answers 403 outright rather than showing a wall.
+    # Its default stays True, because that is the right protection for a fresh
+    # or self-hosted deploy that should not accept strangers the moment it
+    # boots. What must not happen is *our* production losing the override
+    # silently, so the deploy check carries it instead of the default.
+    if config.SYSTEM_LOCKED:
+        problems.append(
+            "SYSTEM_LOCKED is true, so /v1/auth/register answers 403 and nobody can "
+            "create an account -- including an App Store reviewer. Set SYSTEM_LOCKED=false "
+            "for a launch deploy."
+        )
+    return problems
+
+
 def main() -> int:
     problems = config.validate_startup()
 
@@ -89,6 +124,7 @@ def main() -> int:
         )
     )
     problems.extend(client_url_problems())
+    problems.extend(invite_gate_problems())
     if problems:
         print("Production validation failed:")
         for problem in problems:

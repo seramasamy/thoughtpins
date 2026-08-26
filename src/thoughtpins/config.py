@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 
+from thoughtpins.config_admission import read_admission_defaults
 from thoughtpins.config_urls import is_shell_mangled_path, public_client_url  # noqa: F401
 from thoughtpins.config_validation import graph_backend_problems, llm_pricing_problems
 
@@ -25,6 +26,10 @@ from thoughtpins.config_env import (  # noqa: F401
     _env_int_list,
     _env_str_list,
 )
+
+# Read once, here, so a config reload re-reads the environment the same way
+# every other setting does.
+_ADMISSION = read_admission_defaults(_env_bool)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -241,10 +246,10 @@ class Config:
     MAGIC_LINK_BASE_URL: str = _env("MAGIC_LINK_BASE_URL")
     EMAIL_VERIFICATION_TOKEN_TTL_HOURS: int = _env_int("EMAIL_VERIFICATION_TOKEN_TTL_HOURS", 24)
 
-    # Private launch. Anyone may register; only a redeemed code opens the
-    # product. Defaults on wherever real people can reach the service, so a
-    # deploy that forgets to set it is closed rather than open.
-    INVITE_ONLY: bool = _env_bool("INVITE_ONLY", ENVIRONMENT in {"staging", "production"})
+    # Admission. The rationale, and why each default points the way it does,
+    # lives in config_admission.py next to the values.
+    INVITE_ONLY: bool = _ADMISSION.invite_only
+    ALLOW_INVITE_ONLY_LAUNCH: bool = _ADMISSION.allow_invite_only_launch
     INVITE_REQUEST_EMAIL: str = _env("INVITE_REQUEST_EMAIL", "invite@thoughtpins.com")
     # Where invite digests go. Left empty, requests still queue and are readable
     # from the admin route and the CLI; nothing is emailed anywhere.
@@ -373,7 +378,7 @@ class Config:
     LOG_LEVEL: str = _env("LOG_LEVEL", "INFO")
     API_HOST: str = _env("API_HOST", "127.0.0.1")
     API_PORT: int = _env_int("API_PORT", 8420)
-    SYSTEM_LOCKED: bool = _env_bool("SYSTEM_LOCKED", True)
+    SYSTEM_LOCKED: bool = _ADMISSION.system_locked
 
     @classmethod
     def is_production(cls) -> bool:

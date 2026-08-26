@@ -162,8 +162,8 @@ struct ThoughtPinsChatScreen: View {
                 }
                 ScrollView {
                     VStack(alignment: .leading, spacing: 10) {
-                        if !model.routeLabel.isEmpty {
-                            Text(model.routeLabel.uppercased())
+                        if !model.chatReply.isEmpty, let route = thoughtPinsRouteLabel(model.routeLabel) {
+                            Text(route.uppercased())
                                 .font(.caption2.weight(.semibold))
                                 .foregroundStyle(ThoughtPinsTheme.inkSoft)
                                 .padding(.horizontal, 8)
@@ -177,8 +177,7 @@ struct ThoughtPinsChatScreen: View {
                             )
                             .padding(.top, 24)
                         } else {
-                            Text(thoughtPinsFormattedReply(model.chatReply))
-                                .font(.body)
+                            ThoughtPinsReplyView(reply: model.chatReply)
                                 .textSelection(.enabled)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 11)
@@ -423,6 +422,9 @@ struct ThoughtPinsLibraryScreen: View {
     var body: some View {
         NavigationStack {
             List(model.librarySources, id: \.id) { source in
+                NavigationLink {
+                    ThoughtPinsLibrarySourceScreen(model: model, source: source)
+                } label: {
                 VStack(alignment: .leading, spacing: 5) {
                     Text(source.title).font(.system(.headline, design: .serif))
                     Text([
@@ -437,12 +439,9 @@ struct ThoughtPinsLibraryScreen: View {
                             .font(.subheadline)
                             .lineLimit(3)
                     }
-                    if let url = thoughtPinsSourceURL(source) {
-                        Link("Open original", destination: url)
-                            .font(.caption.weight(.semibold))
-                    }
                 }
                 .padding(.vertical, 4)
+                }
             }
             .refreshable { await model.refreshReadModels() }
             .overlay {
@@ -477,6 +476,9 @@ struct ThoughtPinsMemoryScreen: View {
     var body: some View {
         NavigationStack {
             List(cards, id: \.id) { card in
+                NavigationLink {
+                    ThoughtPinsMemoryCardScreen(model: model, card: card)
+                } label: {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(card.name).font(.system(.headline, design: .serif))
                     Text(card.subtitle ?? card.type).font(.subheadline)
@@ -490,6 +492,7 @@ struct ThoughtPinsMemoryScreen: View {
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
+                }
                 }
             }
             // Hide the List's own backdrop first: once the list is narrower
@@ -688,7 +691,8 @@ private func thoughtPinsByteCount(_ bytes: Int) -> String {
     ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
 }
 
-private func thoughtPinsSourceURL(_ source: LibrarySourceResponse) -> URL? {
+// Not file-private: the library list and the source detail screen both need it.
+func thoughtPinsSourceURL(_ source: LibrarySourceResponse) -> URL? {
     [source.canonicalUrl, source.sourceUrl, source.originalUrl]
         .compactMap { $0 }
         .compactMap(URL.init(string:))
@@ -699,21 +703,4 @@ private func thoughtPinsReferenceTitle(_ path: String, fallback: String) -> Stri
     let leaf = path.split(whereSeparator: { $0 == "/" || $0 == "\\" }).last.map(String.init) ?? ""
     let title = leaf.hasSuffix(".md") ? String(leaf.dropLast(3)) : leaf
     return title.isEmpty ? fallback : title
-}
-
-/// Render a model reply's inline Markdown instead of showing its syntax.
-///
-/// Replies come back with `**emphasis**` in them, and `Text(String)` prints
-/// that verbatim, so the answer a person reads is littered with asterisks.
-/// `.inlineOnlyPreservingWhitespace` is the right level here: it resolves
-/// bold, italic and links while leaving the paragraph and list-dash structure
-/// of the reply exactly as the model laid it out. If a reply is not valid
-/// Markdown, it is shown unchanged rather than dropped.
-func thoughtPinsFormattedReply(_ raw: String) -> AttributedString {
-    (try? AttributedString(
-        markdown: raw,
-        options: AttributedString.MarkdownParsingOptions(
-            interpretedSyntax: .inlineOnlyPreservingWhitespace
-        )
-    )) ?? AttributedString(raw)
 }

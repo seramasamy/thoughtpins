@@ -39,6 +39,12 @@ public final class ThoughtPinsAppModel: ObservableObject {
     @Published public private(set) var pendingVaultImport: VaultImportSessionResponse?
     @Published public private(set) var draftCount: Int = 0
     @Published public var banner: String?
+    /// Whether the current banner is something the person may need to act on.
+    ///
+    /// Successes auto-dismiss; problems do not. A four-second dismissal was
+    /// hiding failures before they could be read -- it made a feature sweep
+    /// ambiguous, which is the clearest evidence it would confuse someone.
+    @Published public private(set) var bannerIsProblem: Bool = false
     /// A session exists on this device, whether or not the server has confirmed it.
     ///
     /// Being signed in used to mean `me != nil`, which only a successful network
@@ -91,10 +97,31 @@ public final class ThoughtPinsAppModel: ObservableObject {
             let preferences = try await api.acceptLegalDocument(document, version: version)
             aiProcessingConsentAccepted = preferences.legalAcceptances["ai_disclosure"] != nil
             UserDefaults.standard.set(aiProcessingConsentAccepted, forKey: Self.consentDefaultsKey)
-            banner = document == "ai_disclosure" ? "AI processing permission saved." : "Legal acknowledgement saved."
+            showSuccess(document == "ai_disclosure" ? "AI processing permission saved." : "Legal acknowledgement saved.")
         } catch {
-            banner = "Could not save legal acknowledgement."
+            showProblem("Could not save legal acknowledgement.")
         }
+    }
+
+    /// Something worked. Says so briefly, then gets out of the way.
+    private func showSuccess(_ message: String) {
+        // Set the flag before the text: the view keys its auto-dismiss off the
+        // pair, and writing the message first would let one update render a
+        // problem as a success.
+        bannerIsProblem = false
+        banner = message
+    }
+
+    /// Something did not work, or needs a decision. Stays until the person
+    /// dismisses it or does something else that replaces it.
+    private func showProblem(_ message: String) {
+        bannerIsProblem = true
+        banner = message
+    }
+
+    public func dismissBanner() {
+        banner = nil
+        bannerIsProblem = false
     }
 
     public var isAuthenticated: Bool {
@@ -175,7 +202,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
             // already cleared it. Drop to sign-in rather than showing a shell
             // where every request fails.
             await clearLocalAccountState()
-            banner = "Your session expired. Please sign in again."
+            showProblem("Your session expired. Please sign in again.")
         } catch {
             // A transport failure is not a signed-out state. Keep whatever
             // session is on the device and say plainly that we are offline.
@@ -187,13 +214,13 @@ public final class ThoughtPinsAppModel: ObservableObject {
 
     public func register(email: String?, phone: String?, password: String, consentToAIProcessing: Bool) async {
         guard consentToAIProcessing else {
-            banner = "Review and accept the privacy, terms, and AI processing disclosure to create an account."
+            showProblem("Review and accept the privacy, terms, and AI processing disclosure to create an account.")
             return
         }
         // Checked before the account exists. Registering first and discovering
         // afterwards that there is nothing to sign in with leaves an orphan.
         guard let identifier = [email, phone].compactMap({ $0 }).first(where: { !$0.isEmpty }) else {
-            banner = "Add an email address or phone number."
+            showProblem("Add an email address or phone number.")
             return
         }
         authBusy = true
@@ -206,7 +233,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
         } catch {
             // "Check credentials" was wrong for most of what lands here -- a
             // dropped connection, a 500, a Keychain that refused the write.
-            banner = ThoughtPinsAuthFailure(error).registrationMessage
+            showProblem(ThoughtPinsAuthFailure(error).registrationMessage)
             return
         }
         // A brand new account is exactly the one the closed beta has not
@@ -221,9 +248,9 @@ public final class ThoughtPinsAppModel: ObservableObject {
             for document in ["privacy", "terms", "ai_disclosure"] {
                 _ = try await api.acceptLegalDocument(document, version: version)
             }
-            banner = "Account created."
+            showSuccess("Account created.")
         } catch {
-            banner = "Account created, but your consent was not recorded. You will be asked again."
+            showProblem("Account created, but your consent was not recorded. You will be asked again.")
         }
         await refreshPreferences()
         await refreshVoiceArchive()
@@ -246,10 +273,15 @@ public final class ThoughtPinsAppModel: ObservableObject {
             me = try await api.me()
             await refreshPreferences()
             await refreshInviteStatus()
-            banner = "Signed in with \(provider.label)."
+            showSuccess("Signed in with \(provider.label).")
             await refreshReadModels()
         } catch {
-            banner = error.localizedDescription
+            showProblem(
+                thoughtPinsPlainMessage(
+                    for: error,
+                    fallback: "\(provider.label) was not completed. Try again."
+                )
+            )
         }
     }
 
@@ -269,7 +301,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
                 let codeData = credential.authorizationCode,
                 let authorizationCode = String(data: codeData, encoding: .utf8)
             else {
-                banner = "Apple did not return a usable sign-in credential."
+                showProblem("Apple did not return a usable sign-in credential.")
                 return
             }
             guard
@@ -277,7 +309,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
                 let expectedState,
                 credential.state == expectedState
             else {
-                banner = "Apple sign-in could not be verified. Please try again."
+                showProblem("Apple sign-in could not be verified. Please try again.")
                 return
             }
             let displayName = credential.fullName.map { PersonNameComponentsFormatter().string(from: $0) }
@@ -292,10 +324,10 @@ public final class ThoughtPinsAppModel: ObservableObject {
             me = try await api.me()
             await refreshPreferences()
             await refreshInviteStatus()
-            banner = "Signed in with Apple."
+            showSuccess("Signed in with Apple.")
             await refreshReadModels()
         } catch {
-            banner = "Sign in with Apple was not completed."
+            showProblem("Sign in with Apple was not completed.")
         }
     }
 
@@ -333,10 +365,10 @@ public final class ThoughtPinsAppModel: ObservableObject {
             me = try await api.me()
             await refreshPreferences()
             await refreshInviteStatus()
-            banner = "Signed in."
+            showSuccess("Signed in.")
             await refreshReadModels()
         } catch {
-            banner = ThoughtPinsAuthFailure(error).signInMessage
+            showProblem(ThoughtPinsAuthFailure(error).signInMessage)
         }
     }
 
@@ -373,20 +405,20 @@ public final class ThoughtPinsAppModel: ObservableObject {
                     source: "ios"
                 )
             )
-            banner = "Reported. Thank you — we review these."
+            showSuccess("Reported. Thank you — we review these.")
         } catch {
-            banner = "Could not send that report. Email support@thoughtpins.com and we will act on it."
+            showProblem("Could not send that report. Email support@thoughtpins.com and we will act on it.")
         }
     }
 
     public func sendChat(_ text: String) async {
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         guard aiProcessingConsentAccepted else {
-            banner = "Allow AI processing before sending personal content."
+            showProblem("Allow AI processing before sending personal content.")
             return
         }
         if let maintenanceMessage {
-            banner = maintenanceMessage
+            showProblem(maintenanceMessage)
             return
         }
         isThinking = true
@@ -409,21 +441,21 @@ public final class ThoughtPinsAppModel: ObservableObject {
             // server will refuse every time, and "Chat failed" made a policy
             // decision look like a broken build.
             usePrivateMemories = false
-            banner = message ?? "Private memories cannot be used for replies on this server."
+            showProblem(message ?? "Private memories cannot be used for replies on this server.")
         } catch {
-            banner = "Chat failed. Your account and drafts are still safe."
+            showProblem("Chat failed. Your account and drafts are still safe.")
         }
     }
 
     public func saveJournal(_ text: String) async {
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         guard aiProcessingConsentAccepted else {
-            banner = "Allow AI processing before saving journal content."
+            showProblem("Allow AI processing before saving journal content.")
             return
         }
         do {
             let response = try await api.ingest(text: text)
-            banner = response.jobId == nil ? "Journal saved." : "Journal queued for memory extraction."
+            showSuccess(response.jobId == nil ? "Saved." : "Saved. Still reading it for what to remember.")
             await refreshReadModels()
         } catch {
             // `try?` here claimed "Saved as an offline draft." whether or not
@@ -432,11 +464,11 @@ public final class ThoughtPinsAppModel: ObservableObject {
             // exists to avoid.
             do {
                 _ = try await drafts.enqueue(text: text)
-                banner = "Saved as an offline draft."
+                showSuccess("Saved as an offline draft.")
             } catch DraftStoreError.queueFull(let limit) {
-                banner = "\(limit) drafts are still waiting to send. Nothing saved has been lost — reconnect to send them, then this one will save."
+                showProblem("\(limit) drafts are still waiting to send. Nothing saved has been lost — reconnect to send them, then this one will save.")
             } catch {
-                banner = "Could not save this offline. Keep a copy before leaving this screen."
+                showProblem("Could not save this offline. Keep a copy before leaving this screen.")
             }
             await refreshDraftCount()
         }
@@ -445,21 +477,21 @@ public final class ThoughtPinsAppModel: ObservableObject {
     public func ingestLink(_ url: String) async {
         guard !url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         guard aiProcessingConsentAccepted else {
-            banner = "Allow AI processing before adding a reading."
+            showProblem("Allow AI processing before adding a reading.")
             return
         }
         do {
             _ = try await api.createLibrarySource(url: url, sourceType: "article")
-            banner = "Reading saved."
+            showSuccess("Reading saved.")
             await refreshReadModels()
         } catch {
-            banner = "Could not import that link."
+            showProblem("Could not import that link.")
         }
     }
 
     public func uploadSelectedFile(destination: ThoughtPinsUploadDestination = .auto) async {
         guard aiProcessingConsentAccepted else {
-            banner = "Allow AI processing before uploading personal content."
+            showProblem("Allow AI processing before uploading personal content.")
             return
         }
         do {
@@ -471,7 +503,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
                 )
                 pendingVaultImport = preview
                 let result = preview.result
-                banner = "Vault preview ready: \(result?.newNotes ?? 0) new, \(result?.changedNotes ?? 0) changed."
+                showSuccess("Vault preview ready: \(result?.newNotes ?? 0) new, \(result?.changedNotes ?? 0) changed.")
                 return
             }
             let response = try await api.uploadFile(
@@ -485,15 +517,15 @@ public final class ThoughtPinsAppModel: ObservableObject {
                 conversationId: "native-upload"
             )
             if response.documentId != nil {
-                banner = "Upload saved to your library."
+                showSuccess("Upload saved to your library.")
             } else if response.entryId != nil {
-                banner = "Upload saved as a journal entry."
+                showSuccess("Upload saved as a journal entry.")
             } else {
-                banner = "Upload processed: \(response.extractionStatus)."
+                showProblem(response.error ?? "We could not read any text from that file. Paste the text you want kept.")
             }
             await refreshReadModels()
         } catch {
-            banner = error.localizedDescription
+            showProblem(thoughtPinsPlainMessage(for: error, fallback: "That did not work. Try again."))
         }
     }
 
@@ -505,10 +537,10 @@ public final class ThoughtPinsAppModel: ObservableObject {
                 conflictPolicy: pendingVaultImport.conflictPolicy
             )
             self.pendingVaultImport = nil
-            banner = "Vault imported: \(response.imported) notes; \(response.journalJobsQueued) queued."
+            showSuccess("Imported \(response.imported) notes. \(response.journalJobsQueued) are still being read.")
             await refreshReadModels()
         } catch {
-            banner = error.localizedDescription
+            showProblem(thoughtPinsPlainMessage(for: error, fallback: "That did not work. Try again."))
         }
     }
 
@@ -517,15 +549,17 @@ public final class ThoughtPinsAppModel: ObservableObject {
         do {
             _ = try await api.cancelVaultImport(transferId: pendingVaultImport.id)
             self.pendingVaultImport = nil
-            banner = "Vault preview discarded."
+            showSuccess("Vault preview discarded.")
         } catch {
-            banner = error.localizedDescription
+            showProblem(thoughtPinsPlainMessage(for: error, fallback: "That did not work. Try again."))
         }
     }
 
     public func syncDrafts() async throws {
         let summary = try await api.syncQueuedDrafts(from: drafts)
-        banner = summary.attempted == 0 ? banner : "Synced \(summary.synced) of \(summary.attempted) drafts."
+        if summary.attempted > 0 {
+            showSuccess("Sent \(summary.synced) of \(summary.attempted) saved notes.")
+        }
         await refreshDraftCount()
     }
 
@@ -534,19 +568,19 @@ public final class ThoughtPinsAppModel: ObservableObject {
         do {
             let preferences = try await api.updatePreferences(PreferencesUpdateRequest(responseStyle: style))
             responseStyle = preferences.responseStyle ?? style
-            banner = "Response voice updated."
+            showSuccess("Response voice updated.")
         } catch {
-            banner = "Could not update the response voice."
+            showProblem("Could not update the response voice.")
         }
     }
 
     public func uploadVoiceNote(_ data: Data) async {
         guard aiProcessingConsentAccepted else {
-            banner = "Allow AI processing before uploading a voice note."
+            showProblem("Allow AI processing before uploading a voice note.")
             return
         }
         guard !data.isEmpty else {
-            banner = "The voice note was empty."
+            showProblem("The voice note was empty.")
             return
         }
         do {
@@ -561,15 +595,15 @@ public final class ThoughtPinsAppModel: ObservableObject {
                 conversationId: "ios-voice"
             )
             if response.entryId == nil {
-                banner = response.error ?? "No speech was recognized in that voice note."
+                showProblem(response.error ?? "No speech was recognized in that voice note.")
             } else if response.voiceAssetId != nil {
-                banner = "Voice note saved with its encrypted recording."
+                showSuccess("Voice note saved with its encrypted recording.")
             } else {
-                banner = "Voice note saved. The recording was discarded after transcription."
+                showSuccess("Voice note saved. The recording was discarded after transcription.")
             }
             await refreshReadModels()
         } catch {
-            banner = "Voice note failed. Your draft remains on this device."
+            showProblem("Voice note failed. Your draft remains on this device.")
         }
     }
 
@@ -579,9 +613,9 @@ public final class ThoughtPinsAppModel: ObservableObject {
             if let index = recentEntries.firstIndex(where: { $0.id == entryId }) {
                 recentEntries[index] = updated
             }
-            banner = value.map { "Importance set to \($0) of 5." } ?? "Importance cleared."
+            showSuccess(value.map { "Importance set to \($0) of 5." } ?? "Importance cleared.")
         } catch {
-            banner = "Could not update importance."
+            showProblem("Could not update importance.")
         }
     }
 
@@ -591,9 +625,9 @@ public final class ThoughtPinsAppModel: ObservableObject {
                 PreferencesUpdateRequest(importancePromptsEnabled: enabled)
             )
             importancePromptsEnabled = preferences.importancePromptsEnabled ?? enabled
-            banner = enabled ? "Importance prompts enabled." : "Importance prompts disabled."
+            showSuccess(enabled ? "Importance prompts enabled." : "Importance prompts disabled.")
         } catch {
-            banner = "Could not update importance prompts."
+            showProblem("Could not update importance prompts.")
         }
     }
 
@@ -607,9 +641,9 @@ public final class ThoughtPinsAppModel: ObservableObject {
                 PreferencesUpdateRequest(privateEntriesInAsk: enabled)
             )
             usePrivateMemories = preferences.privateEntriesInAsk
-            banner = enabled ? "Private memories may inform replies." : "Private memories stay out of replies."
+            showSuccess(enabled ? "Private memories may inform replies." : "Private memories stay out of replies.")
         } catch {
-            banner = "Could not update private-memory recall."
+            showProblem("Could not update private-memory recall.")
         }
     }
 
@@ -623,18 +657,18 @@ public final class ThoughtPinsAppModel: ObservableObject {
                     acknowledgeDeletionAvailable: true
                 )
             )
-            banner = "Personal voice archive enabled."
+            showSuccess("Personal voice archive enabled.")
         } catch {
-            banner = "Could not enable the voice archive."
+            showProblem("Could not enable the voice archive.")
         }
     }
 
     public func disableVoiceArchive() async {
         do {
             voiceArchiveStatus = try await api.disableVoiceArchive()
-            banner = "Future voice retention disabled."
+            showSuccess("Future voice retention disabled.")
         } catch {
-            banner = "Could not update voice retention."
+            showProblem("Could not update voice retention.")
         }
     }
 
@@ -642,9 +676,9 @@ public final class ThoughtPinsAppModel: ObservableObject {
         do {
             _ = try await api.deleteVoiceArchive()
             await refreshVoiceArchive()
-            banner = "Retained voice recordings deleted."
+            showSuccess("Retained voice recordings deleted.")
         } catch {
-            banner = "Could not delete the voice archive."
+            showProblem("Could not delete the voice archive.")
         }
     }
 
@@ -674,13 +708,13 @@ public final class ThoughtPinsAppModel: ObservableObject {
             let status = try await api.redeemInvite(code: trimmed)
             inviteStatus = status
             if status.admitted {
-                banner = "Invite accepted. Welcome to Thought Pins."
+                showSuccess("Invite accepted. Welcome to Thought Pins.")
                 await refreshPreferences()
                 await refreshReadModels()
             }
         } catch {
             // The server never says which part was wrong, and neither does this.
-            banner = "That code is not valid. Check it and try again."
+            showProblem("That code is not valid. Check it and try again.")
             await refreshInviteStatus()
         }
     }
@@ -696,9 +730,9 @@ public final class ThoughtPinsAppModel: ObservableObject {
     public func exportAccount() async {
         do {
             let export = try await api.exportAccount()
-            banner = "Export ready with \(export.tables.count) data groups."
+            showSuccess("Your export is ready.")
         } catch {
-            banner = "Export failed."
+            showProblem("Export failed.")
         }
     }
 
@@ -706,16 +740,16 @@ public final class ThoughtPinsAppModel: ObservableObject {
         do {
             _ = try await api.deleteAccount()
             await clearLocalAccountState()
-            banner = "Account deleted."
+            showSuccess("Account deleted.")
         } catch {
-            banner = "Deletion failed."
+            showProblem("Deletion failed.")
         }
     }
 
     public func logout() async {
         try? await api.logout()
         await clearLocalAccountState()
-        banner = "Signed out."
+        showSuccess("Signed out.")
     }
 
     /// Drops everything the departing account left on this device.
