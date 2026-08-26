@@ -317,6 +317,45 @@ public final class ThoughtPinsAppModel: ObservableObject {
         }
     }
 
+    /// Report a model reply as unsafe or wrong.
+    ///
+    /// The app generates open-ended text, and Apple expects a way to report
+    /// what it produces from inside the app rather than only through a support
+    /// address. `createSafetyReport` already existed in the client and on the
+    /// server, tested there, with no caller on iOS -- and the review notes
+    /// already claimed this existed, which made shipping without it worse than
+    /// simply not claiming it.
+    ///
+    /// The reply itself is sent, because a report nobody can look at is not a
+    /// report. It goes over HTTPS to our own API and is never written to a log,
+    /// per the logging rule in AGENTS.md.
+    public func reportChatReply(category: String) async {
+        let reply = chatReply.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !reply.isEmpty else { return }
+        do {
+            // Both vocabularies are the server's and are validated there, so a
+            // string that looks reasonable but is not on the list comes back
+            // 422 and reads to the person as "reporting is broken". The
+            // categories are copyright_concern, harassment_or_abuse,
+            // harmful_or_illegal_content, other, privacy_concern,
+            // security_concern, self_harm_or_crisis, unsafe_ai_output; the
+            // target types are account, chat_message, document_source, general,
+            // memory_card, raw_entry. `general` is the catch-all that needs no
+            // target id, which is right here because the reply carries none.
+            _ = try await api.createSafetyReport(
+                SafetyReportRequest(
+                    category: category,
+                    summary: "Chat reply: " + String(reply.prefix(2_000)),
+                    targetType: "general",
+                    source: "ios"
+                )
+            )
+            banner = "Reported. Thank you — we review these."
+        } catch {
+            banner = "Could not send that report. Email support@thoughtpins.com and we will act on it."
+        }
+    }
+
     public func sendChat(_ text: String) async {
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         guard aiProcessingConsentAccepted else {

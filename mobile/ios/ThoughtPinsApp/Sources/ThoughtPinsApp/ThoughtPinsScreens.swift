@@ -132,6 +132,7 @@ struct ThoughtPinsChatScreen: View {
     @AppStorage("thoughtpins.voiceDisclosure.2026-07-13") private var voiceDisclosureAccepted = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @FocusState private var composerFocused: Bool
+    @State private var showingReportDialog = false
 
     private var composerLayout: AnyLayout {
         dynamicTypeSize.isAccessibilitySize
@@ -178,6 +179,7 @@ struct ThoughtPinsChatScreen: View {
                         } else {
                             Text(thoughtPinsFormattedReply(model.chatReply))
                                 .font(.body)
+                                .textSelection(.enabled)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 11)
                                 .background(ThoughtPinsTheme.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -186,6 +188,19 @@ struct ThoughtPinsChatScreen: View {
                                         .stroke(ThoughtPinsTheme.line, lineWidth: 1)
                                 )
                                 .transition(.opacity.combined(with: .move(edge: .bottom)))
+                        }
+                        if !model.chatReply.isEmpty {
+                            Button {
+                                showingReportDialog = true
+                            } label: {
+                                Label("Report this reply", systemImage: "flag")
+                                    .font(.caption)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(ThoughtPinsTheme.inkSoft)
+                            .padding(.horizontal, 4)
+                            .accessibilityIdentifier("thoughtpins-report-reply")
+                            .accessibilityHint("Reports this answer to Thought Pins for review.")
                         }
                         if model.isThinking {
                             HStack(spacing: 8) {
@@ -254,6 +269,24 @@ struct ThoughtPinsChatScreen: View {
             .padding()
             .thoughtPinsReadableColumn()
             .navigationTitle("Chat")
+            .confirmationDialog(
+                "Report this reply?",
+                isPresented: $showingReportDialog,
+                titleVisibility: .visible
+            ) {
+                Button("Unsafe or harmful") {
+                    Task { await model.reportChatReply(category: "unsafe_ai_output") }
+                }
+                Button("Shows private information") {
+                    Task { await model.reportChatReply(category: "privacy_concern") }
+                }
+                Button("Something else") {
+                    Task { await model.reportChatReply(category: "other") }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("The reply is sent to Thought Pins so a person can review it.")
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink { ThoughtPinsAccountScreen(model: model) } label: { Image(systemName: "person.crop.circle") }
