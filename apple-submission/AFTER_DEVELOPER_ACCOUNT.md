@@ -191,10 +191,16 @@ Do this *before* the archive, so the app the reviewer opens has data.
    `--allow-production` is required on purpose; the seeder refuses production
    otherwise.
 
-   *Done when:* the output shows
-   `"invite_admitted": true` and non-zero `entries`, `entities`, `memories`.
-   If `invite_admitted` is `false`, the invite gate is off in that environment —
-   check `INVITE_ONLY`.
+   *Done when:* the output shows non-zero `entries`, `entities` and
+   `memories`. Expect `"invite_admitted": false` — that is the healthy result,
+   and this step used to say the opposite. The seeder mints and redeems a code
+   only when the gate is on, so `false` means `INVITE_ONLY` is off and no code
+   was needed, which is what production runs. `true` means the gate is **on**
+   and every self-registering reviewer hits the wall.
+
+   Note the two names are different quantities: `admitted` in
+   `/v1/invites/status` is true whenever the gate is off, while
+   `invite_admitted` from the seeder is true only when a code was redeemed.
 
 6. **Prove the demo account works end to end from outside.**
    Sign in at https://thoughtpins.com/app with the review credentials. You
@@ -213,7 +219,7 @@ Do this *before* the archive, so the app the reviewer opens has data.
 
 ---
 
-## Stage 3 — On the Mac
+## Stage 3 — On the Mac (everything up to the archive)
 
 9. **Clone and bootstrap**, then run the full gate to confirm the tree is sound
    on a second platform:
@@ -266,9 +272,22 @@ Do this *before* the archive, so the app the reviewer opens has data.
     - **Dark mode cold launch** — confirm no white flash (fixed, unverified)
     - **iPad Slide Over at 320pt** — drag the app into a Slide Over window
 
-12. **Follow the existing checklist** from section 5 onward:
-    `docs/release/MAC_XCODE_V1_EXECUTION_CHECKLIST.md`. It covers signing,
-    private release values, archive, and validation.
+12. **The archive is not built on this Mac.** macOS 13.7.8 with Xcode 15.2
+    cannot produce an uploadable archive — App Store uploads have required
+    Xcode 26+ since 28 April 2026 — and the app target does not build here at
+    all, because GoogleSignIn 9.1.0 ships a `swift-tools-version:6.0` manifest
+    that a Swift 5.9 toolchain refuses to resolve (verbatim error in
+    [`MAC_START_HERE.md`](MAC_START_HERE.md)). Build it on `macos-latest`:
+
+    ```bash
+    gh workflow run ci.yml --ref main -f run_native=true
+    ```
+
+    The archive and its dSYMs are kept as a run artifact for 30 days, so a
+    failed submission is retryable without a rebuild. Then follow
+    `docs/release/MAC_XCODE_V1_EXECUTION_CHECKLIST.md` from section 5 —
+    signing, private release values, archive and validation — against wherever
+    that archive was built.
 
 ---
 
@@ -304,8 +323,12 @@ Do this *before* the archive, so the app the reviewer opens has data.
     Declared: Email, Phone, User ID, Other User Content, Audio, Device ID — all
     "Linked to you", all "App Functionality", **none** used for tracking.
 
-15. **Age rating.** The app shows user-generated and AI-generated text.
-    Answer honestly; expect **12+**. Do not claim 4+.
+15. **Age rating.** The app shows user-generated text and unmoderated
+    AI-generated text. Answer the questionnaire from
+    [`AGE_RATING.md`](AGE_RATING.md), which is the only place this decision
+    lives, and expect the **mature tier — 17+ legacy, 18+ on the 2025 scale**.
+    Do not claim 4+, and do not settle on 9+ or 12+: that file rules them out
+    because we impose no moderation layer of our own.
 
 16. **Export compliance.** `ITSAppUsesNonExemptEncryption` is already `false` in
     the Info.plist (HTTPS only, which is exempt), so App Store Connect should
@@ -333,8 +356,11 @@ Do this *before* the archive, so the app the reviewer opens has data.
     - **2.1** — reviewer could not get past the invite gate. Mitigated by the
       demo account and the notes; if it still happens, reply with fresh
       credentials the same day.
-    - **5.1.1(v)** — account deletion. It is implemented and reachable at
-      Account → Delete account; point them there.
+    - **5.1.1(v)** — account deletion. Implemented, and three taps from any
+      tab: the person icon at top right, **Delete account** under Data, then
+      **Delete account** again in the confirmation sheet. Word it exactly as
+      `REVIEW_NOTES.md` does — the two must not drift, because this guideline
+      turns on the reviewer finding it first try.
     - **4.0 / 2.3.x** — screenshots not matching the app.
 
 ---

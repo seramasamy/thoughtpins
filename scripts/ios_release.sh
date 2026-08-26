@@ -14,6 +14,16 @@ TEAM_ID="${APPLE_TEAM_ID:-}"
 GOOGLE_CLIENT_ID="${GOOGLE_IOS_CLIENT_ID:-}"
 GOOGLE_SERVER_CLIENT_ID="${GOOGLE_IOS_SERVER_CLIENT_ID:-}"
 GOOGLE_REVERSED_CLIENT_ID="${GOOGLE_IOS_REVERSED_CLIENT_ID:-}"
+# CFBundleVersion has to be unique and increasing for every upload, and it was
+# pinned to 1 in project.yml: the first TestFlight upload would work and the
+# second would be rejected as a repeat build number, on the day we iterate
+# fastest. The commit count is the same integer here and on a CI runner for a
+# given commit, so neither host needs a shared counter and the number only ever
+# grows. IOS_BUILD_NUMBER still wins, for a re-upload from an unchanged commit.
+if [[ -z "$BUILD_NUMBER" && "$MODE" != "preflight" ]]; then
+  BUILD_NUMBER="$(git -C "$ROOT" rev-list --count HEAD)"
+  echo "IOS_BUILD_NUMBER not set; using the commit count: $BUILD_NUMBER"
+fi
 OUTPUT_ROOT="${IOS_RELEASE_OUTPUT_DIR:-$ROOT/build/ios-release/$MARKETING_VERSION-${BUILD_NUMBER:-preflight}}"
 RELEASE_INFO_PLIST="$OUTPUT_ROOT/Info.release.plist"
 ARCHIVE_PATH="$OUTPUT_ROOT/ThoughtPins.xcarchive"

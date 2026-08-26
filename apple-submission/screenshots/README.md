@@ -25,8 +25,18 @@ capture run with no assertion will happily record the wrong screen again.
 Six shots per device, in upload order:
 
 1. `02-chat` — the product working: a question answered from the person's own
-   journal, with the route badge and the private-memory control visible. **Lead
-   with this one.**
+   journal, in the person's own words, with the route badge showing where the
+   answer came from. **Lead with this one.**
+
+   The subject of this shot is the *answer*, not the "Use private memories"
+   switch that happens to sit above it. That switch is deliberately not the
+   selling point: production runs with `PRIVATE_ALLOW_LLM` off, so entries
+   marked private are never sent to a third-party model, and a reviewer who
+   turns it on and sends a message gets a refusal. That is the correct
+   behaviour and the stronger privacy claim -- but leading a listing with a
+   control whose first use is refused invites a 2.3.1 conversation we do not
+   need to have. If the framing ever changes so the switch becomes the
+   subject, enable the flag first or crop it out.
 2. `03-people` — memory cards built from entries
 3. `04-recap` — entries by day
 4. `05-places` — the place cards
@@ -49,10 +59,20 @@ Connect**, so it would have been rejected at upload. It has been replaced.
 The iPad set is 2048 × 2732, the iPad Pro 12.9-inch native resolution, which is
 still an accepted iPad size.
 
-If you later want the 6.9-inch (1320 × 2868) or 13-inch (2064 × 2752) slots
-filled instead, those need an iPhone 16 Pro Max or iPad Pro 13-inch simulator,
-which need a newer Xcode than macOS 13 can install. Nothing about the layout
-would change, only the canvas — the same six screens at a larger frame.
+**The 6.9-inch set will come from hardware, not a simulator.** An iPhone 17 Pro
+Max produces 1320 × 2868 natively — exactly the 6.9-inch slot — so once the
+build is on TestFlight, capture the same six screens there and replace the
+6.5-inch set. That is an upgrade, not a fix: the 6.5-inch set is valid to
+submit as it stands.
+
+The iPad set stays on the 12.9-inch simulator. The iPad A16 available for device
+testing is 1640 × 2360, which is **not** a listed App Store Connect iPad size —
+the slots are 2064 × 2752, 2048 × 2732 and 1488 × 2266 — so do not plan iPad
+screenshots from it.
+
+The 13-inch slot (2064 × 2752) would need an iPad Pro 13-inch simulator and a
+newer Xcode than macOS 13 can install. Nothing about the layout would change,
+only the canvas.
 
 ## Rules these already satisfy
 

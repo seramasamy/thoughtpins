@@ -43,6 +43,13 @@ def main() -> int:
     parser.add_argument("--with-docker", action="store_true", help="Run Docker Compose config validation.")
     parser.add_argument("--with-postgres-rls", action="store_true", help="Run scripts/verify_postgres_rls.py.")
     parser.add_argument("--api-base-url", help="Run scripts/smoke_api.py against this API base URL.")
+    parser.add_argument(
+        "--registration-base-url",
+        help=(
+            "Run scripts/smoke_registration.py against this API base URL. "
+            "Proves a stranger can still create an account, which config validation cannot."
+        ),
+    )
     args = parser.parse_args()
 
     missing_modules = _missing_python_modules(
@@ -176,6 +183,19 @@ def main() -> int:
         smoke_env = os.environ.copy()
         smoke_env["THOUGHTPINS_BASE_URL"] = args.api_base_url.rstrip("/")
         ok &= step("running API smoke test", [py, "scripts/smoke_api.py"], env=smoke_env, timeout=180)
+
+    # Opt-in for the same reason as the smoke test above: it needs a deployed
+    # API, and an air-gapped build must not fail for that. Run it after every
+    # deploy -- validate_production.py cannot see a variable deleted afterwards.
+    if args.registration_base_url:
+        registration_env = os.environ.copy()
+        registration_env["THOUGHTPINS_BASE_URL"] = args.registration_base_url.rstrip("/")
+        ok &= step(
+            "production registration smoke",
+            [py, "scripts/smoke_registration.py"],
+            env=registration_env,
+            timeout=180,
+        )
 
     print("\nRelease gate summary:")
     for result in results:

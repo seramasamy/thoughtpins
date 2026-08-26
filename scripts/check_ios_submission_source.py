@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import plistlib
 import re
 import struct
 import sys
+from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,7 +31,71 @@ def main() -> int:
     _check_swift_key_decoding(failures)
     _check_google_and_release_wiring(failures)
     _check_brand_mark(failures)
+    _check_screenshots(failures)
     return finish(failures)
+
+
+SCREENSHOT_ROOT = ROOT / "apple-submission" / "screenshots"
+
+# Filename -> the pixel size App Store Connect expects for that slot.
+SCREENSHOT_SETS = {
+    "iphone-1284x2778": (1284, 2778),
+    "ipad-2048x2732": (2048, 2732),
+}
+SCREENSHOT_NAMES = ("02-chat", "03-people", "04-recap", "05-places", "06-pins", "07-account")
+
+
+def _check_screenshots(failures: list[str]) -> None:
+    """Every listing screenshot must be its own screen, at the right size.
+
+    This exists because two of them were not. `ipad-2048x2732/07-account.png`
+    was a byte-identical copy of `06-pins.png` -- same md5,
+    fe3144cb3d5a4c6db3b4b8f2e69749f2 -- so the iPad set claimed to show the
+    Account screen and showed the Pins screen twice. It survived a full
+    reviewer pass and a screenshot recapture, because nothing compared the
+    files to each other and a human eye slides over two similar-looking lists.
+
+    Guideline 2.3.1 is about metadata that does not match the app. A duplicated
+    screenshot is exactly that, and a machine catches it in milliseconds.
+    """
+    if not SCREENSHOT_ROOT.is_dir():
+        failures.append("missing apple-submission/screenshots")
+        return
+
+    digests: dict[str, list[str]] = defaultdict(list)
+    for folder, (want_w, want_h) in SCREENSHOT_SETS.items():
+        directory = SCREENSHOT_ROOT / folder
+        if not directory.is_dir():
+            failures.append(f"missing screenshot set: apple-submission/screenshots/{folder}")
+            continue
+        for name in SCREENSHOT_NAMES:
+            path = directory / f"{name}.png"
+            if not path.is_file():
+                failures.append(f"missing screenshot: {path.relative_to(ROOT)}")
+                continue
+            data = path.read_bytes()
+            digests[hashlib.md5(data).hexdigest()].append(str(path.relative_to(ROOT)))
+            size = _png_size(data)
+            if size is None:
+                failures.append(f"unreadable PNG: {path.relative_to(ROOT)}")
+            elif size != (want_w, want_h):
+                failures.append(
+                    f"{path.relative_to(ROOT)} is {size[0]}x{size[1]}; the {folder} slot needs {want_w}x{want_h}"
+                )
+
+    for digest, paths in sorted(digests.items()):
+        if len(paths) > 1:
+            failures.append(
+                f"identical screenshots claim to show different screens (md5 {digest}): {', '.join(sorted(paths))}"
+            )
+
+
+def _png_size(data: bytes) -> tuple[int, int] | None:
+    """Width and height from the IHDR chunk, without an image library."""
+    if len(data) < 24 or data[:8] != b"\x89PNG\r\n\x1a\n" or data[12:16] != b"IHDR":
+        return None
+    width, height = struct.unpack(">II", data[16:24])
+    return int(width), int(height)
 
 
 def _required_source_failures() -> list[str]:

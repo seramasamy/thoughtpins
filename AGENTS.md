@@ -47,6 +47,28 @@ own the behavior being changed.
 Do not weaken a release gate to make a change pass. If a gate is wrong, update
 the implementation, the gate, and the rationale together.
 
+## Two traps that have each cost a session
+
+**`importlib.reload` on a configuration module poisons the whole test run.**
+Reloading `thoughtpins.config` rebinds `thoughtpins.config.config` to a new
+object while every module that did `from thoughtpins.config import config`
+keeps holding the old one. The two then disagree for the rest of the session,
+and a later test that patches one and reads the other fails for reasons that
+have nothing to do with it. It cost 114 failures in one run, every one of them
+passing when run alone. To test what a config module computes from a given
+environment, load it as a private module instead and leave the imported one
+alone -- `tests/test_invite_gate_default.py` shows the shape. For the same
+reason, patch the binding the code under test actually reads
+(`validate_production.config`), not a freshly imported one.
+
+**After a bulk rewrite across many call sites, test the helper itself.** A
+sweep that replaced 70 banner assignments with `showSuccess(...)` also rewrote
+the assignment *inside* `showSuccess`, so the function called itself. Every
+call site looked right, the build succeeded, and the app died on the first
+banner it ever showed -- including "Signed in." -- with no crash report. A
+direct test of the new function catches this in seconds; reading the diff does
+not.
+
 ## Platform Commands
 
 ```text

@@ -22,7 +22,21 @@ struct ThoughtPinsMemoryCardScreen: View {
     let card: MemoryCardResponse
 
     @State private var detail: MemoryCardDetailResponse?
-    @State private var failure: String?
+    @State private var failure: ThoughtPinsLoadFailure?
+
+    /// True once the payload is in and there is genuinely nothing in it.
+    ///
+    /// Every section below is conditional, so a card the extractor has not
+    /// filled in yet rendered as a name and two counts on an otherwise blank
+    /// screen -- reachable from the People tab in one tap.
+    private var loadedButEmpty: Bool {
+        guard let detail else { return false }
+        return (detail.lastSeen ?? "").isEmpty
+            && detail.recentMemories.isEmpty
+            && detail.relationships.isEmpty
+            && detail.timeline.isEmpty
+            && detail.sourceDocuments.isEmpty
+    }
 
     var body: some View {
         Form {
@@ -42,11 +56,27 @@ struct ThoughtPinsMemoryCardScreen: View {
 
             if let failure {
                 Section {
-                    Text(failure).font(.footnote).foregroundStyle(.secondary)
-                    Button("Try again") { Task { await load() } }
+                    Text(failure.message(subject: "this card"))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    if failure.isWorthRetrying {
+                        Button("Try again") { Task { await load() } }
+                    }
                 }
             } else if detail == nil {
-                Section { ProgressView("Loading") }
+                Section {
+                    // Labelled, so VoiceOver announces what is happening
+                    // rather than an unnamed progress indicator.
+                    ProgressView("Loading this card")
+                        .accessibilityLabel("Loading this card")
+                }
+            } else if loadedButEmpty {
+                Section {
+                    Text("Nothing has been recorded about \(detail?.name ?? card.name) yet. "
+                        + "Write about them in your journal and what you say will collect here.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             if let detail {
@@ -63,6 +93,10 @@ struct ThoughtPinsMemoryCardScreen: View {
                                 }
                             }
                             .padding(.vertical, 2)
+                            // One row, one utterance: otherwise VoiceOver
+                            // reads the entry and its date as two unrelated
+                            // stops, and a list of dates makes no sense.
+                            .accessibilityElement(children: .combine)
                         }
                     }
                 }
@@ -70,6 +104,7 @@ struct ThoughtPinsMemoryCardScreen: View {
                     Section("Connected to") {
                         ForEach(Array(detail.relationships.enumerated()), id: \.offset) { _, link in
                             LabeledContent(link.other, value: thoughtPinsRelationshipLabel(link.type))
+                                .accessibilityElement(children: .combine)
                         }
                     }
                 }
@@ -82,6 +117,7 @@ struct ThoughtPinsMemoryCardScreen: View {
                                     Text(date).font(.caption2).foregroundStyle(.secondary)
                                 }
                             }
+                            .accessibilityElement(children: .combine)
                         }
                     }
                 }
@@ -94,7 +130,13 @@ struct ThoughtPinsMemoryCardScreen: View {
                 }
             }
         }
+        // Hide the Form's own backdrop before narrowing it, exactly as the
+        // list screens do: once the content is narrower than the window the
+        // Form would otherwise draw a band down the middle of an iPad with a
+        // hard edge either side.
+        .scrollContentBackground(.hidden)
         .thoughtPinsReadableColumn()
+        .background(Color(.systemGroupedBackground))
         .navigationTitle(card.name)
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
@@ -105,7 +147,7 @@ struct ThoughtPinsMemoryCardScreen: View {
         do {
             detail = try await model.api.memoryCard(id: card.id)
         } catch {
-            failure = "Could not load this card. Check your connection and try again."
+            failure = ThoughtPinsLoadFailure(error)
         }
     }
 }
@@ -150,7 +192,8 @@ struct ThoughtPinsLibrarySourceScreen: View {
     let source: LibrarySourceResponse
 
     @State private var detail: LibrarySourceResponse?
-    @State private var failure: String?
+    @State private var failure: ThoughtPinsLoadFailure?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var shown: LibrarySourceResponse { detail ?? source }
 
@@ -168,8 +211,16 @@ struct ThoughtPinsLibrarySourceScreen: View {
             }
             if let failure {
                 Section {
-                    Text(failure).font(.footnote).foregroundStyle(.secondary)
-                    Button("Try again") { Task { await load() } }
+                    // This screen always has the list row's own copy to fall
+                    // back on, so it says which it is showing rather than
+                    // leaving the person to guess whether this is complete.
+                    Text(failure.message(subject: "the full details")
+                        + (failure == .gone ? "" : " Showing what is already on this device."))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    if failure.isWorthRetrying {
+                        Button("Try again") { Task { await load() } }
+                    }
                 }
             }
             if let summary = shown.summary, !summary.isEmpty {
@@ -181,7 +232,17 @@ struct ThoughtPinsLibrarySourceScreen: View {
                 }
             }
             Section("About this reading") {
-                LabeledContent("Saved sections", value: String(shown.chunks))
+                // LabeledContent puts label and value on one line, which
+                // collides at accessibility text sizes. Above AX1 they stack.
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Saved sections").foregroundStyle(.secondary)
+                        Text(String(shown.chunks))
+                    }
+                    .accessibilityElement(children: .combine)
+                } else {
+                    LabeledContent("Saved sections", value: String(shown.chunks))
+                }
                 if shown.paywallDetected {
                     Text("This page was behind a paywall, so only its public details were saved.")
                         .font(.footnote)
@@ -192,7 +253,9 @@ struct ThoughtPinsLibrarySourceScreen: View {
                 Section { Link("Open original", destination: url) }
             }
         }
+        .scrollContentBackground(.hidden)
         .thoughtPinsReadableColumn()
+        .background(Color(.systemGroupedBackground))
         .navigationTitle("Reading")
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
@@ -203,7 +266,7 @@ struct ThoughtPinsLibrarySourceScreen: View {
         do {
             detail = try await model.api.librarySource(sourceRef: source.id)
         } catch {
-            failure = "Could not load the full details. Showing what is already on this device."
+            failure = ThoughtPinsLoadFailure(error)
         }
     }
 }

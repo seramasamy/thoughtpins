@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Export options for an App Store submission of Thought Pins.
+
+  Committed deliberately, and reviewed before it is needed. `scripts/ios_release.sh`
+  synthesises an equivalent file at run time from environment values, which is
+  fine for a Mac session but means nobody has ever read the thing that decides
+  how the binary is signed. This is that file, in the repository, where a change
+  to it shows up in a diff.
+
+  TEAM_ID_PLACEHOLDER is substituted at export time from $APPLE_TEAM_ID. It is a
+  placeholder rather than a real value because the Team ID is account material
+  and AGENTS.md keeps signing material out of this repository.
+
+  Why each value:
+
+  - method app-store-connect  The only destination for v1. TestFlight and the
+                              App Store are the same upload.
+  - signingStyle automatic    No provisioning profile is committed, and
+                              -allowProvisioningUpdates lets Xcode create and
+                              refresh what it needs against the account.
+  - manageAppVersionAndBuildNumber false
+                              Load-bearing. With this true, Xcode silently
+                              renumbers the build during export, and the number
+                              the archive was built with -- the commit count --
+                              stops being the number App Store Connect receives.
+                              We want the two to match so a build in TestFlight
+                              can be traced back to a commit.
+  - uploadSymbols true        dSYMs go with the build, so a crash report from a
+                              tester symbolicates.
+  - stripSwiftSymbols true    Smaller download. Symbolication still works
+                              because the dSYMs are uploaded.
+  - destination export        Produce the .ipa; uploading is a separate,
+                              explicit step. An export that also uploaded would
+                              make "build it and look at it" impossible.
+-->
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>app-store-connect</string>
+    <key>teamID</key>
+    <string>TEAM_ID_PLACEHOLDER</string>
+    <key>signingStyle</key>
+    <string>automatic</string>
+    <key>manageAppVersionAndBuildNumber</key>
+    <false/>
+    <key>uploadSymbols</key>
+    <true/>
+    <key>stripSwiftSymbols</key>
+    <true/>
+    <key>destination</key>
+    <string>export</string>
+</dict>
+</plist>

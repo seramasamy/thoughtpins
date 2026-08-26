@@ -10,13 +10,16 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import re
 import sys
 from datetime import datetime, timezone
 from os import walk
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT / "scripts") not in sys.path:
+    sys.path.insert(0, str(ROOT / "scripts"))
+
+import forbidden_scan  # noqa: E402
 
 
 def _term(*parts: str) -> str:
@@ -141,11 +144,12 @@ FORBIDDEN_TEXT = {
     _term("c:", "\\users", "\\surya"),
     _term("c:/", "users", "/surya"),
 }
-SECRET_PATTERNS = [
-    re.compile(r"\b\d{8,12}:[A-Za-z0-9_-]{30,}\b"),
-    re.compile(r"\bsk-(?:proj-)?[A-Za-z0-9_-]{24,}\b"),
-    re.compile(r"(?i)(api_key|jwt_secret|auth_token|bot_token|password)\s*=\s*['\"][^'\"]{24,}['\"]"),
-]
+# Imported rather than restated. These three lines used to be a copy of the
+# ones in forbidden_scan.py, and narrowing that copy to stop reporting
+# `PASSWORD="$(openssl rand ...)"` as a leaked credential left this one behind
+# -- so the two gates disagreed about the same file. One definition, both
+# gates.
+SECRET_PATTERNS = forbidden_scan.SECRET_PATTERNS
 
 
 def main() -> int:

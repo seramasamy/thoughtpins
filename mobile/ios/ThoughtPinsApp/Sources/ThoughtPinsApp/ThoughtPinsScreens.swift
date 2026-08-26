@@ -99,6 +99,9 @@ struct ThoughtPinsRecapScreen: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .thoughtPinsReadableColumn()
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("Recap")
             .toolbar { accountToolbar }
         }
@@ -411,6 +414,9 @@ struct ThoughtPinsCaptureScreen: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .thoughtPinsReadableColumn()
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("Capture")
         }
     }
@@ -454,6 +460,9 @@ struct ThoughtPinsLibraryScreen: View {
                     )
                 }
             }
+            .scrollContentBackground(.hidden)
+            .thoughtPinsReadableColumn()
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("Pins")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -609,6 +618,14 @@ struct ThoughtPinsAccountScreen: View {
                     Button("Sign out") { Task { await model.logout() } }
                 }
             }
+            // Held to a readable measure on iPad for the same reason as
+            // every other screen: at 1024pt a Toggle strands its switch an
+            // inch and a half from its label, and this one is the screen a
+            // reviewer opens for 5.1.1(v). Backdrop hidden first so the
+            // narrowed content does not draw a band with hard edges.
+            .scrollContentBackground(.hidden)
+            .thoughtPinsReadableColumn()
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("Account")
             .confirmationDialog(
                 "Permanently delete your Thought Pins account and saved data?",
@@ -669,6 +686,9 @@ private struct ThoughtPinsVoiceArchiveConsentView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .scrollContentBackground(.hidden)
+            .thoughtPinsReadableColumn()
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("Voice archive")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

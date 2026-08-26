@@ -59,3 +59,15 @@ public func thoughtPinsRouteLabel(_ routeType: String) -> String? {
         return nil
     }
 }
+
+/// What to say when the deployment refuses to put private entries in front of
+/// the model.
+///
+/// `PRIVATE_ALLOW_LLM` is off in production, deliberately: an entry marked
+/// private is never sent to a third-party model. The server's own sentence for
+/// this is "Private-entry LLM context is disabled by server policy" -- a phrase
+/// for whoever configured the deployment, not for the person holding the phone,
+/// and the string an App Store reviewer is most likely to be shown. Two screens
+/// can reach this refusal, so the wording lives in one place.
+let thoughtPinsPrivateMemoryRefusal =
+    "Entries you marked private are never sent to the model, so they cannot inform replies here."

@@ -52,7 +52,7 @@ From a former App Store reviewer's public account, and it changes what matters:
 |---|---|
 | $99/yr, approval takes days, needs business registration + tax ID | Only **organisation** accounts need a D-U-N-S number. An **individual** account needs government ID and is faster — but lists your personal legal name as the seller. Decide before enrolling; changing it later is painful. |
 | Need a website with a privacy policy and terms | **Done.** `thoughtpins.com` with `/privacy`, `/terms`, `/support`, `/ai-disclosure`, `/account/delete` — all verified HTTP 200. |
-| Screenshots must match exact device dimensions | **Blocked on the Mac.** iPhone 6.9" 1290×2796 and iPad 13" 2064×2752, ≥3 each. |
+| Screenshots must match exact device dimensions | **Done, and upgradeable.** A 6.5" iPhone set (1284×2778) and a 12.9" iPad set (2048×2732), six each, both accepted sizes. 1290×2796 is *not* a listed iPhone size and was replaced. The 6.9" slot is 1320×2868 and will be captured on the iPhone 17 Pro Max via TestFlight — see [`DEVICE_TEST_SCRIPT.md`](../docs/release/DEVICE_TEST_SCRIPT.md). |
 | Custom icons | **Done.** 1024×1024, RGB, no alpha, solid corners — validated by the gate. |
 | Pricing setup for subscriptions | **N/A.** Free, no IAP. Removes Guideline 3.1.1 entirely. |
 | Regional availability configured before submitting | App Store Connect UI. Default is all regions; leave it unless you have a reason. |
@@ -97,10 +97,21 @@ since 28 April 2026 and Xcode 26 needs macOS Sequoia 15.6+, so the archive has
 to come from somewhere else: the `ios` job on `macos-latest` in CI, Xcode Cloud,
 an hourly cloud Mac, or newer hardware.
 
-### 3. Screenshots — blocked on 2
+### 3. Screenshots — done, with a planned upgrade
 
-iPhone 6.9" (1290 × 2796) and iPad 13" (2064 × 2752), at least three each. iPad
-is required because the target is universal.
+Six iPhone shots at 1284 × 2778 (6.5") and six iPad shots at 2048 × 2732
+(12.9"), both accepted sizes. iPad is required because the target is universal.
+
+The 6.9" slot is **1320 × 2868**, not 1290 × 2796 as this section used to say —
+1290 × 2796 is the iPhone 15 Pro Max's native resolution and is not a listed
+App Store Connect size at all. 1320 × 2868 is exactly what an iPhone 17 Pro Max
+produces, so the final iPhone set will be captured on hardware through
+TestFlight.
+
+The iPad set stays on the 12.9" simulator. The iPad A16 available for testing is
+1640 × 2360, which is **not** a listed iPad size (the slots are 2064 × 2752,
+2048 × 2732 and 1488 × 2266), so it is a device-testing machine, not a capture
+device.
 
 ---
 

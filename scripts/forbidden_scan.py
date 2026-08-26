@@ -61,7 +61,17 @@ SECRET_PATTERNS = [
     re.compile(r"\bsk-(?:proj-)?[A-Za-z0-9_-]{24,}\b"),
     re.compile(r"\bjina_[A-Za-z0-9]{16,}\b"),
     re.compile(r"\bfc-[A-Za-z0-9]{16,}\b"),
-    re.compile(r"(?i)(api_key|jwt_secret|auth_token|bot_token|password)\s*=\s*['\"][^'\"]{24,}['\"]"),
+    # A value that is nothing but a shell substitution or a workflow expression
+    # cannot be a hardcoded secret -- it is resolved at run time from somewhere
+    # else. `KEYCHAIN_PASSWORD="$(openssl rand -base64 24)"` is a randomly
+    # generated throwaway and was being reported as a leaked credential. The
+    # negative lookahead excludes exactly that shape and nothing wider: a
+    # literal still matches, and so does a substitution with a literal beside
+    # it.
+    re.compile(
+        r"(?i)(api_key|jwt_secret|auth_token|bot_token|password)\s*=\s*"
+        r"['\"](?!\$\{?\{?[^'\"]*\}?\}?['\"]|\$\([^'\"]*\)['\"])[^'\"]{24,}['\"]"
+    ),
 ]
 
 

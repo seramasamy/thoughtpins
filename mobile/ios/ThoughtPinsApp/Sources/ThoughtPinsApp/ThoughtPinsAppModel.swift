@@ -441,7 +441,8 @@ public final class ThoughtPinsAppModel: ObservableObject {
             // server will refuse every time, and "Chat failed" made a policy
             // decision look like a broken build.
             usePrivateMemories = false
-            showProblem(message ?? "Private memories cannot be used for replies on this server.")
+            _ = message  // deliberately not shown; see the constant's note
+            showProblem(thoughtPinsPrivateMemoryRefusal)
         } catch {
             showProblem("Chat failed. Your account and drafts are still safe.")
         }
@@ -642,6 +643,10 @@ public final class ThoughtPinsAppModel: ObservableObject {
             )
             usePrivateMemories = preferences.privateEntriesInAsk
             showSuccess(enabled ? "Private memories may inform replies." : "Private memories stay out of replies.")
+        } catch APIClientError.httpStatus(403, _) {
+            // Same policy, reached through Preferences instead of Chat.
+            usePrivateMemories = false
+            showProblem(thoughtPinsPrivateMemoryRefusal)
         } catch {
             showProblem("Could not update private-memory recall.")
         }
