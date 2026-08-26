@@ -66,8 +66,48 @@ is the only thing here that produces a visible defect on launch.
   ID and `oauth_apple_enabled` is switched on.
 - **Google sign-in** is suppressed by design until Apple sign-in exists; see
   `apple-submission/AFTER_DEVELOPER_ACCOUNT.md`.
-- **Microphone permission** has only ever been granted by a simulator. The
-  first real prompt, and the denied path, are device work.
+- **Microphone permission** has only ever been granted by a simulator.
+  `simctl privacy revoke microphone` does not take -- recording started anyway
+  -- so the denied path has never actually run. It is device work, and it is
+  written out in "Device tests that cannot be faked" below.
 - **iOS 26 Dynamic Type** may add steps above AX5. The composer switches layout
   on `dynamicTypeSize.isAccessibilitySize`, which is a category test rather than
   a fixed list, so a new larger step takes the stacked layout automatically.
+
+## Device tests that cannot be faked
+
+Each of these needs a real device because the simulator either cannot produce
+the state or produces it and then ignores it. Run them on the first build that
+reaches hardware, before TestFlight goes wider.
+
+### Microphone denied
+
+`ThoughtPinsVoiceRecorder.start()` asks for permission and, when refused, sets
+`"Microphone access was not granted. You can attach an audio file instead."`
+and returns without opening the session. That branch has never executed.
+
+1. Fresh install. Capture tab, tap the record control.
+2. At the system prompt, tap **Don't Allow**.
+3. Expect: no recording indicator, no timer, the message above on screen, and
+   the file-attach route still working. Nothing is uploaded.
+4. Tap record again. iOS does not prompt a second time; the same message must
+   appear immediately rather than a stuck or silent control.
+5. Settings > Thought Pins > Microphone > on. Return to the app, record, and
+   confirm a real recording uploads and transcribes.
+
+Note for step 4: once permission is permanently denied the message is the only
+feedback, and the app offers no route to Settings. That is allowed, and the
+message does name a working alternative. Whether to add an "Open Settings"
+button is a product call, not a submission blocker -- flagged here rather than
+changed.
+
+### Microphone interrupted mid-recording
+
+Start a recording, then place a call to the device (or start a FaceTime call).
+`AVAudioSession.interruptionNotification` should stop the recording and leave
+what was captured, not a zero-byte upload.
+
+### Sign in with Apple
+
+Cannot run until the capability is on the App ID and `oauth_apple_enabled` is
+on. See `apple-submission/AFTER_DEVELOPER_ACCOUNT.md`.

@@ -377,7 +377,7 @@ struct ThoughtPinsCaptureScreen: View {
                         Task { await model.ingestLink(payload) }
                     }
                 }
-                Section("Upload or share") {
+                Section("Add a file") {
                     Picker("Destination", selection: $uploadDestination) {
                         ForEach(ThoughtPinsUploadDestination.allCases) { destination in
                             Text(destination.label).tag(destination)

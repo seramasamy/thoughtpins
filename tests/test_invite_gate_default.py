@@ -9,21 +9,39 @@ unset environment variable, so it is guarded here rather than in a runbook.
 
 from __future__ import annotations
 
-import importlib
+import importlib.util
+from pathlib import Path
 
 import pytest
 
+_CONFIG_PATH = Path(__file__).resolve().parent.parent / "src" / "thoughtpins" / "config.py"
+
 
 def _config_with(monkeypatch, **env: str):
-    """Re-evaluate the config module under a given environment."""
+    """Evaluate config.py under a given environment, in isolation.
+
+    Deliberately *not* `importlib.reload(thoughtpins.config)`. Reloading
+    rebinds `thoughtpins.config.config` to a brand-new object while every
+    module that did `from thoughtpins.config import config` keeps holding the
+    old one. The two then disagree for the rest of the session, and a later
+    test that patches one and reads the other fails for reasons that have
+    nothing to do with it -- 114 of them, in a full run, all passing when run
+    alone.
+
+    Loading a private copy answers the only question these tests ask -- what
+    does this file compute from this environment -- and leaves the imported
+    module untouched.
+    """
     for key in ("INVITE_ONLY", "ALLOW_INVITE_ONLY_LAUNCH", "ENVIRONMENT"):
         monkeypatch.delenv(key, raising=False)
     for key, value in env.items():
         monkeypatch.setenv(key, value)
-    import thoughtpins.config as config_module
 
-    importlib.reload(config_module)
-    return config_module
+    spec = importlib.util.spec_from_file_location("thoughtpins_config_probe", _CONFIG_PATH)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_production_does_not_close_the_gate_by_default(monkeypatch):
@@ -56,7 +74,13 @@ def test_the_gate_still_closes_when_set(monkeypatch):
 
 def test_a_closed_gate_fails_the_deploy_check_without_acknowledgement(monkeypatch):
     import scripts.validate_production as validate_production
-    from thoughtpins.config import config
+
+    # Patch the object the check actually reads. `validate_production` bound
+    # `config` at its own import, and the reload-based tests above replace
+    # `thoughtpins.config.config` with a new object -- so patching a freshly
+    # imported `config` here would leave the check reading the old one. That
+    # passed alone and failed in a full run, which is the worst way to find out.
+    config = validate_production.config
 
     # Hold the other switch open so this test speaks only about the gate.
     monkeypatch.setattr(config, "SYSTEM_LOCKED", False)
@@ -84,7 +108,8 @@ def test_a_locked_system_fails_the_deploy_check(monkeypatch):
     self-hosted deploy -- so the launch override is guarded here instead.
     """
     import scripts.validate_production as validate_production
-    from thoughtpins.config import config
+
+    config = validate_production.config
 
     monkeypatch.setattr(config, "INVITE_ONLY", False)
     monkeypatch.setattr(config, "ALLOW_INVITE_ONLY_LAUNCH", False)
@@ -99,7 +124,9 @@ def test_a_locked_system_fails_the_deploy_check(monkeypatch):
 
 def test_admission_follows_the_flag(monkeypatch):
     from thoughtpins import invites
-    from thoughtpins.config import config
+
+    # Same reason as above: patch the binding `invites` reads, not a fresh one.
+    config = invites.config
 
     monkeypatch.setattr(config, "INVITE_ONLY", False)
     assert invites.invite_required() is False

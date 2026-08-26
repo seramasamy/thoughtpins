@@ -84,6 +84,23 @@ What we do have anyway, and should say so: an in-app report action on any chat
 reply (Chat → "Report this reply"), which posts to `/v1/safety/reports` and is
 answered at support@thoughtpins.com.
 
+## Confirmed against the submission build (2026-08-26)
+
+Re-checked mechanically rather than from memory, because every reason below is
+a claim about what the code does:
+
+| Premise | How it was checked | Result |
+|---|---|---|
+| Still no moderation layer of our own | searched `src/thoughtpins/` for moderation, refusal, and filter layers | none; the only hit is the word "moderate" as a style value in `chat/personality.py` |
+| The assistant still returns model prose | `/v1/chat` unchanged | holds |
+| In-app reporting exists, as this file claims | Chat > "Report this reply" > `reportChatReply` > `POST /v1/safety/reports` | wired and exercised against production |
+| No in-app browser | searched for `WKWebView` and `SFSafariViewController` | neither is present anywhere in the iOS source |
+| No account-to-account surface | searched for share, follow, feed, comment | none. The one "share" wording was a Capture section title that only imports a file, and has been retitled "Add a file" |
+
+**The decision stands: mature tier.** Nothing changed that would justify a
+lower one, and the route to a lower one is unchanged and stated below: a
+moderation layer we own and can test, not a re-answered questionnaire.
+
 ## Revisit this when
 
 - A moderation layer of our own lands, which is the only thing that could

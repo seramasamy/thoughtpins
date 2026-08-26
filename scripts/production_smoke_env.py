@@ -50,6 +50,12 @@ def production_smoke_env() -> dict[str, str]:
             "IOS_STORE_URL": "https://apps.apple.com/app/id0000000000",
             "ANDROID_STORE_URL": "https://play.google.com/store/apps/details?id=com.thoughtpins.app",
             "WEB_APP_URL": "https://thoughtpins.com/app",
+            # A launch deploy must accept new registrations, or an App Store
+            # reviewer who ignores the demo credentials cannot get in at all.
+            # SYSTEM_LOCKED defaults closed, which is right for a fresh
+            # self-hosted install and wrong for the public service, so the
+            # simulated production config states the launch value explicitly.
+            "SYSTEM_LOCKED": "false",
             "REQUIRE_API_AUTH": "true",
             "API_KEY": _fake_secret("api"),
             "JWT_SECRET": _fake_secret("jwt"),
