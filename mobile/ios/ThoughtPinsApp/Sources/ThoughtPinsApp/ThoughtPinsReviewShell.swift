@@ -313,7 +313,33 @@ public final class ThoughtPinsVoiceRecorder: ObservableObject {
     private var recorder: AVAudioRecorder?
     private var recordingURL: URL?
 
-    public init() {}
+    /// Fires when iOS takes the audio session away mid-recording.
+    ///
+    /// A phone call interrupts the session and stops the hardware, but does not
+    /// necessarily background the app -- the compact call banner leaves the
+    /// scene active -- so the scenePhase teardown never runs. isRecording stayed
+    /// true, the button still read Stop, and the pulsing indicator sat over a
+    /// microphone iOS had already closed.
+    public var onInterruption: (() -> Void)?
+
+    public init() {
+        NotificationCenter.default.addObserver(
+            forName: AVAudioSession.interruptionNotification,
+            object: AVAudioSession.sharedInstance(),
+            queue: .main
+        ) { [weak self] notification in
+            guard
+                let raw = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+                AVAudioSession.InterruptionType(rawValue: raw) == .began
+            else {
+                return
+            }
+            MainActor.assumeIsolated {
+                guard let self, self.isRecording else { return }
+                self.onInterruption?()
+            }
+        }
+    }
 
     public func start() async {
         guard !isRecording else { return }

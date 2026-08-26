@@ -10,93 +10,97 @@ Keep it under ~4,000 characters. The version below is about 2,600.
 ## ✂️ BEGIN — paste into App Store Connect
 
 Thought Pins is a private journaling and personal-memory app. You write or
-speak notes; it organises them into people, places, events and sources you can
-ask about later.
+speak notes; it organises them into people, places and sources you can ask
+about later.
 
 **DEMO ACCOUNT**
-Email: review@thoughtpins.com
-Password: (entered in the Sign-In Information fields above)
+review@thoughtpins.com — password in the Sign-In Information fields above.
+Pre-loaded with fictional demo data, no real personal information. Please do
+not delete it; see DELETION.
 
-Pre-loaded with fictional demo data — no real personal information — so every
-screen has something to show immediately. Please do not delete this account.
+**WHY AN ACCOUNT IS REQUIRED (5.1.1(i))**
+
+The account is the product, not a gate on it. Everything here is recall over
+what you saved: entries are stored, indexed, and answered against later from
+any device you sign in on. Without an account there is nothing to remember. We
+ask for an email or phone and a password — no profile, contacts or social
+graph.
 
 **NO INVITE CODE IS NEEDED**
 
-Sign-up is open; no invite code is required, and you can register your own
-account. The app contains a private-testing screen for a closed beta, but that
-gate is off and you will not see it. If you ever do, email me and I will clear
-it the same day.
+Sign-up is open; registering your own account is not gated, and we tested that
+on a clean install. The app has a private-testing screen from a closed beta,
+switched off — if you see it, email me and I will clear it same day.
 
 Sign-in is email and password only. Google and Apple sign-in are built but not
 enabled: we will not offer a third-party login without Sign in with Apple
-alongside it, and Apple sign-in is not configured yet.
+alongside it (4.8), and Apple sign-in is not configured yet.
 
 **WHAT TO TRY**
 
-1. Sign in with the demo account.
+1. Sign in, or register your own account.
 2. **Chat** — ask "what do you remember about Maya?" It answers from stored
-   memories, with the source visible.
-3. **Recap** — saved entries by day. **People / Places** — memory cards built
-   from those entries. **Pins** — saved readings; "+" adds a link or file.
-4. **Voice note** — the microphone in Chat. It asks permission first and
-   explains that audio is transcribed then discarded.
-5. **Account → Export account** — full data export, including an
-   Obsidian-compatible Markdown vault.
-6. **Account → Delete account** — real, immediate, irreversible deletion, two
-   taps away. Because it genuinely deletes, please test it on a throwaway
-   account you register: deleting the demo account stops the credentials above
-   working for the rest of the review.
+   entries, saying "your journal shows" rather than asserting facts.
+3. **Recap** (entries by day), **People / Places** (cards built from them),
+   **Pins** (saved readings; "+" adds a link or file).
+4. **Voice note** — the mic in Chat. It asks permission and says audio is
+   transcribed then discarded.
+5. **Report a reply** — under any chat answer; reaches support@thoughtpins.com.
+6. **Account → Export account** — full export, including a Markdown vault.
 
-**NOTHING IS SHARED — THERE IS NO SOCIAL SURFACE**
+**DELETION (5.1.1(v))**
 
-Everything a person writes is visible only to their own account. No feed, no
-profiles, no following, no comments, no sharing, no public links, no
-user-to-user communication of any kind. There is no audience to expose anyone
-to, so the usual user-generated-content risks have no path here.
-
-The app still offers in-app reporting of unsafe AI output (Account → Support).
-Retrieved journal text, imported articles and OCR output enter the model prompt
-as evidence, never as instructions, so saved content cannot redirect the
-assistant.
+Account → Data → **Delete account**, two taps from any screen via the person
+icon at top right. Immediate and irreversible: the account and all entries go
+and the app returns to sign-in. Please test it on a throwaway account you
+register — deleting the demo account stops the credentials above working.
 
 **AI AND PRIVACY**
 
 Content you save or ask about is sent to a third-party AI provider over HTTPS
-for classification, extraction and replies. This is disclosed before any content
-is sent: an account must accept an AI-processing consent screen before it can
-save or ask anything, and the same disclosure is at
-https://thoughtpins.com/ai-disclosure.
+for classification, extraction and replies. An account must accept an
+AI-processing consent screen before it can save or ask anything; the same
+disclosure is at https://thoughtpins.com/ai-disclosure. The demo account has
+accepted already — register a new account to see that screen.
 
-The demo account has already accepted it, so signing in with the credentials
-above goes straight to the app. To see the consent screen itself, register a new
-account — it appears immediately after sign-up and blocks the app until
-accepted.
+The assistant answers only from your own saved material, is instructed never to
+claim external truth, and treats retrieved text as evidence rather than
+instructions. Nothing is used for advertising or model training by us. No
+advertising or analytics SDKs, no tracking, no IDFA, no ATT prompt.
 
-No advertising or analytics SDKs, no tracking, no IDFA and no App Tracking
-Transparency prompt. Journal content is never sold or used for advertising.
+**NOTHING IS SHARED — NO SOCIAL SURFACE**
 
-**ARTICLE SAVING AND PUBLISHER RIGHTS**
+Everything is visible only to its own account. No feed, profiles, following,
+comments, sharing, public links or user-to-user communication. There is no
+audience to expose anyone to, which is why the user-generated-content
+questions are answered No.
 
-Saving a link stores the article's public text. If a page is paywalled or
-access-gated, the app detects it and stores only public metadata — title,
-publisher, date, canonical URL — discarding fetched text and telling the user
-the page was gated. There is no paywall circumvention of any kind.
+**ARTICLE SAVING**
+
+Saving a link stores the article's public text. If a page is paywalled the app
+keeps only public metadata, discards the fetched text and says so. No paywall
+circumvention.
 
 **PURCHASES, PERMISSIONS, IPAD**
 
-No purchases, subscriptions, external purchase links or advertising. The app is
-free throughout.
+No purchases, subscriptions, external purchase links or advertising, and no
+link in the app leads to a page selling anything.
 
-Microphone only, and only when record is tapped for a voice note. No location,
-contacts, photos, camera or notifications prompt.
+Microphone only, and only when record is tapped. No location, contacts,
+photos, camera or notifications prompt.
 
-Universal build — everything above works on iPad exactly as on iPhone, same
-account, same data.
+Universal build; iPhone is portrait only by design, iPad supports all four
+orientations.
+
+**OFFLINE**
+
+Signing in needs a connection. After that the app opens without one, says so,
+and saves what you write on the device to send when you reconnect.
 
 **SUPPORT**
 
 support@thoughtpins.com — https://thoughtpins.com/support
-Privacy: https://thoughtpins.com/privacy — Terms: https://thoughtpins.com/terms
+Privacy and Terms are linked from that page.
 
 If anything blocks you, email me and I will respond the same day.
 

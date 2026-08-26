@@ -318,6 +318,12 @@ struct ThoughtPinsChatScreen: View {
                     finishVoiceRecording()
                 }
             }
+            // A phone call stops the hardware without backgrounding the app, so
+            // the scenePhase branch above never sees it. Close the recording out
+            // the same way and keep what was captured.
+            .onAppear {
+                voiceRecorder.onInterruption = { finishVoiceRecording() }
+            }
             .onDisappear {
                 if voiceRecorder.isRecording {
                     voiceRecorder.cancel()

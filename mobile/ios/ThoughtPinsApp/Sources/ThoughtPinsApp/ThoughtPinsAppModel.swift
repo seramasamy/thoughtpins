@@ -125,7 +125,30 @@ public final class ThoughtPinsAppModel: ObservableObject {
         }
     }
 
+    private static let installMarkerKey = "thoughtpins.installMarker"
+
+    /// Drop a session left behind by a previous install.
+    ///
+    /// The Keychain outlives app deletion; the container does not. So after
+    /// delete-and-reinstall the session is still here while everything that
+    /// makes it usable -- the consent record, the drafts -- has gone with the
+    /// container. That produced a consent wall that could not be completed
+    /// offline, and something worse than an awkward wall: whoever installed the
+    /// app next on that device was silently signed into the previous person's
+    /// account.
+    ///
+    /// A first launch with no marker means a fresh install, so the session goes.
+    /// Reinstalling and then signing in is the honest path, and it is what the
+    /// rest of iOS does.
+    private func clearSessionIfFreshInstall() {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: Self.installMarkerKey) else { return }
+        try? sessionStore.save(nil)
+        defaults.set(true, forKey: Self.installMarkerKey)
+    }
+
     public func bootstrap() async {
+        clearSessionIfFreshInstall()
         refreshStoredSessionFlag()
         do {
             let config = try await api.clientConfig()
