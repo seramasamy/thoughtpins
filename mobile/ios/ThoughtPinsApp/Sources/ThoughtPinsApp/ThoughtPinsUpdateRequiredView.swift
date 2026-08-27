@@ -45,7 +45,7 @@ struct ThoughtPinsUpdateRequiredView: View {
                 .multilineTextAlignment(.center)
 
             if let decision {
-                Text("You have \(ThoughtPinsAppModel.runningVersion). The oldest supported version is \(decision.minimum).")
+                Text("You have \(thoughtPinsRunningVersion). The oldest supported version is \(decision.minimum).")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

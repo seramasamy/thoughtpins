@@ -31,7 +31,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
     /// a minute. Without this the buttons stayed enabled and nothing on screen
     /// changed, so the app looked broken exactly where App Review starts.
     @Published public private(set) var authBusy: Bool = false
-    @Published public private(set) var voiceArchiveStatus: VoiceArchiveStatusResponse?
+    @Published public internal(set) var voiceArchiveStatus: VoiceArchiveStatusResponse?
     @Published public private(set) var librarySources: [LibrarySourceResponse] = []
     @Published public private(set) var memoryCards: [MemoryCardResponse] = []
     @Published public private(set) var placeCards: [MemoryCardResponse] = []
@@ -79,7 +79,6 @@ public final class ThoughtPinsAppModel: ObservableObject {
         self.uploadProvider = uploadProvider
     }
 
-
     public func legalURL(configured: String?, fallbackPath: String) -> URL {
         let fallback = "https://thoughtpins.com\(fallbackPath)"
         guard let configured, !configured.isEmpty else {
@@ -104,7 +103,10 @@ public final class ThoughtPinsAppModel: ObservableObject {
     }
 
     /// Something worked. Says so briefly, then gets out of the way.
-    private func showSuccess(_ message: String) {
+    // Not `private`: Swift's `private` is file-scoped, and this type is
+    // split across files to stay inside the architecture budget. Internal
+    // to the ThoughtPinsApp module, not public.
+    func showSuccess(_ message: String) {
         // Set the flag before the text: the view keys its auto-dismiss off the
         // pair, and writing the message first would let one update render a
         // problem as a success.
@@ -114,7 +116,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
 
     /// Something did not work, or needs a decision. Stays until the person
     /// dismisses it or does something else that replaces it.
-    private func showProblem(_ message: String) {
+    func showProblem(_ message: String) {
         bannerIsProblem = true
         banner = message
     }
@@ -281,7 +283,6 @@ public final class ThoughtPinsAppModel: ObservableObject {
         await refreshVoiceArchive()
         await refreshReadModels()
     }
-
 
     public func oauthLogin(provider: ThoughtPinsOAuthProvider) async {
         do {
@@ -677,41 +678,6 @@ public final class ThoughtPinsAppModel: ObservableObject {
         }
     }
 
-    public func enableVoiceArchive() async {
-        do {
-            voiceArchiveStatus = try await api.enableVoiceArchive(
-                VoiceArchiveConsentRequest(
-                    retainRecordings: true,
-                    acknowledgeSensitiveAudio: true,
-                    acknowledgePersonalUseOnly: true,
-                    acknowledgeDeletionAvailable: true
-                )
-            )
-            showSuccess("Personal voice archive enabled.")
-        } catch {
-            showProblem("Could not enable the voice archive.")
-        }
-    }
-
-    public func disableVoiceArchive() async {
-        do {
-            voiceArchiveStatus = try await api.disableVoiceArchive()
-            showSuccess("Future voice retention disabled.")
-        } catch {
-            showProblem("Could not update voice retention.")
-        }
-    }
-
-    public func deleteVoiceArchive() async {
-        do {
-            _ = try await api.deleteVoiceArchive()
-            await refreshVoiceArchive()
-            showSuccess("Retained voice recordings deleted.")
-        } catch {
-            showProblem("Could not delete the voice archive.")
-        }
-    }
-
     private func refreshPreferences() async {
         guard me != nil, let preferences = try? await api.preferences() else { return }
         responseStyle = preferences.responseStyle ?? "friendly"
@@ -749,7 +715,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
         }
     }
 
-    private func refreshVoiceArchive() async {
+    func refreshVoiceArchive() async {
         guard me != nil, config?.voiceArchiveEnabled == true else {
             voiceArchiveStatus = nil
             return
