@@ -94,7 +94,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
         do {
             let version = config?.legalDocumentVersion ?? "2026-07-13"
             let preferences = try await api.acceptLegalDocument(document, version: version)
-            aiProcessingConsentAccepted = preferences.legalAcceptances["ai_disclosure"] != nil
+            aiProcessingConsentAccepted = thoughtPinsHasAcceptedCurrentDisclosure(preferences, currentVersion: version)
             UserDefaults.standard.set(aiProcessingConsentAccepted, forKey: Self.consentDefaultsKey)
             showSuccess(document == "ai_disclosure" ? "AI processing permission saved." : "Legal acknowledgement saved.")
         } catch {
@@ -709,7 +709,10 @@ public final class ThoughtPinsAppModel: ObservableObject {
         responseStyle = preferences.responseStyle ?? "friendly"
         importancePromptsEnabled = preferences.importancePromptsEnabled ?? false
         usePrivateMemories = preferences.privateEntriesInAsk
-        aiProcessingConsentAccepted = preferences.legalAcceptances["ai_disclosure"] != nil
+        aiProcessingConsentAccepted = thoughtPinsHasAcceptedCurrentDisclosure(
+            preferences,
+            currentVersion: config?.legalDocumentVersion
+        )
         UserDefaults.standard.set(aiProcessingConsentAccepted, forKey: Self.consentDefaultsKey)
     }
 
@@ -749,12 +752,35 @@ public final class ThoughtPinsAppModel: ObservableObject {
         voiceArchiveStatus = try? await api.voiceArchive()
     }
 
+    /// The file a person can actually keep, once the export is ready.
+    ///
+    /// nil until an export succeeds. The view presents a share sheet on it and
+    /// clears it afterwards.
+    @Published public var exportedFile: URL?
+
     public func exportAccount() async {
         do {
             let export = try await api.exportAccount()
-            showSuccess("Your export is ready.")
+            // This used to bind the payload to `let export` and never use it.
+            // The person was told "Your export is ready." and received
+            // nothing -- no share sheet, no file, no screen. The privacy
+            // policy says data can be exported "from the app", and the review
+            // notes send a reviewer here as step 6, so a success banner over an
+            // export that goes nowhere is the plainest possible version of not
+            // doing what we say.
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            let data = try encoder.encode(export)
+            let stamp = ISO8601DateFormatter().string(from: Date()).prefix(10)
+            let destination = FileManager.default.temporaryDirectory
+                .appendingPathComponent("thought-pins-export-\(stamp).json")
+            try data.write(to: destination, options: .atomic)
+            exportedFile = destination
+            showSuccess("Your export is ready. Choose where to keep it.")
         } catch {
-            showProblem("Export failed.")
+            showProblem(
+                thoughtPinsPlainMessage(for: error, fallback: "Could not build your export. Try again.")
+            )
         }
     }
 

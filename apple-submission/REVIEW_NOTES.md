@@ -4,7 +4,7 @@
 Information → Notes.** Everything outside the markers is for you, not Apple.
 
 Keep it under 4,000 characters -- that is App Store Connect's hard cap. The
-block below is **3,953**. This line used to say ~2,600, which was wrong by
+block below is **3,984**. This line used to say ~2,600, which was wrong by
 about 1,400 characters and left the true margin at fifteen. Re-measure after
 every edit rather than trusting the number:
 
@@ -55,8 +55,9 @@ we will not offer a third-party login without Sign in with Apple alongside it
 4. **Voice note** — the mic in Chat. Audio is sent for transcription and
    discarded after. The permission string names one exception, Personal voice
    archive: an opt-in setting in Account, off in this build.
-5. **Report a reply** — under any chat answer; reaches support@thoughtpins.com.
-6. **Account → Export account** — full export, including a Markdown vault.
+5. **Report a reply** — under any chat answer; filed for review by support.
+6. **Account → Export account** — your whole account as a JSON file, offered
+   to Files or any share target.
 
 **DELETION (5.1.1(v))**
 

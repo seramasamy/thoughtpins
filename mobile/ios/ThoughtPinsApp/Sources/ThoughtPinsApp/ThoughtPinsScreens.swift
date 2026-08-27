@@ -555,6 +555,11 @@ struct ThoughtPinsAccountScreen: View {
                 }
                 Section("Data") {
                     Button("Export account") { Task { await model.exportAccount() } }
+                    if model.exportedFile != nil {
+                        Text("Your export is a JSON file. Save it to Files, or send it to yourself.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                     Button("Delete account", role: .destructive) { showingDeleteConfirmation = true }
                 }
                 if model.config?.voiceArchiveEnabled == true {
@@ -626,6 +631,15 @@ struct ThoughtPinsAccountScreen: View {
             .scrollContentBackground(.hidden)
             .thoughtPinsReadableColumn()
             .background(Color(.systemGroupedBackground))
+            // Without this the export was fetched and dropped on the floor.
+            .sheet(isPresented: Binding(
+                get: { model.exportedFile != nil },
+                set: { if !$0 { model.exportedFile = nil } }
+            )) {
+                if let file = model.exportedFile {
+                    ThoughtPinsShareSheet(items: [file])
+                }
+            }
             .navigationTitle("Account")
             .confirmationDialog(
                 "Permanently delete your Thought Pins account and saved data?",

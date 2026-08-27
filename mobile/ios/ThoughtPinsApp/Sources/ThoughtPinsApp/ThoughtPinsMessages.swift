@@ -71,3 +71,24 @@ public func thoughtPinsRouteLabel(_ routeType: String) -> String? {
 /// can reach this refusal, so the wording lives in one place.
 let thoughtPinsPrivateMemoryRefusal =
     "Entries you marked private are never sent to the model, so they cannot inform replies here."
+
+/// Whether this account has accepted the AI disclosure *that is current now*.
+///
+/// The check used to be `legalAcceptances["ai_disclosure"] != nil` -- does an
+/// acceptance exist, of any version. The web client has always compared the
+/// stored version against the served one. So the day LEGAL_DOCUMENT_VERSION
+/// moves, every web user is re-prompted and no iOS user ever is: the app would
+/// go on treating a signature on a superseded document as consent to the new
+/// one. That is the wrong direction for a consent record to fail in.
+///
+/// A missing served version means we could not ask; existing consent stands
+/// rather than the app locking someone out of their journal over a field it
+/// could not read.
+func thoughtPinsHasAcceptedCurrentDisclosure(
+    _ preferences: PreferencesResponse,
+    currentVersion: String?
+) -> Bool {
+    guard let acceptance = preferences.legalAcceptances["ai_disclosure"] else { return false }
+    guard let currentVersion, !currentVersion.isEmpty else { return true }
+    return acceptance.version == currentVersion
+}
