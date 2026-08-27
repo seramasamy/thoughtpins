@@ -292,6 +292,16 @@ def delete_user_data(session: Session, user_id: str) -> dict[str, int]:
         user.email = None
         user.phone = None
         user.display_name = "Deleted User"
+        # The row itself stays as a tombstone so the id cannot be reused and a
+        # deletion can be proven to have happened. Everything on it that came
+        # from the person goes.
+        #
+        # preferences_json was the one thing that did not, and it survived a
+        # real deletion in testing: it still held the AI-disclosure acceptance,
+        # the response-style choice and the private-memory setting. None of
+        # that is journal content, but the privacy policy says the account's
+        # data is deleted, and "except your settings" is not what it says.
+        user.preferences_json = None
         deleted["users"] = 1
     else:
         deleted["users"] = 0
