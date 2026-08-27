@@ -7,6 +7,7 @@ import json
 import plistlib
 import re
 import struct
+import subprocess
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -32,7 +33,73 @@ def main() -> int:
     _check_google_and_release_wiring(failures)
     _check_brand_mark(failures)
     _check_screenshots(failures)
+    _check_ci_scripts(failures)
     return finish(failures)
+
+
+# Xcode Cloud requires these beside the .xcodeproj, executable, with a shebang.
+CI_SCRIPTS = {
+    "ci_post_clone.sh": "generates ThoughtPins.xcodeproj, which is not in the repository",
+}
+
+
+def _check_ci_scripts(failures: list[str]) -> None:
+    """A cloud build script that is not executable silently does the wrong thing.
+
+    Apple: "Xcode Cloud respects the shebang if the file is executable. If you
+    don't include a shebang as the first line of your custom script or forget to
+    make the file executable, Xcode Cloud runs the script as `zsh $filename`."
+
+    This is not hypothetical here. `scripts/prepare_ios_submission.sh` was
+    committed as mode 100644 and its CI step could never have run; nothing
+    noticed until someone read the workflow. The same mistake on a cloud runner
+    fails on a machine nobody can log into, so it is asserted rather than
+    remembered.
+
+    Git only records one permission bit, so this checks the index rather than
+    the working tree: a file can be executable locally and committed 644.
+    """
+    directory = TARGET / "ci_scripts"
+    if not directory.is_dir():
+        failures.append(
+            "missing mobile/ios/ThoughtPinsNative/ci_scripts. Xcode Cloud looks for "
+            "custom build scripts in a ci_scripts directory beside the Xcode project."
+        )
+        return
+
+    try:
+        listing = subprocess.run(
+            ["git", "ls-files", "-s", "--", str(directory.relative_to(ROOT))],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        ).stdout
+    except OSError:  # pragma: no cover - git is present everywhere this runs
+        listing = ""
+    modes = {}
+    for line in listing.splitlines():
+        parts = line.split()
+        if len(parts) >= 4:
+            modes[Path(parts[3]).name] = parts[0]
+
+    for name, why in CI_SCRIPTS.items():
+        path = directory / name
+        if not path.is_file():
+            failures.append(f"missing ci_scripts/{name}: it {why}")
+            continue
+        first = path.read_text(encoding="utf-8").splitlines()[:1]
+        if not first or not first[0].startswith("#!"):
+            failures.append(f"ci_scripts/{name} has no shebang on its first line")
+        mode = modes.get(name)
+        if mode is None:
+            failures.append(f"ci_scripts/{name} is not committed, so Xcode Cloud will never see it")
+        elif mode != "100755":
+            failures.append(
+                f"ci_scripts/{name} is committed as mode {mode}, not 100755. "
+                "Xcode Cloud will ignore the shebang and run it under zsh. "
+                f"Fix with: git update-index --chmod=+x {path.relative_to(ROOT)}"
+            )
 
 
 SCREENSHOT_ROOT = ROOT / "apple-submission" / "screenshots"
