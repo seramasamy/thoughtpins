@@ -48,8 +48,18 @@ state. Do them first; Stage 1 fails confusingly without them.
    - Bundle ID: **Explicit** — `com.thoughtpins.app` (exactly this; it is set in
      `mobile/ios/ThoughtPinsNative/project.yml` and asserted by a gate)
 
-3. **Enable Sign in with Apple on that App ID.** Same screen, Capabilities list,
-   tick **Sign in with Apple**, Save.
+3. **Enable Sign in with Apple on that App ID — and nothing else.** Same screen,
+   Capabilities list, tick **Sign in with Apple**, Save.
+
+   **The exact list is one item.** `ThoughtPins.entitlements` declares exactly
+   one entitlement, `com.apple.developer.applesignin`, and the Info.plist
+   declares no background modes, no push, no iCloud and no app groups. Every
+   capability you tick is another thing automatic signing must provision and
+   another way the first build can fail, so tick that one and stop.
+
+   I could not check the portal from here — it needs your account — so treat
+   this as the specification rather than a report: if the App ID already exists,
+   open it and confirm Sign in with Apple is on and nothing else is.
 
    This is not optional and it is the single most likely cause of a first build
    failing at signing. `mobile/ios/ThoughtPinsNative/Resources/ThoughtPins.entitlements`
@@ -84,10 +94,28 @@ state. Do them first; Stage 1 fails confusingly without them.
 1. **Sign the paid account into Xcode.** Xcode → Settings → Accounts → **+** →
    Apple ID. Sign in with the Apple ID that holds the developer membership.
 
-   Check the team list afterwards. If the only team shown says **"(Personal
-   Team)"**, the paid membership is on a different Apple ID or has not
-   propagated — fix that before continuing, because a Personal Team cannot
-   create the App Store Connect product Xcode Cloud needs.
+   **This Mac is currently signed in with a free Personal Team**, `W24H269428`,
+   which cannot create the App Store Connect product Xcode Cloud needs. Adding
+   the paid Apple ID is genuinely step one.
+
+   **How to verify it took, two ways:**
+
+   In the GUI — Xcode → Settings → Accounts, select the Apple ID, and read the
+   **Team** list on the right. You want a row whose Type is **App Store** (or
+   *Company/Organization*). A row reading **Personal Team** is the free one and
+   is not enough.
+
+   In the terminal, which is unambiguous:
+
+   ```bash
+   defaults read com.apple.dt.Xcode IDEProvisioningTeams
+   ```
+
+   Each team prints `isFreeProvisioningTeam`. You need at least one entry where
+   that is **0**. If every entry says `1`, the paid membership has not reached
+   Xcode: sign out and back in, or confirm the membership is on that Apple ID at
+   developer.apple.com/account. Today this machine prints a single team with
+   `isFreeProvisioningTeam = 1`.
 
 2. **Generate and open the project.**
 
@@ -127,30 +155,115 @@ that the product is called ThoughtPins.
 
 ---
 
-## Stage 2 — the workflow settings (from the website, any machine)
+## Stage 2 — the workflow, configured to spend as little as possible
 
-App Store Connect → Apps → Thought Pins → Xcode Cloud → Manage Workflows.
+Xcode Cloud gives **25 compute hours a month**. The goal is that the first cloud
+build is a real build, not a debug session, and that no setting quietly
+multiplies compute. Every choice below is made for that.
 
-| Setting | Value | Why |
+Set these in the wizard during Stage 1, or afterwards at App Store Connect →
+Apps → Thought Pins → Xcode Cloud → Manage Workflows.
+
+### Start condition — manual only
+
+Delete whatever start condition the wizard proposes. It defaults to **Branch
+Changes**, which builds on every push to `main` and is exactly how an allowance
+disappears.
+
+In the workflow editor: **Start Conditions** → select the existing condition →
+**Delete**. Then **+** → **Manual**. You will have one condition, reading
+*Manual*.
+
+Nothing is lost. GitHub Actions already builds an unsigned archive of every
+push to `main` that touches iOS, keeps it 30 days, and runs the same post-clone
+script. Xcode Cloud is only for builds you intend to send to TestFlight.
+
+### One action: Archive
+
+Delete any **Test** or **Analyze** action the wizard adds.
+
+**What you lose: nothing that is not already covered.** `swift test` on
+ThoughtPinsCore — 65 tests — runs on Actions on every iOS-touching push to
+`main`, along with the unsigned archive, the built-Info.plist check and the
+build-number assertion. A Test action here would re-run those on the expensive
+runner, and it would need a simulator destination, which is its own multiplier.
+
+The Archive action's settings:
+
+| Field | Value | Why |
 |---|---|---|
-| Name | `Release to TestFlight` | — |
-| Repository | `seramasamy/thoughtpins` | — |
-| Branch | `main` | The trunk is the release branch |
-| Start Condition | Branch Changes on `main` | Or Manual, if you would rather press the button |
-| Environment → Xcode | Latest release | Must be able to build an iOS 17 deployment target |
-| Environment → macOS | Whatever pairs with that Xcode | Leave the default |
-| Action | **Archive** | Platform: iOS. Scheme: **ThoughtPins** |
-| Archive → Deployment Preparation | **TestFlight (Internal Testing Only)** | Start internal; widen later |
-| Post-Action | **TestFlight Internal Testing** | Add yourself to an internal group |
+| Platform | **iOS** | Not "iOS + iPadOS + macOS". The app is one platform; extra platforms are extra builds |
+| Scheme | **ThoughtPins** | Generated as a *shared* scheme; the post-clone script fails loudly if it is ever missing |
+| Configuration | **Release** | Comes from the scheme's archive action already |
+| Deployment Preparation | **TestFlight (Internal Testing Only)** | Widen later; external testing needs review |
 
-Two settings that matter more than they look:
+### What silently multiplies compute
 
-- **The scheme must be `ThoughtPins`.** It is generated by XcodeGen as a
-  *shared* scheme; Xcode Cloud can only build shared schemes.
-  `ci_post_clone.sh` fails the build with a clear message if the shared scheme
-  is ever missing, rather than letting xcodebuild produce "scheme not found".
-- **Do not set a build-number strategy in the UI.** The build number is handled
-  in the repository — see the next section.
+- **Multiple platforms on one action.** Each is a separate build. iOS only.
+- **A Test action with more than one simulator destination.** Each destination
+  is a separate run of the whole suite. You have no Test action, so this cannot
+  bite — keep it that way.
+- **Branch and pull-request start conditions together.** A PR from a branch that
+  also pushes builds twice.
+- **"Automatically manage" Xcode version** is fine and is not a multiplier.
+
+### Xcode version — where it is set
+
+Workflow editor → **Environment** → **Xcode Version**. Pick **Latest Release**,
+not a specific older version and not a beta.
+
+Reasons: App Store uploads have required Xcode 26+ since 28 April 2026, so an
+older selection cannot produce an uploadable build; and betas can change
+behaviour between builds. macOS Version beneath it: leave whatever pairs with
+that Xcode.
+
+### TestFlight — a post-action, not a separate action
+
+It is a **post-action on the Archive action**, and that is what you want.
+
+Workflow editor → the Archive action → **Post-Actions** → **+** → **TestFlight
+Internal Testing** → choose your internal group.
+
+Cost: **effectively nothing.** A post-action runs inside the same build, and
+uploading is network time on an already-running machine, not a second build.
+Making distribution a separate action or a second workflow would mean a second
+archive, and that is a second billed build.
+
+## What the post-clone script costs, measured
+
+This runs on every cloud build and its wall clock is billed, so it was measured
+rather than guessed — on a `macos-latest` runner, which is the closest available
+proxy for a cold Xcode Cloud machine.
+
+| | Seconds |
+|---|---|
+| `ci_post_clone.sh` end to end, first run | **1** |
+| Same script, second run (XcodeGen already unpacked) | **0** |
+| Pinned XcodeGen download + unzip | **1** |
+| `brew install xcodegen`, formula index already present | **2** |
+
+**The install method does not matter for speed.** One second against two, on a
+script that is 1s of a build measured in minutes. Anyone claiming a meaningful
+saving here is guessing.
+
+The pinned download is kept for two reasons that are not speed:
+
+- **It needs only `curl` and `unzip`,** which exist on any macOS machine.
+  Homebrew may not be installed on a cloud runner at all, and `brew install` can
+  trigger a formula-index update that is far slower than the 2s measured here,
+  where the index was already warm.
+- **The version is exact.** `2.46.0` produces the same project on the cloud as
+  on a Mac. A formula that moves would not.
+
+Homebrew remains the fallback inside the script if the download is ever blocked.
+
+**Package resolution is close to zero and gated to stay that way.** With
+GoogleSignIn gone there are no remote Swift packages anywhere in the graph:
+`ThoughtPinsApp` depends on `../ThoughtPinsCore` by path, `ThoughtPinsCore`
+depends on nothing, `project.yml` declares no `url:`, and no `Package.resolved`
+is tracked. `scripts/check_ios_submission_source.py` fails the build if a remote
+package is ever added, because that would make a clean build depend on someone
+else's uptime and add billed resolution time to every run.
 
 ---
 
@@ -170,7 +283,7 @@ no action from you.
 | Device family | iPhone and iPad *(repo)* | none |
 | Entitlements | `Resources/ThoughtPins.entitlements` → Sign in with Apple *(repo)* | **capability must be on the App ID** (Stage 0 step 3) |
 | Team / signing | Not in the repo, deliberately — signing material never is. Xcode Cloud signs automatically using the team that owns the product. | none after Stage 1 |
-| Build number | `CI_BUILD_NUMBER`, stamped into `project.yml` by the post-clone script before generating. Monotonic per workflow, which is what App Store Connect requires. | none |
+| Build number | `CI_BUILD_NUMBER`, stamped into `project.yml` by the post-clone script before generating. Falls back to the commit count when that variable is absent, so a local run and Actions also produce a real number. Both branches are exercised on every Actions run of the `ios` job | none |
 | Marketing version | `MARKETING_VERSION: 1.0.0` in `project.yml` *(repo)* | bump by hand for 1.1 |
 | `THOUGHTPINS_API_BASE_URL` | A **build setting** in `project.yml`, expanded into Info.plist at build time — not an environment variable *(repo)* | none |
 | Export compliance | `ITSAppUsesNonExemptEncryption = false` in Info.plist *(repo)* | none |
@@ -179,6 +292,26 @@ no action from you.
 
 If a build ever asks you for something not on this list, that is new — write it
 down before changing anything.
+
+### Anything that would fail on a runner which has never built this repo
+
+Checked deliberately, because a cold machine is the one case a local Mac never
+reproduces:
+
+- **`project.yml`** sets `CODE_SIGN_STYLE: Automatic` and no `DEVELOPMENT_TEAM`.
+  That is correct for Xcode Cloud, which supplies the team from the product.
+  There is no path in it to anything outside the repository, no absolute path,
+  and no tool beyond XcodeGen.
+- **`ExportOptions.plist`** carries `TEAM_ID_PLACEHOLDER` rather than a real
+  Team ID. Nothing in the Xcode Cloud path reads that file — it exists for the
+  GitHub Actions signing path, which substitutes the value from a secret. If you
+  ever run `xcodebuild -exportArchive` by hand, substitute it first or the
+  export fails on a placeholder.
+- **The post-clone script** installs XcodeGen into `$HOME`, which exists and is
+  writable on any runner, and needs only `curl`, `unzip` and `git`. It does not
+  assume Homebrew, a warm cache, or a particular working directory.
+- **No remote Swift packages**, so nothing resolves over the network and a
+  GitHub or vendor outage cannot fail the build.
 
 ---
 
@@ -208,6 +341,37 @@ raises explains itself:
 
 If that block is missing entirely, Xcode Cloud never found the script — see the
 first row of the failure table below.
+
+---
+
+## Recognising a first-build failure in thirty seconds
+
+Assume the first cloud build fails. These are the three most likely reasons, in
+order, with exactly what to look for. Open the failed build, click the failing
+step, **Download Logs**, and search for the string in the middle column.
+
+| # | Reason | Search the log for | What it means and what to do |
+|---|---|---|---|
+| 1 | **Sign in with Apple not on the App ID** | `Provisioning profile` or `doesn't support the Sign In with Apple capability` or `No profiles for 'com.thoughtpins.app'` | Automatic signing cannot make a profile for an entitlement the App ID lacks. The message talks about *provisioning*, not entitlements, which is why it is first here. Fix: Stage 0 step 3, then re-run. Costs one wasted build |
+| 2 | **The post-clone script did not run** | `ci_post_clone` — its **absence** is the signal | If the log has no `==> ci_post_clone: preparing` line at all, Xcode Cloud never found the script, and the next failure will be "no such file or directory" from xcodebuild looking for a project that was never generated. Check `git ls-files -s mobile/ios/ThoughtPinsNative/ci_scripts/` prints mode `100755` |
+| 3 | **The scheme is not shared** | `ci_post_clone FAILED: no shared scheme` or `Scheme ThoughtPins not found` | The script checks for this itself and fails with the first message, deliberately, rather than letting xcodebuild produce the second. Means `project.yml`'s `schemes:` block changed |
+
+**The one line to find first, every time.** Search the post-clone step for:
+
+```
+==> ci_post_clone: done in
+```
+
+If that line is present, the project generated, the scheme is shared and the
+build number was stamped — so the failure is downstream, and it is almost
+certainly signing (row 1). If it is absent, the failure is the script or its
+location (rows 2 and 3), and nothing was built at all.
+
+**Before spending a second cloud build on any of this**, check GitHub Actions
+for the same commit. It runs the identical post-clone script on every push to
+`main` that touches iOS. If Actions is green and the cloud is red, the problem
+is signing or the account — never the script, never the project generation, and
+never the code.
 
 ---
 

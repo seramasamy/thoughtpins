@@ -155,6 +155,39 @@ so it should be one text.*
 
 ---
 
+## An open disclosure question, not a defect
+
+**What you ask the assistant is retained as an entry and appears in Recap
+alongside notes you deliberately wrote.** `/v1/chat` calls
+`remember_user_chat_message`, which writes a `RawEntry` with a distinct `source`
+and `processed_status` — deliberately, so conversation turns stay recallable
+without polluting the memory graph. Neither client filters the timeline by that
+source, so both show questions next to notes. It is not an iOS divergence.
+
+**Is it disclosed? Partly, and the gap is one sentence.**
+
+- `site/privacy.html` **does** disclose the storage: "User Content: journal
+  entries, **chat messages**, voice-note transcripts, reminders, uploads..." So
+  nobody is told their questions are discarded.
+- What no page says is that a chat message is retained **as an entry, in the
+  journal timeline**. A reader would reasonably take "chat messages" to mean
+  chat history — and there *is* a separate `chat_messages` table that also gets
+  a row — not something that appears in Recap next to a note they wrote.
+- `site/ai-disclosure.html` comes closest: "When a message is ambiguous, the
+  product may disclose whether it is replying as chat or saving a journal
+  memory." That describes routing an *ambiguous* message, which is a different
+  claim from every question also being retained.
+
+**Recommendation: one sentence, no product change.** In `privacy.html`, after
+the User Content list, something like: *"Messages you send to the assistant are
+saved with your entries so it can recall the conversation, and appear in your
+timeline alongside notes you write. They can be deleted individually like any
+other entry."* That last clause is now true, which it was not before this
+session.
+
+Not applied — this is wording on a published legal page and it is yours to
+approve.
+
 ## Promises that are now scoped rather than universal
 
 The published pages describe the product, not the iOS app. These sentences are

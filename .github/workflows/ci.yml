@@ -397,28 +397,6 @@ jobs:
           # location to the steps that follow rather than installing twice.
           dirname "$(grep '^XCODEGEN_BIN=' /tmp/post-clone-cloud.log | cut -d= -f2-)" >> "$GITHUB_PATH"
 
-      # Measured, not guessed: this script runs on every Xcode Cloud build and
-      # its wall clock comes out of a 25-hour monthly allowance. The comparison
-      # is recorded so the choice of installer can be revisited with a number.
-      - name: Cost of the XcodeGen install, pinned download vs Homebrew
-        run: |
-          set -uo pipefail
-          echo "--- pinned download onto a machine that has never seen it ---"
-          rm -rf "$HOME/.xcodegen-cost-probe"
-          START=$(date +%s)
-          curl -fsSL --retry 3 -o /tmp/xg.zip \
-            https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip
-          mkdir -p "$HOME/.xcodegen-cost-probe"
-          unzip -q -o /tmp/xg.zip -d "$HOME/.xcodegen-cost-probe"
-          echo "PINNED_DOWNLOAD_SECONDS=$(( $(date +%s) - START ))"
-          echo "--- homebrew, uncached ---"
-          brew uninstall --force xcodegen >/dev/null 2>&1 || true
-          START=$(date +%s)
-          brew install xcodegen >/dev/null 2>&1
-          echo "BREW_INSTALL_SECONDS=$(( $(date +%s) - START ))"
-          brew uninstall --force xcodegen >/dev/null 2>&1 || true
-          rm -rf "$HOME/.xcodegen-cost-probe" /tmp/xg.zip
-
       - name: Test shared Swift package
         run: swift test --package-path mobile/ios/ThoughtPinsCore
 
