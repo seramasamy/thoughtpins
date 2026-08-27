@@ -42,7 +42,6 @@ REQUIRED_NATIVE_SHELL_FILES = {
         "mobile/ios/ThoughtPinsApp/Sources/ThoughtPinsApp/ThoughtPinsReviewShell.swift",
         "mobile/ios/ThoughtPinsApp/Sources/ThoughtPinsApp/ThoughtPinsScreens.swift",
         "mobile/ios/ThoughtPinsNative/project.yml",
-        "mobile/ios/ThoughtPinsNative/Sources/GoogleOAuthTokenProvider.swift",
         "mobile/ios/ThoughtPinsNative/Resources/Info.plist",
         "mobile/ios/ThoughtPinsNative/Resources/PrivacyInfo.xcprivacy",
         "mobile/ios/ThoughtPinsNative/Resources/ThoughtPins.entitlements",

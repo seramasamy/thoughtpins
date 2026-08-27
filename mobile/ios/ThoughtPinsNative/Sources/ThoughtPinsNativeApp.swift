@@ -25,13 +25,17 @@ struct ThoughtPinsNativeApp: App {
 
     var body: some Scene {
         WindowGroup {
+            // No third-party OAuth provider ships in v1. The sign-in screen
+            // offers Google only alongside Sign in with Apple (Guideline 4.8),
+            // and Apple sign-in is not configured, so the button never
+            // rendered and the provider could only ever throw
+            // `providerNotConfigured`. There is likewise no URL callback to
+            // handle. `UnconfiguredThoughtPinsOAuthTokenProvider` is the
+            // honest stand-in and is already this parameter's default.
             ThoughtPinsRootView(
                 baseURL: apiBaseURL,
-                oauthTokenProvider: GoogleOAuthTokenProvider()
+                oauthTokenProvider: UnconfiguredThoughtPinsOAuthTokenProvider()
             )
-            .onOpenURL { url in
-                _ = GoogleOAuthTokenProvider.handle(url)
-            }
         }
     }
 }

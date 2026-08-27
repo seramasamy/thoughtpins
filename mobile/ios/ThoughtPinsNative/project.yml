@@ -5,12 +5,16 @@ options:
   deploymentTarget:
     iOS: "17.0"
 
+# GoogleSignIn was removed for v1. The app never offered a Google button --
+# it refuses a third-party login without Sign in with Apple alongside it
+# (Guideline 4.8), and Apple sign-in is not configured -- so the SDK was linked
+# into the archive for a feature no code path could reach. Removing it also
+# lets a Swift 5.9 toolchain build the app target at all: the SDK's manifest is
+# swift-tools-version:6.0 and would not resolve. Re-adding it in 1.1 is proven:
+# CI archived with it on macos-latest.
 packages:
   ThoughtPinsApp:
     path: ../ThoughtPinsApp
-  GoogleSignIn:
-    url: https://github.com/google/GoogleSignIn-iOS
-    exactVersion: 9.1.0
 
 settings:
   base:
@@ -31,8 +35,6 @@ targets:
     dependencies:
       - package: ThoughtPinsApp
         product: ThoughtPinsApp
-      - package: GoogleSignIn
-        product: GoogleSignIn
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.thoughtpins.app

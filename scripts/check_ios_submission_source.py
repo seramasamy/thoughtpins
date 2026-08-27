@@ -169,7 +169,6 @@ def _required_source_failures() -> list[str]:
     required = (
         TARGET / "project.yml",
         TARGET / "Sources" / "ThoughtPinsNativeApp.swift",
-        TARGET / "Sources" / "GoogleOAuthTokenProvider.swift",
         TARGET / "Resources" / "Info.plist",
         TARGET / "Resources" / "PrivacyInfo.xcprivacy",
         TARGET / "Resources" / "ThoughtPins.entitlements",
@@ -186,7 +185,6 @@ def _check_project(failures: list[str]) -> None:
     require(project, 'TARGETED_DEVICE_FAMILY: "1,2"', "universal iPhone/iPad target", failures)
     require(project, "CODE_SIGN_ENTITLEMENTS: Resources/ThoughtPins.entitlements", "entitlements binding", failures)
     require(project, "SWIFT_STRICT_CONCURRENCY: complete", "strict Swift concurrency", failures)
-    require(project, "exactVersion: 9.1.0", "pinned native Google sign-in dependency", failures)
     require(
         project,
         "THOUGHTPINS_API_BASE_URL: https://api.thoughtpins.com",
@@ -684,10 +682,21 @@ def _check_swift_key_decoding(failures: list[str]) -> None:
 
 
 def _check_google_and_release_wiring(failures: list[str]) -> None:
-    google_source = (TARGET / "Sources" / "GoogleOAuthTokenProvider.swift").read_text(encoding="utf-8")
-    for marker in ["GIDSignIn.sharedInstance.signIn", "idToken?.tokenString", "handle(url)"]:
-        require(google_source, marker, f"native Google sign-in marker {marker}", failures)
+    """The release script still knows how to build a Google-enabled archive.
 
+    The SDK itself is gone from v1 -- the app refuses a third-party login
+    without Sign in with Apple beside it (Guideline 4.8), which is not
+    configured, so the button never rendered and the provider could only throw.
+    Linking it meant shipping a third-party SDK, and its transitive graph, that
+    no code path could reach; it was also the single reason a Swift 5.9
+    toolchain could not build the app target.
+
+    What is checked here is therefore the *other* half: `ios_release.sh` must
+    still be able to render an Info.plist carrying real Google values, so
+    turning the feature back on in 1.1 is a matter of restoring the package and
+    the two Info.plist keys rather than rebuilding this plumbing. The provider
+    itself is recoverable from git history.
+    """
     release_script = (ROOT / "scripts" / "ios_release.sh").read_text(encoding="utf-8")
     for marker in [
         "scripts/render_ios_info_plist.py",
