@@ -603,6 +603,16 @@ class Config:
             (cls.DATABASE_URL.startswith("sqlite"), "DATABASE_URL must use PostgreSQL outside local development."),
             (not cls.REDIS_URL, "REDIS_URL must be set outside local development."),
             (not cls.RATE_LIMIT_ENABLED, "RATE_LIMIT_ENABLED must be true outside local development."),
+            (
+                # Enforcement reads the meter. With tracking off, no usage rows
+                # are written, month-to-date spend is always 0.0, and the
+                # pre-call budget check can never fire -- so USAGE_ENFORCEMENT
+                # says "on" while nothing is enforced, and one looping account
+                # can spend without limit.
+                cls.USAGE_ENFORCEMENT_ENABLED and not cls.USAGE_TRACKING_ENABLED,
+                "USAGE_ENFORCEMENT_ENABLED requires USAGE_TRACKING_ENABLED: enforcement "
+                "reads the usage meter, so with tracking off the spend cap never fires.",
+            ),
             (not cls.PROCESS_ENTRIES_ASYNC, "PROCESS_ENTRIES_ASYNC must be true outside local development."),
             (
                 cls.INGESTION_QUEUE_BACKEND != "celery",

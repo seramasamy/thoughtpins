@@ -13,6 +13,7 @@ from loguru import logger
 
 from thoughtpins.api_contracts import COMMON_ERROR_RESPONSES
 from thoughtpins.api_gateway import (
+    PUBLIC_AUTH_ALIASES,
     _client_ip,
     _content_length_too_large,
     _extract_api_key,
@@ -221,7 +222,14 @@ async def api_auth_middleware(request: Request, call_next):
             )
 
         if request.method == "OPTIONS" or _is_public_path(request.url.path):
-            if request.url.path.startswith("/v1/auth/"):
+            # The unversioned aliases matter here. The same handlers are mounted
+            # at /register, /login and /refresh as well as under /v1/auth/, and
+            # those spellings matched neither branch: not "/v1/auth/" so not
+            # rate limited here, and public so never reaching the authenticated
+            # branch below. POST /register was therefore an unauthenticated,
+            # unlimited account-creation endpoint. Neither shipping client uses
+            # it, which is exactly why nobody noticed.
+            if request.url.path.startswith("/v1/auth/") or request.url.path in PUBLIC_AUTH_ALIASES:
                 key = f"public:{_client_ip(request) or 'unknown'}:{request.url.path}"
                 allowed, retry_after = check_rate_limit(key, limit=_rate_limit_for_path(request.url.path))
                 if not allowed:

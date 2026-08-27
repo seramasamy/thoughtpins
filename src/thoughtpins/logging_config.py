@@ -7,6 +7,7 @@ import sys
 from loguru import logger
 
 from thoughtpins.config import config
+from thoughtpins.logging_policy import apply_logging_policy
 
 
 def setup_logging() -> None:
@@ -44,5 +45,10 @@ def setup_logging() -> None:
             logger.info("Sentry initialized for environment {}", config.ENVIRONMENT)
         except Exception as e:
             logger.warning("Sentry initialization failed: {}", e)
+
+    # Third-party SDKs that echo request bodies are pinned regardless of
+    # LOG_LEVEL. The model provider's client logs the full prompt at DEBUG, and
+    # for this service that payload is the person's journal entry.
+    apply_logging_policy()
 
     logger.info("Logging initialized at level {}", log_level)

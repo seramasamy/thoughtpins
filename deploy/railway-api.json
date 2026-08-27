@@ -6,7 +6,7 @@
   },
   "deploy": {
     "startCommand": "python -m thoughtpins.server --api-only",
-    "healthcheckPath": "/health",
+    "healthcheckPath": "/ready",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10

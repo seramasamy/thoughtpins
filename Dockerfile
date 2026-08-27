@@ -48,6 +48,6 @@ USER 10001:10001
 EXPOSE 8420 8421
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8420/health', timeout=3).read()"
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8420/ready', timeout=3).read()"
 
 CMD ["python", "-m", "thoughtpins.server", "--api-only"]

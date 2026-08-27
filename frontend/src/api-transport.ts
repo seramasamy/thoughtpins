@@ -157,12 +157,32 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
         token = refreshed.accessToken;
         attempt = await send(path, prepared, token);
       }
-    } catch {
-      sessionAccess?.set(null);
+    } catch (error) {
+      clearSessionIfRejected(error);
     }
   }
 
   return parseResponse<T>(attempt.response, attempt.requestId);
+}
+
+/**
+ * Only a rejected session ends a session.
+ *
+ * Every failure of `refreshSession()` used to clear the stored token, which
+ * meant a rate-limited refresh signed the user out. The auth tier allows five
+ * requests a minute per IP, so an office behind one NAT, or a burst of parallel
+ * 401s from a page with several panels, was enough to do it -- and the user's
+ * credentials were fine the whole time.
+ *
+ * The iOS client deliberately makes this distinction already: only 401 and 403
+ * clear the session there. This is the same rule. A 429 or a dropped connection
+ * leaves the session alone and lets the original call surface its own error.
+ */
+function clearSessionIfRejected(error: unknown): void {
+  const status = error instanceof ApiError ? error.status : undefined;
+  if (status === 401 || status === 403) {
+    sessionAccess?.set(null);
+  }
 }
 
 export async function requestBlob(path: string, options: RequestOptions = {}): Promise<Blob> {
@@ -176,8 +196,8 @@ export async function requestBlob(path: string, options: RequestOptions = {}): P
         token = refreshed.accessToken;
         attempt = await send(path, options, token);
       }
-    } catch {
-      sessionAccess?.set(null);
+    } catch (error) {
+      clearSessionIfRejected(error);
     }
   }
   if (!attempt.response.ok) {

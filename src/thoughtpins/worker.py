@@ -12,6 +12,7 @@ from loguru import logger
 
 from thoughtpins.config import config
 from thoughtpins.jobs import recover_pending_jobs, run_ingestion_job
+from thoughtpins.logging_config import setup_logging
 from thoughtpins.vault.transfers import recover_vault_import_sessions, run_vault_import_session
 
 _recovery_lock = threading.Lock()
@@ -173,6 +174,11 @@ def enqueue_celery_vault_import(transfer_id: str, user_id: str | None = None) ->
 
 def main(argv: list[str] | None = None) -> None:
     """Run a production Celery worker with the repository's configured queue."""
+    # The worker never called this, so it never initialised Sentry -- the one
+    # process whose failures nobody sees was the one not reporting them. It also
+    # applies the payload-logger clamp, which matters more here than in the API:
+    # extraction and ingestion are where journal text meets the provider SDK.
+    setup_logging()
     record_worker_heartbeat()
     worker_args = argv or [
         "worker",

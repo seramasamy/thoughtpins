@@ -81,6 +81,14 @@ def _is_maintenance_allowed(request: Request) -> bool:
     return False
 
 
+# Unversioned spellings of the auth handlers. The same functions are mounted at
+# both /register and /v1/auth/register; only the /v1 spelling matched the
+# public rate-limit branch, so POST /register was an unauthenticated, unlimited
+# account-creation endpoint. Neither shipping client uses it, which is exactly
+# why it went unnoticed.
+PUBLIC_AUTH_ALIASES = frozenset({"/register", "/login", "/refresh", "/logout"})
+
+
 def _client_ip(request: Request) -> str | None:
     forwarded = request.headers.get("X-Forwarded-For", "")
     if forwarded:
@@ -126,7 +134,7 @@ def _security_headers() -> dict[str, str]:
 
 
 def _rate_limit_for_path(path: str) -> int:
-    if path.startswith("/v1/auth/"):
+    if path.startswith("/v1/auth/") or path in PUBLIC_AUTH_ALIASES:
         return config.RATE_LIMIT_AUTH_PER_MINUTE
     if path in {"/v1/entries", "/v1/entries/async", "/v1/uploads", "/v1/import/obsidian", "/ingest"}:
         return config.RATE_LIMIT_INGEST_PER_MINUTE

@@ -426,7 +426,11 @@ public final class ThoughtPinsAppModel: ObservableObject {
             _ = try await api.createSafetyReport(
                 SafetyReportRequest(
                     category: category,
-                    summary: "Chat reply: " + String(reply.prefix(2_000)),
+                    // The server caps `summary` at 1000 characters, so 2000
+                    // was a guaranteed 422 -- the in-app reporting the review
+                    // notes promise would have failed on any reply longer than
+                    // the cap. 940 leaves room for the prefix below.
+                    summary: "Chat reply: " + String(reply.prefix(940)),
                     targetType: "general",
                     source: "ios"
                 )
@@ -470,7 +474,15 @@ public final class ThoughtPinsAppModel: ObservableObject {
             _ = message  // deliberately not shown; see the constant's note
             showProblem(thoughtPinsPrivateMemoryRefusal)
         } catch {
-            showProblem("Chat failed. Your account and drafts are still safe.")
+            // 20 requests a minute is a limit a real person can reach, and
+            // "Chat failed" tells them nothing to do about it. The mapping
+            // that already turns a 429 into a sentence is three lines away.
+            showProblem(
+                thoughtPinsPlainMessage(
+                    for: error,
+                    fallback: "Chat failed. Your account and drafts are still safe."
+                )
+            )
         }
     }
 
@@ -489,9 +501,23 @@ public final class ThoughtPinsAppModel: ObservableObject {
             // anything was saved. The queue can refuse, and a person told their
             // thought was kept when it was not is exactly the failure this app
             // exists to avoid.
+            // Not always offline. A 429 lands here too, and telling someone
+            // their note was "saved as an offline draft" while their signal is
+            // full is the kind of untrue sentence this file exists to avoid.
+            // The note is genuinely queued either way; only the reason differs.
+            let sentOffline: Bool
+            if case APIClientError.httpStatus(429, _) = error {
+                sentOffline = false
+            } else {
+                sentOffline = true
+            }
             do {
                 _ = try await drafts.enqueue(text: text)
-                showSuccess("Saved as an offline draft.")
+                showSuccess(
+                    sentOffline
+                        ? "Saved as an offline draft."
+                        : "You are sending faster than we can keep up. Saved on this device and it will send shortly."
+                )
             } catch DraftStoreError.queueFull(let limit) {
                 showProblem("\(limit) drafts are still waiting to send. Nothing saved has been lost — reconnect to send them, then this one will save.")
             } catch {
