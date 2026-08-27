@@ -59,3 +59,21 @@ def llm_pricing_problems(models: Iterable[str]) -> list[str]:
         f"runtime; {len(unpriced)} of them are unpriced and would meter at the default rate, "
         "so USAGE_MONTHLY_BUDGET_USD would not match what the provider actually charges."
     ]
+
+
+def usage_enforcement_problem(enforcement_enabled: bool, tracking_enabled: bool) -> tuple[bool, str]:
+    """Enforcement without tracking is enforcement in name only.
+
+    The spend cap reads the usage meter. With tracking off no usage rows are
+    written, month-to-date spend is always 0.0, and the pre-call budget check
+    can therefore never fire -- so the configuration says enforcement is on
+    while one looping account can spend without limit.
+
+    Returned as a (condition, message) pair to match the shape of the checks
+    tuple in `Config.validate_startup`.
+    """
+    return (
+        enforcement_enabled and not tracking_enabled,
+        "USAGE_ENFORCEMENT_ENABLED requires USAGE_TRACKING_ENABLED: enforcement "
+        "reads the usage meter, so with tracking off the spend cap never fires.",
+    )

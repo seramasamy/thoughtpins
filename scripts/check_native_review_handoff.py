@@ -386,6 +386,9 @@ def _check_flows(handoff: dict, policy: dict, failures: list[str]) -> None:
         [
             "docs/architecture/MOBILE_API_CONTRACT.md",
             "src/thoughtpins/api.py",
+            # The maintenance refusal lives here since api.py reached its size
+            # ratchet; the evidence is the behaviour, not the filename.
+            "src/thoughtpins/api_gateway.py",
             "src/thoughtpins/api_routes/public.py",
         ]
     )

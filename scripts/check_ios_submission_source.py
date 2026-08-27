@@ -452,9 +452,12 @@ def _check_local_data_cleanup(failures: list[str]) -> None:
     draft_store = (core / "Sources" / "ThoughtPinsCore" / "DraftStore.swift").read_text(encoding="utf-8")
     require(draft_store, "public func purge()", "FileDraftStore.purge", failures)
 
-    model = (
-        ROOT / "mobile" / "ios" / "ThoughtPinsApp" / "Sources" / "ThoughtPinsApp" / "ThoughtPinsAppModel.swift"
-    ).read_text(encoding="utf-8")
+    # The model is split across files -- ThoughtPinsAppModel.swift plus
+    # extensions -- to stay inside the architecture budget, so this reads the
+    # whole app package rather than one file. Pinning the filename made a
+    # legitimate extraction look like a deleted feature.
+    app_sources = ROOT / "mobile" / "ios" / "ThoughtPinsApp" / "Sources" / "ThoughtPinsApp"
+    model = "\n".join(path.read_text(encoding="utf-8") for path in sorted(app_sources.glob("*.swift")))
     require(model, "drafts.purge()", "offline draft purge on session teardown", failures)
     for caller in ("public func logout()", "public func deleteAccount()"):
         if caller not in model:

@@ -22,8 +22,8 @@ public final class ThoughtPinsAppModel: ObservableObject {
     // Nil until the gate has been asked about. Distinguishing "not yet known"
     // from "admitted" keeps the shell from flashing the gate at an admitted
     // account on every cold start.
-    @Published public private(set) var inviteStatus: InviteStatusResponse?
-    @Published public private(set) var inviteBusy: Bool = false
+    @Published public internal(set) var inviteStatus: InviteStatusResponse?
+    @Published public internal(set) var inviteBusy: Bool = false
     /// A sign-in or account-creation request is in flight.
     ///
     /// The API session sets waitsForConnectivity, with a 60s resource timeout.
@@ -704,7 +704,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
         }
     }
 
-    private func refreshPreferences() async {
+    func refreshPreferences() async {
         guard me != nil, let preferences = try? await api.preferences() else { return }
         responseStyle = preferences.responseStyle ?? "friendly"
         importancePromptsEnabled = preferences.importancePromptsEnabled ?? false
@@ -716,32 +716,12 @@ public final class ThoughtPinsAppModel: ObservableObject {
         UserDefaults.standard.set(aiProcessingConsentAccepted, forKey: Self.consentDefaultsKey)
     }
 
-    private func refreshInviteStatus() async {
+    func refreshInviteStatus() async {
         guard me != nil else {
             inviteStatus = nil
             return
         }
         inviteStatus = try? await api.inviteStatus()
-    }
-
-    public func redeemInvite(_ code: String) async {
-        let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, !inviteBusy else { return }
-        inviteBusy = true
-        defer { inviteBusy = false }
-        do {
-            let status = try await api.redeemInvite(code: trimmed)
-            inviteStatus = status
-            if status.admitted {
-                showSuccess("Invite accepted. Welcome to Thought Pins.")
-                await refreshPreferences()
-                await refreshReadModels()
-            }
-        } catch {
-            // The server never says which part was wrong, and neither does this.
-            showProblem("That code is not valid. Check it and try again.")
-            await refreshInviteStatus()
-        }
     }
 
     func refreshVoiceArchive() async {
@@ -758,42 +738,6 @@ public final class ThoughtPinsAppModel: ObservableObject {
     /// clears it afterwards.
     @Published public var exportedFile: URL?
 
-    public func exportAccount() async {
-        do {
-            let export = try await api.exportAccount()
-            // This used to bind the payload to `let export` and never use it.
-            // The person was told "Your export is ready." and received
-            // nothing -- no share sheet, no file, no screen. The privacy
-            // policy says data can be exported "from the app", and the review
-            // notes send a reviewer here as step 6, so a success banner over an
-            // export that goes nowhere is the plainest possible version of not
-            // doing what we say.
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-            let data = try encoder.encode(export)
-            let stamp = ISO8601DateFormatter().string(from: Date()).prefix(10)
-            let destination = FileManager.default.temporaryDirectory
-                .appendingPathComponent("thought-pins-export-\(stamp).json")
-            try data.write(to: destination, options: .atomic)
-            exportedFile = destination
-            showSuccess("Your export is ready. Choose where to keep it.")
-        } catch {
-            showProblem(
-                thoughtPinsPlainMessage(for: error, fallback: "Could not build your export. Try again.")
-            )
-        }
-    }
-
-    public func deleteAccount() async {
-        do {
-            _ = try await api.deleteAccount()
-            await clearLocalAccountState()
-            showSuccess("Account deleted.")
-        } catch {
-            showProblem("Deletion failed.")
-        }
-    }
-
     public func logout() async {
         try? await api.logout()
         await clearLocalAccountState()
@@ -806,7 +750,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
     /// by device rather than by account, and `bootstrap` syncs them under
     /// whichever session is current — so a draft surviving sign-out or deletion
     /// is posted into the next account that opens the app here.
-    private func clearLocalAccountState() async {
+    func clearLocalAccountState() async {
         try? await drafts.purge()
         me = nil
         chatReply = ""

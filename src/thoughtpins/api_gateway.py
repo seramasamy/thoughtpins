@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 import secrets
 import uuid
+from typing import Any
 
 from fastapi import Request
 
@@ -89,6 +90,11 @@ def _is_maintenance_allowed(request: Request) -> bool:
 PUBLIC_AUTH_ALIASES = frozenset({"/register", "/login", "/refresh", "/logout"})
 
 
+def is_public_auth_path(path: str) -> bool:
+    """Whether a public path is an auth endpoint, under either spelling."""
+    return path.startswith("/v1/auth/") or path in PUBLIC_AUTH_ALIASES
+
+
 def _client_ip(request: Request) -> str | None:
     forwarded = request.headers.get("X-Forwarded-For", "")
     if forwarded:
@@ -134,7 +140,7 @@ def _security_headers() -> dict[str, str]:
 
 
 def _rate_limit_for_path(path: str) -> int:
-    if path.startswith("/v1/auth/") or path in PUBLIC_AUTH_ALIASES:
+    if is_public_auth_path(path):
         return config.RATE_LIMIT_AUTH_PER_MINUTE
     if path in {"/v1/entries", "/v1/entries/async", "/v1/uploads", "/v1/import/obsidian", "/ingest"}:
         return config.RATE_LIMIT_INGEST_PER_MINUTE
@@ -147,3 +153,23 @@ def _rate_limit_for_path(path: str) -> int:
     if path in {"/v1/me", "/v1/account"}:
         return config.RATE_LIMIT_ACCOUNT_PER_MINUTE
     return config.RATE_LIMIT_PER_MINUTE
+
+
+def maintenance_refusal(request: Request, request_id: str, error_response: Any) -> Any | None:
+    """The 503 a request gets while maintenance mode is on, or None.
+
+    Split out of the middleware to keep `api.py` inside its size ratchet. The
+    `Retry-After` value is sent both as a header and in the error details:
+    clients that read one and not the other are common, and the iOS app reads
+    the body.
+    """
+    if not config.MAINTENANCE_MODE or _is_maintenance_allowed(request):
+        return None
+    return error_response(
+        503,
+        "maintenance_mode",
+        config.MAINTENANCE_MESSAGE,
+        request_id,
+        retry_after=config.MAINTENANCE_RETRY_AFTER_SECONDS,
+        details={"retry_after_seconds": config.MAINTENANCE_RETRY_AFTER_SECONDS},
+    )

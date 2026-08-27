@@ -13,17 +13,17 @@ from loguru import logger
 
 from thoughtpins.api_contracts import COMMON_ERROR_RESPONSES
 from thoughtpins.api_gateway import (
-    PUBLIC_AUTH_ALIASES,
     _client_ip,
     _content_length_too_large,
     _extract_api_key,
     _is_invite_blocked,
-    _is_maintenance_allowed,
     _is_public_path,
     _rate_limit_for_path,
     _resolve_request_user,
     _safe_request_id,
     _security_headers,
+    is_public_auth_path,
+    maintenance_refusal,
 )
 from thoughtpins.api_idempotency_http import call_with_idempotency
 from thoughtpins.api_openapi import install_openapi_contract
@@ -103,10 +103,7 @@ async def lifespan(app: FastAPI):
             logger.debug("Vector store close skipped during shutdown: {}", exc)
 
 
-# Applied at import, before any provider client is constructed: the OpenAI SDK
-# logs its full request options at DEBUG, and for this service that payload is
-# the person's journal entry. See logging_policy for the measurement.
-apply_logging_policy()
+apply_logging_policy()  # before any provider client exists; see logging_policy
 
 app = FastAPI(
     title="Thought Pins API",
@@ -209,27 +206,12 @@ async def api_auth_middleware(request: Request, call_next):
                 )
             )
 
-        if config.MAINTENANCE_MODE and not _is_maintenance_allowed(request):
-            return await finish(
-                _error_response(
-                    503,
-                    "maintenance_mode",
-                    config.MAINTENANCE_MESSAGE,
-                    request_id,
-                    retry_after=config.MAINTENANCE_RETRY_AFTER_SECONDS,
-                    details={"retry_after_seconds": config.MAINTENANCE_RETRY_AFTER_SECONDS},
-                )
-            )
+        maintenance = maintenance_refusal(request, request_id, _error_response)
+        if maintenance is not None:
+            return await finish(maintenance)
 
         if request.method == "OPTIONS" or _is_public_path(request.url.path):
-            # The unversioned aliases matter here. The same handlers are mounted
-            # at /register, /login and /refresh as well as under /v1/auth/, and
-            # those spellings matched neither branch: not "/v1/auth/" so not
-            # rate limited here, and public so never reaching the authenticated
-            # branch below. POST /register was therefore an unauthenticated,
-            # unlimited account-creation endpoint. Neither shipping client uses
-            # it, which is exactly why nobody noticed.
-            if request.url.path.startswith("/v1/auth/") or request.url.path in PUBLIC_AUTH_ALIASES:
+            if is_public_auth_path(request.url.path):
                 key = f"public:{_client_ip(request) or 'unknown'}:{request.url.path}"
                 allowed, retry_after = check_rate_limit(key, limit=_rate_limit_for_path(request.url.path))
                 if not allowed:

@@ -121,7 +121,12 @@ def _check_public_routes(failures: list[str]) -> None:
 
 
 def _check_maintenance_contract(paths: dict[str, Path], failures: list[str]) -> None:
-    if not _contains(paths["API route"], '"maintenance_mode"'):
+    # The request middleware is split between api.py and api_gateway.py, so the
+    # maintenance refusal can live in either. The claim being checked is that
+    # the API exposes a structured maintenance_mode error, not which module
+    # holds the literal.
+    middleware = [paths["API route"], ROOT / "src" / "thoughtpins" / "api_gateway.py"]
+    if not any(_contains(candidate, '"maintenance_mode"') for candidate in middleware):
         failures.append("API does not expose a structured maintenance_mode error.")
     if not _contains(paths["metadata route"], "maintenance_mode"):
         failures.append("Client config does not expose maintenance_mode.")

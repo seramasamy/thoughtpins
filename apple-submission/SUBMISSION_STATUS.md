@@ -1,177 +1,182 @@
-# Submission status — Thought Pins 1.0.0 (build 1)
+# Submission status — Thought Pins 1.0.0
 
-**Date:** 2026-08-26
-**Verdict: ready to submit once the developer account exists**, with the
-device-only work in `docs/release/IOS_26_DEVICE_RISKS.md` done on the first
-build that reaches hardware.
+**Last updated:** 2026-08-26, at the end of the final Mac session.
+**Written for:** someone on a Windows machine, with no Mac and no memory of how
+any of this happened.
 
-This file says what is finished, how each thing was actually checked, and what
-is still open. "Verified" here means a command was run and its output read —
-not that the code looks right. Anything checked only by reading is labelled as
-such.
+Single source of truth. If this file and anything else disagree, this file is
+newer.
 
 ---
 
-## The submission plan, item by item
+## Read this first
 
-| Item | State | How it was checked |
-|---|---|---|
-| P0.1 Invite gate cannot depend on a Railway variable | **Done** | `INVITE_ONLY` deleted entirely from a scratch environment: register returned 200 and `invites/status` returned `{"invite_required": false, "admitted": true}`. 8 tests in `tests/test_invite_gate_default.py` fail if the default returns to `True` |
-| P0.2 Memory cards and library sources open | **Done (option A)** | Both detail screens open against production with real content and no internal ranking fields on screen |
-| P1.3 Markdown blocks render | **Done** | 11 parser tests in `ThoughtPinsCore`, plus a rendered-screen test asserting no stray `#`, `>`, `-`, `` ``` ``, `---` or `**` anywhere on the reply screen |
-| P1.4 Errors stop auto-dismissing | **Done** | Error banner still on screen after 11 seconds and dismissible; success banner gone after 8 |
-| P1.5 Strings speak English, not schema | **Done** | Sweep of every literal in the app package; every remaining snake_case string is a wire value being matched or a comment |
-| P2.6 Denied microphone | **Open by design** | Cannot be faked — `simctl privacy revoke microphone` does not take. Written up as a device test |
-| P2.7 Age rating | **Confirmed** | Every premise in `AGE_RATING.md` re-checked against the build. Mature tier stands |
-| P3.8 Clean rehearsal from nothing | **Done** | Wiped simulator, self-registered a brand-new account against production, first run, every feature, screenshots recaptured |
-| P3.9 This file | **Done** | — |
-| P3.10 Full gate and archive | See "Gates" below | — |
+**One thing must be done on a Mac, and it may already be too late.**
 
----
+Xcode Cloud's first setup can only be started from Xcode. Apple's own words:
+*"Use Xcode to initially configure your project or workspace to use Xcode Cloud.
+After you complete your first build, use either Xcode or App Store Connect."*
+The App Store Connect API cannot create the product either — `ciProducts` is
+read and delete only.
 
-## What was verified against production, not a stub
+Everything the repository can contribute is done: the project generates itself
+on the cloud runner, the build number is handled, the scheme is shared, the
+signing path is authored. What remains is a click-through in Xcode that nobody
+but you can do.
 
-On a wiped simulator, against `api.thoughtpins.com`:
-
-- **Self-registration end to end.** A brand-new address registered, hit the AI
-  processing consent screen (not an invite wall), reached the app, saved a
-  first note, and got a chat reply. This is the path a reviewer takes when they
-  ignore the demo credentials, and it is the one that used to be one unset
-  environment variable away from failing.
-- **Every feature, in one pass:** chat reply, private-memories toggle, recap in
-  day/week/month, memory card detail, places, library source detail, link
-  import ("Reading saved."), capture, response voice, importance prompts, and
-  account export ("Your export is ready.").
-- **Account screen reachable** — export, delete account, privacy policy, terms,
-  and support are all on it. Guideline 5.1.1(v) depends on that button not
-  being covered, which is what the banner work was about.
-- **In-app reporting** on a chat reply, posting to `/v1/safety/reports`.
-
-Screenshots in `screenshots/iphone-1284x2778/` were recaptured from this run.
-The previous chat screenshot showed the Markdown bug and has been replaced.
+**→ `docs/release/XCODE_CLOUD_RUNBOOK.md`, Stage 1.** If the Mac is already
+gone, read "If you have to abandon Xcode Cloud" at the end of that file: GitHub
+Actions already builds the same archive and the signing steps are written and
+switched off.
 
 ---
 
-## Two defects this pass found and fixed
+## What is verified
 
-Worth recording, because both were introduced by the work itself and both were
-caught by an acceptance test rather than by reading the code.
+Verified means a command was run and its output read, or a screen was looked at.
+Not "the code looks right".
 
-1. **`showSuccess` called itself.** A bulk edit that rewrote 70 banner call
-   sites also rewrote the assignment inside the new helper, so the helper
-   recursed. The app died on the first banner it ever showed — including
-   "Signed in." — which meant sign-in appeared to work and then the process
-   vanished. No crash report was written, which is why it read at first as a
-   test-harness fault.
-2. **A feature sweep gone blind.** Splitting the banner in two left the sweep
-   reading only the success identifier, so every error came back as
-   "(no banner)". It also slept 25 seconds before reading a banner that now
-   clears in 4. Both fixed; the sweep reports real results again.
+### The app itself
+
+- **The shipping app target builds and runs on this Mac** — for the first time.
+  Removing GoogleSignIn made that possible; it was the only reason a Swift 5.9
+  toolchain could not resolve the project. Every earlier verification ran
+  against a scratch copy outside the repository.
+- **The real binary was checked, not a stand-in:** committed Info.plist, bundle
+  id `com.thoughtpins.app`, portrait-only iPhone and all-four iPad, no Google
+  keys or URL types surviving into the built plist, no embedded frameworks,
+  5.9 MB, and a launch that resolved `https://api.thoughtpins.com` from its own
+  Info.plist and got 200 from `/v1/client-config` over HTTP/2.
+- **Both release levers fire.** With the minimum raised, the app shows "Update
+  Thought Pins to continue", both version numbers, and a working store button;
+  put back, it returns to normal. Maintenance mode shows its message as a banner
+  with the app usable underneath — not a dead screen.
+- **Account export gives you a file.** 135 KB JSON through the share sheet, with
+  Save to Files. It previously fetched the payload and discarded it while saying
+  "Your export is ready."
+- The detail screens have had the accessibility, iPad, Dynamic Type, light/dark,
+  375pt, offline, empty-state and error passes; errors and offline were driven
+  with real injected 404s, 500s and dropped connections.
+
+### The backend
+
+- **Journal text and tokens reach no log line.** Driven with a sentinel through
+  the real app at DEBUG, asserted across every logger. This found a real leak —
+  the model provider's SDK logs the full prompt at DEBUG — now clamped
+  regardless of `LOG_LEVEL`.
+- **Account deletion purges.** Walked every table in the schema after a real
+  deletion: nothing owned by the user survives, and the journal text is gone
+  from every column. The user row remains as an anonymised tombstone, which is
+  deliberate; it no longer keeps the account's settings.
+- **Registration works against production**, proven by a check that registers a
+  throwaway account, asserts it is admitted, and deletes it.
+- **Spend is capped**: $3/user/month and $50/platform/month, enforced before the
+  provider is called. A production deploy that would silently disable that is
+  now refused.
+
+### CI
+
+Seven jobs green on an ordinary push to `main`, `ios` included. Build number is
+the commit count, asserted against the built binary. Archive and dSYMs kept 30
+days. Signing and upload steps authored and skipped until secrets exist.
 
 ---
 
-## Open, and why
+## What is deferred to the device pass
 
-- **Denied microphone.** Device-only. Steps are in
-  `docs/release/IOS_26_DEVICE_RISKS.md`. The denied branch exists and is
-  correct by reading, and has never executed.
-- **Sign in with Apple.** Cannot be exercised until the capability is on the App
-  ID. `com.apple.developer.applesignin` stays in the entitlements.
-- **Google sign-in.** Suppressed by design until Apple sign-in exists
-  (Guideline 4.8). `GoogleOAuthTokenProvider.swift` compiles only on CI, where
-  the toolchain can resolve GoogleSignIn 9.1.0; this Mac runs Swift 5.9.2 and
-  cannot.
-- **iOS 26 on an iPhone 17 Pro Max** is where this app runs for the first time
-  on real hardware. The appearance risks are listed in the device risks file.
+`docs/release/DEVICE_TEST_SCRIPT.md` — ten tests, written before the build
+exists, each with steps, expected results and failure criteria. None can be done
+in a simulator:
+
+launch background colour on iOS 26 · microphone denied · microphone revoked
+while running · a call interrupting a recording · real Split View and Slide Over
+· Dynamic Type via Settings · VoiceOver by gesture · airplane mode mid-session ·
+the detail screens on hardware · cold launch after force-quit and after reboot.
+
+Screenshots: the current sets are valid to submit. The 6.9" slot is 1320 × 2868
+and an iPhone 17 Pro Max produces it natively, so capture the final set from
+TestFlight if you want the upgrade. The iPad A16 is 1640 × 2360, which is **not**
+a listed App Store size — do not plan iPad screenshots from it.
 
 ---
 
-## Gates
+## What remains for the PC
 
-- Python: `pytest`, `ruff check`, `ruff format --check` clean.
-- `scripts/check_architecture_budget.py` passes. Three files were pushed over
-  their size budget by this work and the new behaviour was extracted rather
-  than the budget raised: `config_admission.py`, `ThoughtPinsMessages.swift`,
-  `ThoughtPinsDetailScreens.swift`, `ThoughtPinsReplyView.swift`.
-- `scripts/check_ios_submission_source.py` passes.
-- `ThoughtPinsCore`: 49 tests, 0 failures, in the iOS Simulator.
-- mypy reports 24 pre-existing errors in 9 files, none in anything this work
-  touched. Unchanged from `HEAD` before this pass.
+In order.
 
-## The review pass after this one (T0-T3)
+1. **Xcode Cloud Stage 1**, if the Mac still exists. Otherwise the Actions
+   fallback.
+2. **Stage 0 of the runbook** — register the bundle id, **enable Sign in with
+   Apple on the App ID** (the entitlement ships; automatic signing fails without
+   the capability, with an error that talks about provisioning), create the app
+   record.
+3. **Turn on Railway database backups and write down that you did.** Nothing in
+   the repository backs up the production database. Whether the data is
+   recoverable today depends on a dashboard setting nobody has recorded. This is
+   the highest-value item on this list and it is a toggle.
+4. **Set `IOS_STORE_URL`** once the listing exists. `store_urls.ios` is null, so
+   the update screen currently falls back to "search the App Store".
+5. **Set `RECOMMENDED_IOS_VERSION=1.0.0` explicitly.** It falls back to
+   `API_VERSION`, which is `1.0.0-rc.1` on production right now. A deploy is now
+   refused while it is that shape, but the variable still wants setting.
+6. **Twenty minutes of monitoring** — `docs/operations/LAUNCH_OPERATIONS.md` §2.
+   Nothing alerts a human today. Free.
+7. **Scope four sentences** on the published pages, or accept them —
+   `docs/release/WEB_IOS_PARITY.md`, last section. They are true of the web app
+   and not of iOS, and the listing is the iOS listing.
 
-A second review found that the two detail screens had been written after every
-pass the rest of the app had, and had had none of them. They have now had all
-of them, and three items were real:
+---
 
-| Item | Result |
-|---|---|
-| T0.1 iPad readable column | The detail screens had it; the **Form drew its own backdrop behind it**, so the column sat in a band with hard edges. Fixed. Four other screens -- Recap, Capture, Pins, **Account** -- had never had the column at all; Account is the 5.1.1(v) screen and its Toggle stranded its switch an inch and a half from its label. All five fixed |
-| T0.2 Dynamic Type AX5 | No truncation, no collision, nothing outside the screen, on both screens |
-| T0.3 VoiceOver | Section headers announced in visual order; every element labelled; rows combined so a row is one utterance rather than a bare date; back affordance announces "People" / "Pins" |
-| T0.4 Light and dark | Both clean |
-| T0.5 375pt | Clean on an iPhone SE |
-| T0.6 Empty state | **Was a blank screen** below the header. Now explains itself. Verified with an injected empty payload |
-| T0.7 Offline | Resolves within the 30s request timeout, says what happened, and the reading detail keeps its cached copy and says so. Verified with a dropped connection |
-| T0.8 Errors | **Both screens blamed the connection for everything.** `ThoughtPinsLoadFailure` now distinguishes offline, timeout, gone, server fault and signed-out, and hides the retry where retrying cannot work. Verified against injected 404 and 500 |
-| T0.9 Affordance | Rows are `NavigationLink`s inside a `List`, so they carry a disclosure chevron and report as buttons |
-| T0.10 Content vs promise | **The promise is not quite met -- see below** |
+## Decisions, and why
 
-Errors and offline were verified with a local HTTPS proxy that forwards to
-production and injects a chosen fault on the two detail endpoints only. Nothing
-about the failure paths is reasoned about.
+**GoogleSignIn removed from v1.** The button never rendered — the app refuses a
+third-party login without Sign in with Apple beside it (4.8), and Apple sign-in
+is not configured — and the provider read two Info.plist keys that do not exist,
+so it could only ever throw. It was a linked SDK for an unreachable feature, and
+the only thing stopping this Mac building the app. Recoverable from git history;
+`ios_release.sh` still knows how to build a Google-enabled archive.
 
-## CI, on this commit
+**Mature age rating.** Unmoderated generative text with no ceiling we impose.
+Every premise re-checked against the build. The route to a lower tier is a
+moderation layer we own, not a re-answered questionnaire.
 
-Run `33025204863` on `009ca14`, **on an ordinary push to main**, all seven jobs
-green. That is new: the `ios` job used to run only on a tag or a manual
-dispatch, so every green check on main excluded iOS. It now runs whenever a
-push to main touches iOS, decided by a seconds-long Linux job.
+**No crash SDK.** After the GoogleSignIn removal the iOS app has zero
+third-party dependencies. Xcode Organizer gives symbolicated crash reports free,
+the dSYMs are correct and retained, and adding an SDK would change what must be
+declared on the privacy questionnaire. Revisit only if Organizer proves
+inadequate.
 
-The build number in that run was **135** -- the commit count -- not `1`. It had
-been pinned, so the first TestFlight upload would have worked and the second
-would have been rejected as a repeat build number. The archive and its dSYMs
-are kept for 30 days (4.8 MB), so a failed submission is retryable without a
-rebuild at 10x billing. The four signing and upload steps are authored and
-skipped until the secrets exist.
+**`PRIVATE_ALLOW_LLM` stays off.** Entries marked private are never sent to a
+third-party model. That is the stronger claim; the lead screenshot was reframed
+so a refused control is not its subject.
 
-Previous run `32943286763` on `2ed3d2d`, six jobs green:
+**`SYSTEM_LOCKED` keeps its closed default.** Right for a fresh self-hosted
+install, wrong for production — so the pre-deploy check refuses a production
+deploy that leaves it on, and `smoke_registration.py` proves registration works
+after a deploy, which config validation cannot.
 
-| Job | Result |
-|---|---|
-| `python` | success |
-| `postgres` | success |
-| `web` | success |
-| `container` | success |
-| `android` | success |
-| **`ios`** | **success** — XcodeGen, shared Swift package tests, unsigned simulator build, **unsigned archive**, archive contains the app, Info.plist checked |
+---
 
-The `ios` job is the one that matters here: it is the only place
-`GoogleOAuthTokenProvider.swift` compiles, because GoogleSignIn 9.1.0 declares
-`swift-tools-version:6.0` and this Mac runs Swift 5.9.2.
+## Known gaps, honestly
 
-The three steps that fail locally (SBOM, approval tilt, frontend audit) all
-pass in the `web` and `python` jobs, which have Node.
-
-## Two things that need your decision
-
-**The description sentence about people.** It says "Open a person and see what
-you have said about them and **when you last spoke**." The detail screen shows a
-section headed *Last mentioned*, and the server field behind it is `last_seen` --
-the date the person was last **referenced in your journal**, not the date you
-last spoke to them. On the review account it reads 2026-08-25 because that is
-when the entry was written. Those are different claims, and nothing in the app
-records a conversation date. No field was added to make the copy true. Either
-change the sentence to "when you last wrote about them", or accept that "last
-spoke" is loose. Recommendation: change the sentence.
-
-**GoogleSignIn.** See the recommendation in the session report; nothing has been
-changed.
-
-## A note on the simulator UI tests
-
-The tests that produced the evidence above live outside this repository, in a
-scratch build that references the repo's Swift package by path. They are **not**
-committed, because they carry the review account's password inline and
-`AGENTS.md` keeps credentials out of source control. They are a local
-verification harness, not a CI gate; CI covers the archive, not the simulator.
+- **No production database backup in the repo.** See item 3 above.
+- **Rollback is UNREHEARSED.** No Railway CLI on this machine. The procedure is
+  written from the code and the provider's documented behaviour; the first
+  person to run it should confirm and correct
+  `docs/operations/LAUNCH_OPERATIONS.md` §1.
+- **Migration downgrades have never run against PostgreSQL.** All 26 define real
+  `downgrade()` bodies, but CI exercises them on SQLite, where every
+  PostgreSQL-only branch is skipped. Prefer rolling forward.
+- **Four published promises are web-only** — manage devices, search, delete
+  specific content, undo. `WEB_IOS_PARITY.md`.
+- **The person-card promise is loose.** The listing says "when you last spoke";
+  the screen shows *Last mentioned*, which is when you last wrote about them.
+  No field was invented to make the copy true — change the sentence.
+- **Three worker-recovery tests fail locally** for want of a broker URL. They
+  fail identically at `HEAD` before this session's work and pass with
+  `REDIS_URL` set.
+- **The local gate cannot run three steps** — SBOM, approval tilt, frontend
+  audit — because this Mac has no Node. They pass in CI.
+- **The simulator UI tests are not in the repository.** They carry the review
+  account's password inline, and `AGENTS.md` keeps credentials out of source
+  control. They are a local harness; CI covers the archive.
