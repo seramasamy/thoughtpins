@@ -73,10 +73,7 @@ def _check_no_remote_packages(failures: list[str]) -> None:
     for manifest in sorted((ROOT / "mobile" / "ios").glob("*/Package.swift")):
         text = manifest.read_text(encoding="utf-8")
         if ".package(url:" in text:
-            failures.append(
-                f"remote Swift package in {manifest.relative_to(ROOT)}. Local `path:` "
-                "dependencies only."
-            )
+            failures.append(f"remote Swift package in {manifest.relative_to(ROOT)}. Local `path:` dependencies only.")
 
 
 def _check_ci_scripts(failures: list[str]) -> None:
