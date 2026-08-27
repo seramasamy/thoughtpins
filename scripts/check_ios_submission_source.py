@@ -35,6 +35,7 @@ def main() -> int:
     _check_screenshots(failures)
     _check_ci_scripts(failures)
     _check_no_remote_packages(failures)
+    _check_project_format(failures)
     return finish(failures)
 
 
@@ -42,6 +43,73 @@ def main() -> int:
 CI_SCRIPTS = {
     "ci_post_clone.sh": "generates ThoughtPins.xcodeproj, which is not in the repository",
 }
+
+
+# XcodeGen project-format values this repository may use, and the pbxproj
+# objectVersion each one writes.
+#
+# The ceiling is set by the only Mac the app is signed on, which runs Xcode
+# 15.2. Anything above this and Xcode refuses to open the project at all --
+# "the project is in a future Xcode project file format" -- which blocks the two
+# jobs that can only be done in the GUI: Xcode Cloud onboarding, and selecting
+# the signing team. xcodebuild reads newer formats happily, so nothing in CI
+# notices; the failure only appears when a human opens the project.
+ALLOWED_PROJECT_FORMATS = {
+    "xcode14_0": 56,
+    "xcode15_0": 60,
+}
+MAX_OBJECT_VERSION = 60
+
+
+def _check_project_format(failures: list[str]) -> None:
+    """The generated project must open in Xcode 15.2, not merely build.
+
+    XcodeGen defaults `projectFormat` to the newest Xcode it knows about --
+    2.46.0 defaults to xcode16_0, which writes objectVersion 77. That default
+    shipped here undetected because CI runs macos-latest and no local step ever
+    opened the project.
+
+    Checked against project.yml rather than the generated pbxproj, because the
+    .xcodeproj is gitignored and this gate has to run on Linux too. When a
+    generated project does happen to be present, its objectVersion is checked as
+    well, so a change in XcodeGen's own format mapping is caught rather than
+    assumed.
+    """
+    project = (TARGET / "project.yml").read_text(encoding="utf-8")
+    declared = None
+    for line in project.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("projectFormat:"):
+            declared = stripped.split(":", 1)[1].strip().strip("\"'")
+            break
+
+    if declared is None:
+        failures.append(
+            "project.yml sets no options.projectFormat, so XcodeGen uses its newest "
+            "default. That project cannot be opened by Xcode 15.2, which is the only "
+            "Mac this app is signed on, and signing and Xcode Cloud onboarding both "
+            f"need the GUI. Set one of: {', '.join(sorted(ALLOWED_PROJECT_FORMATS))}."
+        )
+    elif declared not in ALLOWED_PROJECT_FORMATS:
+        failures.append(
+            f"options.projectFormat is {declared!r}, which Xcode 15.2 cannot open. "
+            f"Allowed: {', '.join(sorted(ALLOWED_PROJECT_FORMATS))}."
+        )
+
+    generated = TARGET / "ThoughtPins.xcodeproj" / "project.pbxproj"
+    if not generated.is_file():
+        return
+    for line in generated.read_text(encoding="utf-8", errors="ignore").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("objectVersion"):
+            digits = "".join(ch for ch in stripped if ch.isdigit())
+            if digits and int(digits) > MAX_OBJECT_VERSION:
+                failures.append(
+                    f"the generated project is objectVersion {digits}, above the {MAX_OBJECT_VERSION} "
+                    "Xcode 15.2 can open. project.yml's projectFormat and XcodeGen's format "
+                    "mapping have diverged; regenerate and re-check."
+                )
+            break
 
 
 def _check_no_remote_packages(failures: list[str]) -> None:

@@ -1,6 +1,21 @@
 name: ThoughtPins
 
 options:
+  # Pinned, for the same reason swift-tools-version is pinned to 5.9: the only
+  # Mac this project is developed and signed on runs Xcode 15.2.
+  #
+  # XcodeGen defaults projectFormat to xcode16_0, which writes
+  # `objectVersion = 77`. Xcode 15.2 refuses to open that at all -- "the project
+  # is in a future Xcode project file format" -- which blocks the two things
+  # that can only be done in the GUI: Xcode Cloud onboarding, and selecting the
+  # signing team. It never surfaced because CI runs macos-latest with a modern
+  # Xcode and nothing local ever opened the project; xcodebuild reads the newer
+  # format happily.
+  #
+  # xcode15_0 rather than xcode15_3, because 15.2 is older than 15.3. Newer
+  # Xcodes open older project formats without complaint, so this costs the
+  # cloud nothing.
+  projectFormat: xcode15_0
   createIntermediateGroups: true
   deploymentTarget:
     iOS: "17.0"
