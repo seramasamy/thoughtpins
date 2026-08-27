@@ -45,6 +45,7 @@ from thoughtpins.idempotency import IdempotencyConflict, InvalidIdempotencyKey
 from thoughtpins.ingestion.pipeline import process_message
 from thoughtpins.jobs import enqueue_ingestion_job, recover_pending_jobs
 from thoughtpins.library import flush_document_indexing
+from thoughtpins.logging_policy import apply_logging_policy
 from thoughtpins.memory.context_package import build_memory_context_package
 from thoughtpins.oauth import verify_oauth_id_token
 from thoughtpins.rate_limit import RateLimitBackendUnavailable, check_rate_limit
@@ -100,6 +101,11 @@ async def lifespan(app: FastAPI):
         except Exception as exc:
             logger.debug("Vector store close skipped during shutdown: {}", exc)
 
+
+# Applied at import, before any provider client is constructed: the OpenAI SDK
+# logs its full request options at DEBUG, and for this service that payload is
+# the person's journal entry. See logging_policy for the measurement.
+apply_logging_policy()
 
 app = FastAPI(
     title="Thought Pins API",
