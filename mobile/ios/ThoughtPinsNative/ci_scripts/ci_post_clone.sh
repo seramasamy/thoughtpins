@@ -29,10 +29,17 @@
 set -eu
 
 XCODEGEN_VERSION="2.46.0"
+
+# Resolved from this script's own location, never from the working directory.
+# Apple runs custom build scripts with ci_scripts as the root directory, but
+# GitHub Actions and a hand-run both use the repository root, and relying on
+# either would make one of them silently wrong. `dirname "$0"` is the same
+# answer everywhere.
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+STARTED_AT="$(date +%s)"
 
 echo "==> ci_post_clone: preparing $PROJECT_DIR"
-echo "    working directory: $(pwd)"
+echo "    working directory: $(pwd)  (not used; paths derive from \$0)"
 echo "    CI_BUILD_NUMBER:   ${CI_BUILD_NUMBER:-<unset>}"
 echo "    CI_BRANCH:         ${CI_BRANCH:-<unset>}"
 echo "    CI_XCODE_SCHEME:   ${CI_XCODE_SCHEME:-<unset>}"
@@ -72,31 +79,50 @@ if [ ! -x "$xcodegen_bin" ]; then
     exit 1
 fi
 echo "    xcodegen: $("$xcodegen_bin" --version 2>&1 | head -1)"
+# Machine-readable, so a caller that needs XcodeGen afterwards can find the
+# binary without guessing the version-pinned directory. Xcode Cloud ignores
+# this; GitHub Actions puts it on PATH for the steps that follow.
+echo "XCODEGEN_BIN=$xcodegen_bin"
 
 # ------------------------------------------------------------ build number
 #
 # CFBundleVersion has to be unique and increasing for every upload, and
-# project.yml pins CURRENT_PROJECT_VERSION to 1 as a safe floor for a bare
-# `xcodegen generate`. Xcode Cloud's own CI_BUILD_NUMBER is monotonic per
-# workflow, which is exactly the property App Store Connect requires, so it wins
-# here. Substituted into project.yml *before* generating, so the number is baked
-# into the generated project rather than needing a build-setting override that
-# the archive action might not carry.
+# project.yml pins it to 1 as a safe floor for a bare `xcodegen generate`.
+# Substituted here *before* generating, so the number is baked into the project
+# rather than needing a build-setting override the archive action might not
+# carry. `manageAppVersionAndBuildNumber` is false in ExportOptions.plist, so
+# whatever is set here is what App Store Connect receives.
 #
-# `manageAppVersionAndBuildNumber` is false in ExportOptions.plist, so whatever
-# is set here is what App Store Connect receives.
+# Two sources, in order of authority:
+#
+#   1. CI_BUILD_NUMBER -- Xcode Cloud's own counter. Monotonic per workflow,
+#      which is exactly what App Store Connect requires, so it wins.
+#   2. The commit count -- what a local Mac and GitHub Actions have. The same
+#      integer for a given commit on every machine, and it only ever grows.
+#
+# If neither is available the script does not guess: it leaves project.yml's
+# floor of 1 in place and says so loudly, because a silently repeated build
+# number is rejected at upload rather than at build time.
+build_number="${CI_BUILD_NUMBER:-}"
+build_number_source="CI_BUILD_NUMBER"
 
-if [ -n "${CI_BUILD_NUMBER:-}" ]; then
-    echo "==> setting CURRENT_PROJECT_VERSION to $CI_BUILD_NUMBER"
+if [ -z "$build_number" ]; then
+    build_number_source="commit count"
+    build_number="$(git -C "$PROJECT_DIR" rev-list --count HEAD 2>/dev/null || true)"
+fi
+
+if [ -n "$build_number" ] && [ "$build_number" -gt 0 ] 2>/dev/null; then
+    echo "==> CURRENT_PROJECT_VERSION := $build_number (from $build_number_source)"
     /usr/bin/sed -i.bak \
-        "s/^    CURRENT_PROJECT_VERSION: .*/    CURRENT_PROJECT_VERSION: $CI_BUILD_NUMBER/" \
+        "s/^    CURRENT_PROJECT_VERSION: .*/    CURRENT_PROJECT_VERSION: $build_number/" \
         "$PROJECT_DIR/project.yml"
     rm -f "$PROJECT_DIR/project.yml.bak"
     grep "CURRENT_PROJECT_VERSION" "$PROJECT_DIR/project.yml"
 else
-    echo "==> CI_BUILD_NUMBER is unset; leaving CURRENT_PROJECT_VERSION alone."
-    echo "    That is expected when running this script by hand, and would be a"
-    echo "    problem on a real Xcode Cloud build -- two uploads would collide."
+    echo "WARNING: no CI_BUILD_NUMBER and no usable git history, so the build" >&2
+    echo "number stays at project.yml's floor. That is fine for a local build" >&2
+    echo "and wrong for anything uploaded: App Store Connect rejects a repeated" >&2
+    echo "CFBundleVersion." >&2
 fi
 
 # ------------------------------------------------------------- generate it
@@ -121,6 +147,9 @@ if [ ! -f "$scheme" ]; then
     exit 1
 fi
 
-echo "==> ci_post_clone: done"
+# Printed because this runs on every Xcode Cloud build and its wall-clock time
+# is billed against a 25-hour monthly allowance. If this number starts to grow,
+# it is the first place to look.
+echo "==> ci_post_clone: done in $(( $(date +%s) - STARTED_AT ))s"
 echo "    project: $PROJECT_DIR/ThoughtPins.xcodeproj"
 echo "    scheme:  ThoughtPins (shared)"

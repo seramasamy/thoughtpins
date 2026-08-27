@@ -345,16 +345,79 @@ jobs:
           # The build number is the commit count, so the history has to be here.
           fetch-depth: 0
 
-      # CFBundleVersion was pinned to 1, so the first upload to App Store
-      # Connect would work and the second would be rejected as a repeat build
-      # number -- on the day we iterate fastest. The commit count is the same
-      # integer on this runner and on the Mac for a given commit, needs no
-      # shared counter, and only ever grows.
-      - name: Derive the build number
-        run: echo "THOUGHTPINS_BUILD_NUMBER=$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
+      # ---------------------------------------------------------------
+      # Everything below runs the SAME script Xcode Cloud will run.
+      #
+      # This job used to `brew install xcodegen` and generate the project
+      # itself, which meant ci_post_clone.sh -- the thing an Xcode Cloud build
+      # actually depends on -- had never executed anywhere. That made it the
+      # most likely first-cloud-build failure, and Xcode Cloud bills 25 compute
+      # hours a month while GitHub macOS minutes are cheap. So it is proven
+      # here instead.
+      #
+      # Both build-number branches are exercised, because the two systems
+      # disagree about which exists: Xcode Cloud sets CI_BUILD_NUMBER, a local
+      # Mac has only git history.
 
-      - name: Install XcodeGen
-        run: brew install xcodegen
+      # Branch 1: no CI_BUILD_NUMBER, which is what a local Mac run looks like.
+      # Must fall back to the commit count and must not fail.
+      - name: Post-clone script without CI_BUILD_NUMBER
+        run: |
+          set -euo pipefail
+          env -u CI_BUILD_NUMBER ./mobile/ios/ThoughtPinsNative/ci_scripts/ci_post_clone.sh \
+            | tee /tmp/post-clone-local.log
+          grep -q "from commit count" /tmp/post-clone-local.log \
+            || { echo "did not fall back to the commit count" >&2; exit 1; }
+          EXPECTED=$(git rev-list --count HEAD)
+          grep -q "CURRENT_PROJECT_VERSION: $EXPECTED" mobile/ios/ThoughtPinsNative/project.yml \
+            || { echo "project.yml was not stamped with $EXPECTED" >&2; exit 1; }
+          test -d mobile/ios/ThoughtPinsNative/ThoughtPins.xcodeproj
+
+      # Back to a clean checkout: the script mutates project.yml, and branch 2
+      # must start from the committed floor rather than branch 1's result.
+      - name: Reset to a clean checkout
+        run: |
+          git checkout -- mobile/ios/ThoughtPinsNative/project.yml
+          rm -rf mobile/ios/ThoughtPinsNative/ThoughtPins.xcodeproj
+          grep -q "CURRENT_PROJECT_VERSION: 1$" mobile/ios/ThoughtPinsNative/project.yml
+
+      # Branch 2: CI_BUILD_NUMBER exported the way Xcode Cloud sets it. This is
+      # the path a real cloud build takes, and the number must reach the binary.
+      - name: Post-clone script with CI_BUILD_NUMBER
+        env:
+          CI_BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          ./mobile/ios/ThoughtPinsNative/ci_scripts/ci_post_clone.sh | tee /tmp/post-clone-cloud.log
+          grep -q "from CI_BUILD_NUMBER" /tmp/post-clone-cloud.log \
+            || { echo "CI_BUILD_NUMBER was not preferred over the commit count" >&2; exit 1; }
+          echo "THOUGHTPINS_BUILD_NUMBER=$CI_BUILD_NUMBER" >> "$GITHUB_ENV"
+          # prepare_ios_submission.sh calls a bare `xcodegen`; the post-clone
+          # script installs a pinned copy outside PATH on purpose, so hand the
+          # location to the steps that follow rather than installing twice.
+          dirname "$(grep '^XCODEGEN_BIN=' /tmp/post-clone-cloud.log | cut -d= -f2-)" >> "$GITHUB_PATH"
+
+      # Measured, not guessed: this script runs on every Xcode Cloud build and
+      # its wall clock comes out of a 25-hour monthly allowance. The comparison
+      # is recorded so the choice of installer can be revisited with a number.
+      - name: Cost of the XcodeGen install, pinned download vs Homebrew
+        run: |
+          set -uo pipefail
+          echo "--- pinned download onto a machine that has never seen it ---"
+          rm -rf "$HOME/.xcodegen-cost-probe"
+          START=$(date +%s)
+          curl -fsSL --retry 3 -o /tmp/xg.zip \
+            https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip
+          mkdir -p "$HOME/.xcodegen-cost-probe"
+          unzip -q -o /tmp/xg.zip -d "$HOME/.xcodegen-cost-probe"
+          echo "PINNED_DOWNLOAD_SECONDS=$(( $(date +%s) - START ))"
+          echo "--- homebrew, uncached ---"
+          brew uninstall --force xcodegen >/dev/null 2>&1 || true
+          START=$(date +%s)
+          brew install xcodegen >/dev/null 2>&1
+          echo "BREW_INSTALL_SECONDS=$(( $(date +%s) - START ))"
+          brew uninstall --force xcodegen >/dev/null 2>&1 || true
+          rm -rf "$HOME/.xcodegen-cost-probe" /tmp/xg.zip
 
       - name: Test shared Swift package
         run: swift test --package-path mobile/ios/ThoughtPinsCore
@@ -378,7 +441,6 @@ jobs:
             -scheme ThoughtPins \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/ThoughtPins.xcarchive" \
-            CURRENT_PROJECT_VERSION="$THOUGHTPINS_BUILD_NUMBER" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
@@ -400,8 +462,9 @@ jobs:
           python3 scripts/check_ios_submission_source.py --built-app \
             "$RUNNER_TEMP/ThoughtPins.xcarchive/Products/Applications/Thought Pins.app"
 
-      # The override above is the whole defence against a repeated build
-      # number, and nothing else in the repo would notice it regressing.
+      # No build-setting override here on purpose: the number came from
+      # ci_post_clone.sh stamping project.yml, exactly as it will on Xcode
+      # Cloud. Asserting it in the binary is what proves that path works.
       - name: Confirm the build number reached the binary
         run: |
           PLIST="$RUNNER_TEMP/ThoughtPins.xcarchive/Products/Applications/Thought Pins.app/Info.plist"

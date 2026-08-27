@@ -34,6 +34,7 @@ def main() -> int:
     _check_brand_mark(failures)
     _check_screenshots(failures)
     _check_ci_scripts(failures)
+    _check_no_remote_packages(failures)
     return finish(failures)
 
 
@@ -41,6 +42,41 @@ def main() -> int:
 CI_SCRIPTS = {
     "ci_post_clone.sh": "generates ThoughtPins.xcodeproj, which is not in the repository",
 }
+
+
+def _check_no_remote_packages(failures: list[str]) -> None:
+    """The iOS build must not fetch anything over the network to resolve.
+
+    Two reasons, and the second is the one that costs money.
+
+    Reliability: package resolution happens on every clean build. A remote
+    dependency means a GitHub or vendor outage on submission day is an outage
+    for us, and there is no committed Package.resolved to fall back on.
+
+    Cost: Xcode Cloud bills 25 compute hours a month. Resolution time is billed
+    like everything else, and with a purely local graph it is close to zero.
+    Removing GoogleSignIn earned that; this keeps it.
+
+    A local `path:` dependency is fine -- it is a directory in this repository.
+    """
+    project = (TARGET / "project.yml").read_text(encoding="utf-8")
+    for line in project.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("url:"):
+            failures.append(
+                f"remote Swift package in project.yml ({stripped}). The iOS build resolves "
+                "entirely from this repository; a remote package makes a clean build depend "
+                "on someone else's uptime and adds billed resolution time to every "
+                "Xcode Cloud run."
+            )
+
+    for manifest in sorted((ROOT / "mobile" / "ios").glob("*/Package.swift")):
+        text = manifest.read_text(encoding="utf-8")
+        if ".package(url:" in text:
+            failures.append(
+                f"remote Swift package in {manifest.relative_to(ROOT)}. Local `path:` "
+                "dependencies only."
+            )
 
 
 def _check_ci_scripts(failures: list[str]) -> None:
