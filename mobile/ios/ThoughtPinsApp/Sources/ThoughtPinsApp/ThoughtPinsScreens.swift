@@ -30,6 +30,7 @@ struct ThoughtPinsMainShell: View {
 struct ThoughtPinsRecapScreen: View {
     @ObservedObject var model: ThoughtPinsAppModel
     @State private var period = "Day"
+    @State private var pendingDeletion: EntryResponse?
 
     var body: some View {
         NavigationStack {
@@ -86,8 +87,39 @@ struct ThoughtPinsRecapScreen: View {
                         }
                     }
                     .padding(.vertical, 4)
+                    // The privacy policy grants the right to delete specific
+                    // content from the app, and until now nothing here did.
+                    // Swipe is the platform gesture for it; the confirmation
+                    // is because this is irreversible and takes the memories
+                    // and any retained recording with it.
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) {
+                            pendingDeletion = entry
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        .accessibilityIdentifier("thoughtpins-delete-entry")
+                    }
                 }
                 .refreshable { await model.refreshReadModels() }
+                .confirmationDialog(
+                    "Delete this entry?",
+                    isPresented: Binding(
+                        get: { pendingDeletion != nil },
+                        set: { if !$0 { pendingDeletion = nil } }
+                    ),
+                    titleVisibility: .visible
+                ) {
+                    Button("Delete entry", role: .destructive) {
+                        if let entry = pendingDeletion {
+                            pendingDeletion = nil
+                            Task { await model.deleteEntry(id: entry.id) }
+                        }
+                    }
+                    Button("Keep it", role: .cancel) { pendingDeletion = nil }
+                } message: {
+                    Text("This removes the entry, anything remembered from it, and any recording kept for it. It cannot be undone.")
+                }
                 .overlay {
                     if filteredEntries.isEmpty {
                         ThoughtPinsEmptyState(

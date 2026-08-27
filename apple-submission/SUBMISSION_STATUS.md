@@ -51,6 +51,11 @@ Not "the code looks right".
   Thought Pins to continue", both version numbers, and a working store button;
   put back, it returns to normal. Maintenance mode shows its message as a banner
   with the app usable underneath — not a dead screen.
+- **A single entry can be deleted from the app**, which the privacy policy
+  grants as a right. Verified end to end against production: the assistant
+  could recall the entry's content before the delete and could not after, and
+  deleting an entry takes its retained recording with it. The throwaway account
+  used for that test was deleted afterwards.
 - **Account export gives you a file.** 135 KB JSON through the share sheet, with
   Save to Files. It previously fetched the payload and discarded it while saying
   "Your export is ready."
@@ -121,9 +126,8 @@ In order.
    refused while it is that shape, but the variable still wants setting.
 6. **Twenty minutes of monitoring** — `docs/operations/LAUNCH_OPERATIONS.md` §2.
    Nothing alerts a human today. Free.
-7. **Scope four sentences** on the published pages, or accept them —
-   `docs/release/WEB_IOS_PARITY.md`, last section. They are true of the web app
-   and not of iOS, and the listing is the iOS listing.
+7. **Nothing here.** The published-page scoping is done, and single-entry
+   deletion shipped rather than being scoped away.
 
 ---
 
@@ -167,8 +171,11 @@ after a deploy, which config validation cannot.
 - **Migration downgrades have never run against PostgreSQL.** All 26 define real
   `downgrade()` bodies, but CI exercises them on SQLite, where every
   PostgreSQL-only branch is skipped. Prefer rolling forward.
-- **Four published promises are web-only** — manage devices, search, delete
-  specific content, undo. `WEB_IOS_PARITY.md`.
+- **Three published feature descriptions now name the web app** — manage
+  devices, search, routing undo. The fourth, privacy's "delete specific content
+  ... from the app", was a stated right rather than a description, so the app
+  was changed to honour it instead of scoping the sentence.
+  `WEB_IOS_PARITY.md`.
 - **The person-card promise is loose.** The listing says "when you last spoke";
   the screen shows *Last mentioned*, which is when you last wrote about them.
   No field was invented to make the copy true — change the sentence.

@@ -62,4 +62,36 @@ extension ThoughtPinsAppModel {
             await refreshInviteStatus()
         }
     }
+
+    /// Delete one journal entry, and everything the policy says goes with it.
+    ///
+    /// The privacy policy grants the right to "delete specific content ... from
+    /// the app". That is a stated user right rather than a feature description,
+    /// and the page is reachable from inside the app -- Account > Privacy
+    /// Policy -- so the app has to honour it. `deleteEntry` existed in
+    /// ThoughtPinsCore from the start with no caller anywhere.
+    ///
+    /// Two chained promises hang off this one, both kept server-side and both
+    /// verified end to end against production before this shipped:
+    ///
+    /// * "Deleting a linked journal entry removes its retained recording."
+    ///   `DELETE /v1/entries/{id}` calls `delete_voice_assets_for_entry` before
+    ///   it removes the entry.
+    /// * The memories extracted from the entry go too, including from the
+    ///   vector store.
+    ///
+    /// Removed from the list optimistically only after the server confirms, so
+    /// a failed delete never makes something look gone that is still there.
+    public func deleteEntry(id: String) async {
+        do {
+            _ = try await api.deleteEntry(id: id)
+            recentEntries.removeAll { $0.id == id }
+            showSuccess("Entry deleted. Anything remembered from it goes too.")
+            await refreshReadModels()
+        } catch {
+            showProblem(
+                thoughtPinsPlainMessage(for: error, fallback: "Could not delete that entry. Try again.")
+            )
+        }
+    }
 }

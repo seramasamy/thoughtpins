@@ -42,13 +42,24 @@ Verified 2026-08-26 by reading both clients end to end.
 | Sign in: Google | yes | hidden | intentional — 4.8 |
 | Sign in: magic link | yes | **absent** | intentional |
 | Manage sign-in methods | yes | **absent** | accidental, deferred |
-| Devices / sessions | yes | **absent** | accidental, doc corrected |
-| Delete a single entry | yes | **absent** | accidental, deferred |
-| Search | yes | **absent** | accidental, deferred |
+| Devices / sessions | yes | **absent** | accidental, **scoped to web** |
+| Delete a single entry | yes | yes | **shipped this pass** |
+| Search | yes | **absent** | accidental, **scoped to web** |
 
 ---
 
 ## Fixed in this pass
+
+**You could not delete a single entry.** `deleteEntry` had existed in the core
+client with no caller, so the right the privacy policy grants — "delete specific
+content ... from the app" — could not be exercised from the app at all. That is
+a stated user right rather than a feature description, and the page is reachable
+from inside the app, so it was shipped rather than scoped: a swipe action on the
+Recap list with a confirmation. Both chained promises verified — the memories
+extracted from an entry go with it (proven end to end against production: the
+assistant could recall the content before the delete and could not after), and
+its retained recording goes too (proven by test, because retention is opt-in and
+off in production so no live account can have one).
 
 **Account export gave you nothing.** `exportAccount()` fetched the payload and
 discarded it, then said "Your export is ready." The privacy policy promises
@@ -105,13 +116,6 @@ the server rejects it. Web is the one that should change.
 
 These are accidental. None is fixed here; each is recorded with its cost.
 
-**No way to delete a single entry on iOS.** `deleteEntry` exists in the core
-client with no caller. The privacy policy says users can "delete specific
-content ... from the app", and two dependent promises hang off it (deleting an
-entry removes its retained recording; voice transcripts remain journal content
-until the entry is deleted). *Cost: a swipe action on the Recap list plus a
-confirmation — perhaps half a day. This is the most substantive accidental gap.*
-
 **No devices or sessions screen on iOS.** The support page says to use the app's
 Account screen to "manage devices". `registerDevice`, `revokeDevice`, `sessions`
 and `revokeSession` all exist in the core client, uncalled. *Cost: the support
@@ -156,17 +160,19 @@ so it should be one text.*
 The published pages describe the product, not the iOS app. These sentences are
 true of the web client and not of iOS, and the honest fix for most is editorial:
 
-- support page: "manage devices" — web only
-- terms: "search" — web only on iOS today
-- privacy: "delete specific content" — web only
-- AI disclosure: routing "can be corrected with undo" — web only
+- support page: "manage devices" — **scoped to the web app**
+- terms: "search" — **scoped to the web app**, naming Chat as the iOS route
+- AI disclosure: routing "undo" — **scoped to the web app**
+
+The fourth, privacy's "delete specific content ... from the app", was **not**
+scoped. It grants a right rather than describing a feature, so the app was
+changed to honour it instead.
 
 `REVIEW_NOTES.md` was corrected this pass where it overstated: the safety report
 does not email support, and the iOS export is account JSON rather than a
 Markdown vault.
 
-**Recommendation:** before submitting, scope those four sentences on the
-published pages to name the web app, or ship the iOS features. Scoping is an
-afternoon; the features are not. The listing is the iOS listing, and a reviewer
-who opens the support page from inside the app — which they can, it is linked in
-Account — is one tap from a sentence the app does not honour.
+Done 2026-08-26. The three feature descriptions name the web app in plain
+words; none of them reads as a disclaimer. The right was shipped. A reviewer who
+opens the support page from inside the app — which they can, it is linked in
+Account — no longer lands on a sentence the app does not honour.

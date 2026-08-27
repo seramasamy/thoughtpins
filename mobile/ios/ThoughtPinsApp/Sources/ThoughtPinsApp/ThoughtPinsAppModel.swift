@@ -35,7 +35,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
     @Published public private(set) var librarySources: [LibrarySourceResponse] = []
     @Published public private(set) var memoryCards: [MemoryCardResponse] = []
     @Published public private(set) var placeCards: [MemoryCardResponse] = []
-    @Published public private(set) var recentEntries: [EntryResponse] = []
+    @Published public internal(set) var recentEntries: [EntryResponse] = []
     @Published public private(set) var pendingVaultImport: VaultImportSessionResponse?
     @Published public private(set) var draftCount: Int = 0
     @Published public var banner: String?
