@@ -173,6 +173,26 @@ def create_metadata_router(
             maintenance_allow_reads=config.MAINTENANCE_ALLOW_READS,
         )
 
+    def _worker_gauge(field: str) -> str:
+        """One worker/queue number, or -1 when it cannot be read.
+
+        -1 rather than 0: a scraper cannot tell "zero jobs waiting" from "could
+        not reach Redis", and alerting on the wrong one of those is worse than
+        not alerting.
+        """
+        try:
+            from thoughtpins.jobs import worker_health
+
+            health = worker_health()
+        except Exception:
+            # `up` is the one gauge where unknown must read as down: a monitor
+            # that cannot reach the worker should alert, not shrug.
+            return "0" if field == "up" else "-1"
+        if field == "up":
+            return "1" if health.get("status") == "ok" else "0"
+        value = health.get(field)
+        return str(int(value)) if isinstance(value, (int, float)) else "-1"
+
     @router.get("/v1/metrics", response_class=PlainTextResponse)
     async def metrics(user_id: str = Depends(current_user_dependency)) -> str:
         del user_id
@@ -196,6 +216,24 @@ def create_metadata_router(
                 "# HELP thoughtpins_uptime_seconds Process uptime in seconds.",
                 "# TYPE thoughtpins_uptime_seconds gauge",
                 f"thoughtpins_uptime_seconds {time.time() - start_time:.1f}",
+                # The two numbers an alert would actually fire on. Both were
+                # already computed by worker_health() and both were reachable
+                # only inside JSON from an authenticated endpoint, or flattened
+                # to an "ok"/"error" string by /ready -- so the one surface a
+                # scraper reads carried no queue or worker signal at all.
+                #
+                # A stalled worker is the failure that costs the most and shows
+                # the least: the API stays green, requests succeed, and entries
+                # simply never finish processing.
+                "# HELP thoughtpins_worker_heartbeat_age_seconds Seconds since the worker last reported in.",
+                "# TYPE thoughtpins_worker_heartbeat_age_seconds gauge",
+                f"thoughtpins_worker_heartbeat_age_seconds {_worker_gauge('heartbeat_age_seconds')}",
+                "# HELP thoughtpins_queue_depth Jobs waiting in the ingestion queue.",
+                "# TYPE thoughtpins_queue_depth gauge",
+                f"thoughtpins_queue_depth {_worker_gauge('queue_depth')}",
+                "# HELP thoughtpins_worker_up 1 when the worker heartbeat is fresh, 0 otherwise.",
+                "# TYPE thoughtpins_worker_up gauge",
+                f"thoughtpins_worker_up {_worker_gauge('up')}",
                 "# HELP thoughtpins_requests_in_memory_total Total requests seen by this process.",
                 "# TYPE thoughtpins_requests_in_memory_total counter",
                 f"thoughtpins_requests_in_memory_total {total}",
