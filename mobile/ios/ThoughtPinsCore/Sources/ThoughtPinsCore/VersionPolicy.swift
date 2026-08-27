@@ -29,17 +29,38 @@ public func evaluateClientVersion(config: ClientConfig, platform: String = "ios"
 public func compareVersions(_ left: String, _ right: String) -> Int {
     let lhs = parseVersion(left)
     let rhs = parseVersion(right)
-    for index in 0..<max(lhs.count, rhs.count) {
-        let diff = (index < lhs.count ? lhs[index] : 0) - (index < rhs.count ? rhs[index] : 0)
-        if diff != 0 {
-            return diff > 0 ? 1 : -1
+    for index in 0..<max(lhs.release.count, rhs.release.count) {
+        let leftPart = index < lhs.release.count ? lhs.release[index] : 0
+        let rightPart = index < rhs.release.count ? rhs.release[index] : 0
+        if leftPart != rightPart {
+            return leftPart > rightPart ? 1 : -1
         }
+    }
+    // Same release numbers: a pre-release is lower than the release itself.
+    if lhs.isPreRelease != rhs.isPreRelease {
+        return lhs.isPreRelease ? -1 : 1
     }
     return 0
 }
 
-private func parseVersion(_ value: String) -> [Int] {
-    value
-        .split { ".+-".contains($0) }
+/// The numeric release part of a version, and whether it carried a pre-release.
+///
+/// This used to split on ".", "+" and "-" all at once and keep every number it
+/// found, so "1.0.0-rc.1" parsed as [1, 0, 0, 1] -- one component *longer* than
+/// "1.0.0", and therefore greater. Production advertises
+/// `recommended_clients.ios = "1.0.0-rc.1"` (RECOMMENDED_IOS_VERSION falls back
+/// to API_VERSION), so the shipping 1.0.0 build compared as older than the
+/// recommendation and every day-one user would have been shown an update nag
+/// for a version that does not exist.
+///
+/// Semver is the other way round: a pre-release sorts *below* its release.
+private func parseVersion(_ value: String) -> (release: [Int], isPreRelease: Bool) {
+    // Build metadata after "+" is not part of precedence at all.
+    let withoutBuild = value.split(separator: "+", maxSplits: 1).first.map(String.init) ?? value
+    // Everything from the first "-" is the pre-release identifier.
+    let parts = withoutBuild.split(separator: "-", maxSplits: 1)
+    let release = (parts.first.map(String.init) ?? withoutBuild)
+        .split(separator: ".")
         .compactMap { Int($0.filter(\.isNumber)) }
+    return (release, parts.count > 1)
 }

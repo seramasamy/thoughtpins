@@ -174,6 +174,23 @@ public final class ThoughtPinsAppModel: ObservableObject {
         defaults.set(true, forKey: Self.installMarkerKey)
     }
 
+    /// What the server thinks of the version this device is running.
+    ///
+    /// nil until the first successful `clientConfig()`. Offline it stays nil,
+    /// deliberately: refusing to open the app because we could not ask is the
+    /// opposite of what this is for.
+    @Published public private(set) var versionDecision: ClientVersionDecision?
+
+    /// The shipping build's marketing version, from its own bundle.
+    ///
+    /// "0.0.0" if the key is somehow missing, which compares below every real
+    /// minimum -- the safe direction for a build that cannot say what it is.
+    static let runningVersion: String = {
+        let raw = (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? ""
+        let trimmed = raw.trimmingCharacters(in: .whitespaces)
+        return trimmed.isEmpty ? "0.0.0" : trimmed
+    }()
+
     public func bootstrap() async {
         clearSessionIfFreshInstall()
         refreshStoredSessionFlag()
@@ -181,6 +198,14 @@ public final class ThoughtPinsAppModel: ObservableObject {
             let config = try await api.clientConfig()
             self.config = config
             self.maintenanceMessage = config.maintenanceMode ? (config.maintenanceMessage ?? "Maintenance currently in progress.") : nil
+            // The one lever we have if a shipped build turns out to be broken.
+            // `evaluateClientVersion` has existed in ThoughtPinsCore since the
+            // beginning with no caller anywhere, which meant the server could
+            // publish a minimum version and no iPhone would ever act on it.
+            self.versionDecision = evaluateClientVersion(
+                config: config,
+                currentVersion: Self.runningVersion
+            )
             self.me = try? await api.me()
             await refreshPreferences()
             // Ask the gate before loading anything it would refuse. Without

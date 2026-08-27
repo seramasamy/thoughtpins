@@ -44,6 +44,12 @@ def production_smoke_env() -> dict[str, str]:
             "MIN_IOS_VERSION": "1.0.0",
             "MIN_ANDROID_VERSION": "1.0.0",
             "MIN_WEB_VERSION": "1.0.0",
+            # Explicit, never left to the API_VERSION fallback. That default is
+            # a release-candidate string ("1.0.0-rc.1") which sorts *above* a
+            # shipping 1.0.0 under semver, so every user on day one would be
+            # prompted to install a version that was never published.
+            # Production is serving exactly that today; validate_production.py
+            # now refuses a deploy that leaves it that way.
             "RECOMMENDED_IOS_VERSION": "1.0.0",
             "RECOMMENDED_ANDROID_VERSION": "1.0.0",
             "RECOMMENDED_WEB_VERSION": "1.0.0",

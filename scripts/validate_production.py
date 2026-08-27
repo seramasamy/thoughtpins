@@ -67,6 +67,52 @@ def client_url_problems() -> list[str]:
     return problems
 
 
+def client_version_problems() -> list[str]:
+    """Refuse a deploy that would nag every user to install a version that does not exist.
+
+    RECOMMENDED_IOS_VERSION defaults to API_VERSION, whose own default is a
+    release-candidate string ("1.0.0-rc.1"). Production is serving exactly that
+    today. A shipping 1.0.0 build compares as *older* than 1.0.0-rc.1 under
+    semver, so the update prompt would fire on day one, for everyone, pointing
+    at a build nobody can install.
+
+    The version comparison itself was also wrong and is fixed in
+    ThoughtPinsCore; this check is the other half, so the config cannot
+    reintroduce the problem from the server side.
+    """
+    problems: list[str] = []
+    for platform, recommended in (
+        ("ios", config.RECOMMENDED_IOS_VERSION),
+        ("android", config.RECOMMENDED_ANDROID_VERSION),
+        ("web", config.RECOMMENDED_WEB_VERSION),
+    ):
+        value = (recommended or "").strip()
+        if not value:
+            problems.append(
+                f"RECOMMENDED_{platform.upper()}_VERSION is empty; set it to the version actually published."
+            )
+        elif "-" in value or "+" in value:
+            problems.append(
+                f"RECOMMENDED_{platform.upper()}_VERSION is {value!r}, a pre-release or build-metadata string. "
+                "Clients compare it against their own release version and would prompt every user to "
+                "update to something that was never published. Set a plain release version."
+            )
+    # A minimum above the recommendation locks everyone out on purpose.
+    if config.MIN_IOS_VERSION and config.RECOMMENDED_IOS_VERSION:
+        if _version_tuple(config.MIN_IOS_VERSION) > _version_tuple(config.RECOMMENDED_IOS_VERSION):
+            problems.append(
+                f"MIN_IOS_VERSION ({config.MIN_IOS_VERSION}) is above RECOMMENDED_IOS_VERSION "
+                f"({config.RECOMMENDED_IOS_VERSION}), so every client is blocked and told to install "
+                "a version below the minimum."
+            )
+    return problems
+
+
+def _version_tuple(value: str) -> tuple[int, ...]:
+    head = value.split("+", 1)[0].split("-", 1)[0]
+    return tuple(int("".join(ch for ch in part if ch.isdigit()) or 0) for part in head.split("."))
+
+
 def invite_gate_problems() -> list[str]:
     """Refuse a production deploy that would stop new accounts working.
 
@@ -125,6 +171,7 @@ def main() -> int:
     )
     problems.extend(client_url_problems())
     problems.extend(invite_gate_problems())
+    problems.extend(client_version_problems())
     if problems:
         print("Production validation failed:")
         for problem in problems:

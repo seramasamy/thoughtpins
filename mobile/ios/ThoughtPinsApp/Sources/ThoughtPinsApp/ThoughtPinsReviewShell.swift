@@ -29,7 +29,12 @@ public struct ThoughtPinsRootView: View {
 
     public var body: some View {
         Group {
-            if model.isAuthenticated {
+            // Checked before anything else, including sign-in: a build the
+            // server has withdrawn should not be able to create accounts or
+            // write entries either.
+            if model.versionDecision?.status == .blocked {
+                ThoughtPinsUpdateRequiredView(model: model)
+            } else if model.isAuthenticated {
                 if !model.aiProcessingConsentAccepted {
                     ThoughtPinsAIConsentView(model: model)
                 } else if model.isBlockedByInviteGate {
