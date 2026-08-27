@@ -98,9 +98,44 @@ caught by an acceptance test rather than by reading the code.
 - mypy reports 24 pre-existing errors in 9 files, none in anything this work
   touched. Unchanged from `HEAD` before this pass.
 
+## The review pass after this one (T0-T3)
+
+A second review found that the two detail screens had been written after every
+pass the rest of the app had, and had had none of them. They have now had all
+of them, and three items were real:
+
+| Item | Result |
+|---|---|
+| T0.1 iPad readable column | The detail screens had it; the **Form drew its own backdrop behind it**, so the column sat in a band with hard edges. Fixed. Four other screens -- Recap, Capture, Pins, **Account** -- had never had the column at all; Account is the 5.1.1(v) screen and its Toggle stranded its switch an inch and a half from its label. All five fixed |
+| T0.2 Dynamic Type AX5 | No truncation, no collision, nothing outside the screen, on both screens |
+| T0.3 VoiceOver | Section headers announced in visual order; every element labelled; rows combined so a row is one utterance rather than a bare date; back affordance announces "People" / "Pins" |
+| T0.4 Light and dark | Both clean |
+| T0.5 375pt | Clean on an iPhone SE |
+| T0.6 Empty state | **Was a blank screen** below the header. Now explains itself. Verified with an injected empty payload |
+| T0.7 Offline | Resolves within the 30s request timeout, says what happened, and the reading detail keeps its cached copy and says so. Verified with a dropped connection |
+| T0.8 Errors | **Both screens blamed the connection for everything.** `ThoughtPinsLoadFailure` now distinguishes offline, timeout, gone, server fault and signed-out, and hides the retry where retrying cannot work. Verified against injected 404 and 500 |
+| T0.9 Affordance | Rows are `NavigationLink`s inside a `List`, so they carry a disclosure chevron and report as buttons |
+| T0.10 Content vs promise | **The promise is not quite met -- see below** |
+
+Errors and offline were verified with a local HTTPS proxy that forwards to
+production and injects a chosen fault on the two detail endpoints only. Nothing
+about the failure paths is reasoned about.
+
 ## CI, on this commit
 
-Run `32943286763` on `2ed3d2d`, all six jobs green:
+Run `33025204863` on `009ca14`, **on an ordinary push to main**, all seven jobs
+green. That is new: the `ios` job used to run only on a tag or a manual
+dispatch, so every green check on main excluded iOS. It now runs whenever a
+push to main touches iOS, decided by a seconds-long Linux job.
+
+The build number in that run was **135** -- the commit count -- not `1`. It had
+been pinned, so the first TestFlight upload would have worked and the second
+would have been rejected as a repeat build number. The archive and its dSYMs
+are kept for 30 days (4.8 MB), so a failed submission is retryable without a
+rebuild at 10x billing. The four signing and upload steps are authored and
+skipped until the secrets exist.
+
+Previous run `32943286763` on `2ed3d2d`, six jobs green:
 
 | Job | Result |
 |---|---|
@@ -117,6 +152,21 @@ The `ios` job is the one that matters here: it is the only place
 
 The three steps that fail locally (SBOM, approval tilt, frontend audit) all
 pass in the `web` and `python` jobs, which have Node.
+
+## Two things that need your decision
+
+**The description sentence about people.** It says "Open a person and see what
+you have said about them and **when you last spoke**." The detail screen shows a
+section headed *Last mentioned*, and the server field behind it is `last_seen` --
+the date the person was last **referenced in your journal**, not the date you
+last spoke to them. On the review account it reads 2026-08-25 because that is
+when the entry was written. Those are different claims, and nothing in the app
+records a conversation date. No field was added to make the copy true. Either
+change the sentence to "when you last wrote about them", or accept that "last
+spoke" is loose. Recommendation: change the sentence.
+
+**GoogleSignIn.** See the recommendation in the session report; nothing has been
+changed.
 
 ## A note on the simulator UI tests
 
