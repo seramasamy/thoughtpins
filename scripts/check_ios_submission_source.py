@@ -36,6 +36,8 @@ def main() -> int:
     _check_ci_scripts(failures)
     _check_no_remote_packages(failures)
     _check_project_format(failures)
+    _check_project_spec_keys(failures)
+    _check_accent_matches_brand(failures)
     return finish(failures)
 
 
@@ -59,6 +61,242 @@ ALLOWED_PROJECT_FORMATS = {
     "xcode15_0": 60,
 }
 MAX_OBJECT_VERSION = 60
+
+
+# XcodeGen's documented ProjectSpec keys, restricted to the levels this spec
+# uses. Deliberately an allowlist rather than a denylist: the whole failure this
+# guards against is a key that *looks* plausible and does nothing.
+XCODEGEN_KEYS = {
+    "root": {
+        "name",
+        "include",
+        "options",
+        "attributes",
+        "configs",
+        "configFiles",
+        "settings",
+        "settingGroups",
+        "targets",
+        "packages",
+        "aggregateTargets",
+        "schemes",
+        "projectReferences",
+        "fileGroups",
+    },
+    "options": {
+        "projectFormat",
+        "createIntermediateGroups",
+        "deploymentTarget",
+        "bundleIdPrefix",
+        "minimumXcodeGenVersion",
+        "settingPresets",
+        "developmentLanguage",
+        "usesTabs",
+        "indentWidth",
+        "tabWidth",
+        "xcodeVersion",
+        "groupSortPosition",
+        "transitivelyLinkDependencies",
+        "generateEmptyDirectories",
+        "localPackagesGroup",
+        "fileTypes",
+        "preGenCommand",
+        "postGenCommand",
+        "useBaseInternationalization",
+        "schemePathPrefix",
+        "defaultConfig",
+        "parallelizeBuild",
+        "buildImplicitDependencies",
+    },
+    "target": {
+        "type",
+        "platform",
+        "sources",
+        "dependencies",
+        "settings",
+        "scheme",
+        "configFiles",
+        "info",
+        "entitlements",
+        "preBuildScripts",
+        "postBuildScripts",
+        "postCompileScripts",
+        "attributes",
+        "requiresObjCLinking",
+        "onlyCopyFilesOnInstall",
+        "productName",
+        "transitivelyLinkDependencies",
+        "directlyEmbedCarthageDependencies",
+        "buildRules",
+        "legacy",
+        "deploymentTarget",
+        "templates",
+        "templateAttributes",
+        "buildToolPlugins",
+    },
+    "source": {
+        "path",
+        "name",
+        "group",
+        "compilerFlags",
+        "excludes",
+        "includes",
+        "type",
+        "optional",
+        "buildPhase",
+        "headerVisibility",
+        "createIntermediateGroups",
+        "attributes",
+        "resourceTags",
+        "inferDestinationFiltersByPath",
+        "destinationFilters",
+    },
+    "dependency": {
+        "target",
+        "framework",
+        "carthage",
+        "sdk",
+        "package",
+        "bundle",
+        "product",
+        "embed",
+        "link",
+        "codeSign",
+        "removeHeaders",
+        "weak",
+        "platformFilter",
+        "platforms",
+        "destinationFilters",
+        "copy",
+        "implicit",
+        "findFrameworks",
+    },
+    "scheme": {"build", "run", "test", "profile", "analyze", "archive", "management"},
+}
+
+
+def _check_accent_matches_brand(failures: list[str]) -> None:
+    """AccentColor and ThoughtPinsTheme.brand are the same colour, twice.
+
+    They have to be. An asset catalog cannot reference Swift, and
+    `ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME` is what tints every control
+    outside `ThoughtPinsMainShell` -- the sign-in, consent, invite and
+    update-required screens, none of which sit under that shell's
+    `.tint(ThoughtPinsTheme.brand)`.
+
+    Until the asset catalog actually shipped, AccentColor was absent from the
+    bundle and those screens rendered in system blue while the rest of the app
+    was orange. Now that both exist, the risk is the opposite one: two
+    definitions of the brand colour drifting apart, so the app is branded one
+    colour before sign-in and another after.
+    """
+    catalog = TARGET / "Resources" / "Assets.xcassets" / "AccentColor.colorset" / "Contents.json"
+    theme = ROOT / "mobile" / "ios" / "ThoughtPinsApp" / "Sources" / "ThoughtPinsApp" / "ThoughtPinsTheme.swift"
+    if not catalog.is_file() or not theme.is_file():
+        failures.append("cannot compare AccentColor with ThoughtPinsTheme.brand: a file is missing")
+        return
+
+    try:
+        colors = json.loads(catalog.read_text(encoding="utf-8"))["colors"]
+    except Exception as exc:
+        failures.append(f"unreadable AccentColor.colorset: {exc}")
+        return
+
+    accent: dict[str, tuple[float, ...]] = {}
+    for entry in colors:
+        components = (entry.get("color") or {}).get("components") or {}
+        appearances = entry.get("appearances") or []
+        mode = "dark" if any(a.get("value") == "dark" for a in appearances) else "light"
+        try:
+            accent[mode] = tuple(float(components[c]) for c in ("red", "green", "blue"))
+        except Exception:
+            continue
+
+    match = re.search(
+        r"static let brand = dynamic\(light: \(([\d.]+), ([\d.]+), ([\d.]+)\), "
+        r"dark: \(([\d.]+), ([\d.]+), ([\d.]+)\)\)",
+        theme.read_text(encoding="utf-8"),
+    )
+    if not match:
+        failures.append("could not read ThoughtPinsTheme.brand; the accent comparison cannot run")
+        return
+    numbers = [float(g) for g in match.groups()]
+    brand: dict[str, tuple[float, ...]] = {"light": tuple(numbers[0:3]), "dark": tuple(numbers[3:6])}
+
+    for mode in ("light", "dark"):
+        if mode not in accent:
+            failures.append(f"AccentColor.colorset has no {mode} variant")
+            continue
+        if any(abs(a - b) > 0.01 for a, b in zip(accent[mode], brand[mode], strict=True)):
+            failures.append(
+                f"AccentColor {mode} {accent[mode]} does not match ThoughtPinsTheme.brand "
+                f"{brand[mode]}. The screens before sign-in take the asset and everything "
+                "after takes the Swift value, so the app would be two different oranges."
+            )
+
+
+def _check_project_spec_keys(failures: list[str]) -> None:
+    """Every key in project.yml must be one XcodeGen actually reads.
+
+    This is the check that would have caught the worst defect of the release.
+    `resources:` is not an XcodeGen target key. It sat in this spec looking
+    entirely reasonable, XcodeGen ignored it without a word, and every archive
+    ever built shipped with no asset catalog, no app icon and no privacy
+    manifest. The build succeeded, the plist validated, and nothing anywhere
+    said otherwise.
+
+    XcodeGen does not warn about keys it does not recognise, so a typo or an
+    invented key is silent by design. An allowlist is the only way to notice.
+    A key rejected here is either a mistake or a deliberate addition, and a
+    deliberate addition should come with a line in this list.
+
+    Also checks that every path the spec points at exists, because a path that
+    does not is the same failure wearing different clothes.
+    """
+    import yaml  # imported lazily: this is the only check that needs it
+
+    path = TARGET / "project.yml"
+    try:
+        spec = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except Exception as exc:  # pragma: no cover - a malformed spec fails earlier
+        failures.append(f"could not parse {path.relative_to(ROOT)}: {exc}")
+        return
+
+    def check(node: dict, allowed: set[str], where: str) -> None:
+        for key in node:
+            if key not in allowed:
+                failures.append(
+                    f"{path.relative_to(ROOT)}: '{key}' under {where} is not an XcodeGen key. "
+                    "XcodeGen ignores keys it does not recognise without warning, so this "
+                    "does nothing. Check Docs/ProjectSpec.md for the real name."
+                )
+
+    check(spec, XCODEGEN_KEYS["root"], "the project root")
+    check(spec.get("options") or {}, XCODEGEN_KEYS["options"], "options")
+
+    for name, target in (spec.get("targets") or {}).items():
+        check(target, XCODEGEN_KEYS["target"], f"target {name}")
+        for entry in target.get("sources") or []:
+            if isinstance(entry, dict):
+                check(entry, XCODEGEN_KEYS["source"], f"a sources entry of target {name}")
+                source_path = entry.get("path")
+            else:
+                source_path = entry
+            if source_path and not (TARGET / str(source_path)).exists():
+                failures.append(
+                    f"{path.relative_to(ROOT)}: target {name} lists sources path '{source_path}', which does not exist"
+                )
+        for entry in target.get("dependencies") or []:
+            if isinstance(entry, dict):
+                check(entry, XCODEGEN_KEYS["dependency"], f"a dependency of target {name}")
+        for setting, value in ((target.get("settings") or {}).get("base") or {}).items():
+            if setting in {"INFOPLIST_FILE", "CODE_SIGN_ENTITLEMENTS"} and not (TARGET / str(value)).exists():
+                failures.append(
+                    f"{path.relative_to(ROOT)}: target {name} sets {setting} to '{value}', which does not exist"
+                )
+
+    for name, scheme in (spec.get("schemes") or {}).items():
+        check(scheme, XCODEGEN_KEYS["scheme"], f"scheme {name}")
 
 
 def _check_project_format(failures: list[str]) -> None:
