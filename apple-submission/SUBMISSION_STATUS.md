@@ -187,3 +187,63 @@ after a deploy, which config validation cannot.
 - **The simulator UI tests are not in the repository.** They carry the review
   account's password inline, and `AGENTS.md` keeps credentials out of source
   control. They are a local harness; CI covers the archive.
+
+---
+
+## If the first Xcode Cloud build failed, check these in order
+
+Open the failed build, click the failing step, **Download Logs**, search for the
+string in bold. Stop at the first match.
+
+**1. Signing — by far the most likely.** Search **`Provisioning`**.
+
+A match means Sign in with Apple is not enabled on the App ID. The entitlement
+ships in the binary and automatic signing cannot create a profile for a
+capability the App ID lacks; the message talks about provisioning, not
+entitlements, which is why it is not obvious. Fix at
+developer.apple.com/account → Identifiers → `com.thoughtpins.app` → tick **Sign
+in with Apple** → Save, then re-run. One wasted build.
+
+**2. The post-clone script never ran.** Search **`ci_post_clone`**.
+
+*No match at all* is the signal. If the log never says `==> ci_post_clone:
+preparing`, Xcode Cloud did not find the script, and everything after fails
+looking for a project that was never generated. Check:
+`git ls-tree -r HEAD mobile/ios/ThoughtPinsNative/ci_scripts/` — it must show
+mode `100755`.
+
+**3. Something the cloud could not see.** Search **`ARCHIVE FAILED`** and read
+the first `error:` above it.
+
+The cloud clones a virgin copy: no working tree, no caches, no generated
+project. A fresh `git clone` was archived on 2026-08-27 and succeeded, so this
+is unlikely — but if it appears, reproduce it the same way rather than on this
+Mac, because this Mac has state the cloud does not.
+
+**The one line to find first, every time:**
+
+```
+==> ci_post_clone: done in
+```
+
+Present → the project generated, the scheme is shared, the build number was
+stamped, and the failure is downstream: almost certainly signing.
+Absent → nothing was built at all, and it is cause 2 or 3.
+
+**Before spending a second cloud build**, check GitHub Actions for the same
+commit. It runs the identical post-clone script, both build-number branches, and
+the same archive. Actions green + cloud red = signing or account, never the
+script and never the code.
+
+### What was fixed the night before, so you know it is not these
+
+- **The archive contained no resources at all** — no `Assets.car`, no
+  `PrivacyInfo.xcprivacy`, no icon — because `project.yml` declared them under a
+  `resources:` key XcodeGen does not have. Two certain rejections and a blank
+  icon. Fixed and gated.
+- **No top-level `CFBundleIconName`** — ITMS-90713. Fixed and gated on both the
+  source plist and the built app.
+- **Chat timed out on a working reply.** Production answers `/v1/chat` in
+  13–22s against what was a 30s timeout. Chat now gets 90s; the global timeout
+  is unchanged, because it is what distinguishes an unreachable server from a
+  slow one.
