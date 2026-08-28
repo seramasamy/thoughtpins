@@ -183,16 +183,6 @@ public final class ThoughtPinsAppModel: ObservableObject {
     /// opposite of what this is for.
     @Published public private(set) var versionDecision: ClientVersionDecision?
 
-    /// The shipping build's marketing version, from its own bundle.
-    ///
-    /// "0.0.0" if the key is somehow missing, which compares below every real
-    /// minimum -- the safe direction for a build that cannot say what it is.
-    static let runningVersion: String = {
-        let raw = (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? ""
-        let trimmed = raw.trimmingCharacters(in: .whitespaces)
-        return trimmed.isEmpty ? "0.0.0" : trimmed
-    }()
-
     public func bootstrap() async {
         clearSessionIfFreshInstall()
         refreshStoredSessionFlag()
@@ -206,7 +196,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
             // publish a minimum version and no iPhone would ever act on it.
             self.versionDecision = evaluateClientVersion(
                 config: config,
-                currentVersion: Self.runningVersion
+                currentVersion: thoughtPinsRunningVersion
             )
             self.me = try? await api.me()
             await refreshPreferences()
