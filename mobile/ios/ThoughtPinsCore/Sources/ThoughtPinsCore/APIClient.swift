@@ -124,9 +124,21 @@ public actor ThoughtPinsAPIClient {
                 confirmAction: confirmAction,
                 pendingActionId: pendingActionId
             ),
-            idempotencyKey: resolvedMessageId
+            idempotencyKey: resolvedMessageId,
+            // A model round trip is not an ordinary request. Measured against
+            // production: 13.3s, 12.6s, 21.8s. The 30s default left so little
+            // headroom that a Release run of the feature sweep timed out on a
+            // question that worked; on a phone network it would be routine.
+            timeout: ThoughtPinsAPIClient.chatTimeout
         )
     }
+
+    /// How long a model round trip is allowed to take.
+    ///
+    /// Deliberately generous, and deliberately not the global timeout: the
+    /// 30-second default is what lets the app tell an unreachable server from a
+    /// slow one, which is what the offline draft queue depends on.
+    public static let chatTimeout: TimeInterval = 90
 
     public func chatConversations(page: Int = 1, limit: Int = 20) async throws -> ChatConversationsPageResponse {
         try await request(
@@ -587,12 +599,16 @@ public actor ThoughtPinsAPIClient {
         queryItems: [URLQueryItem] = [],
         body: Body?,
         idempotencyKey: String? = nil,
-        allowRefresh: Bool = true
+        allowRefresh: Bool = true,
+        timeout: TimeInterval? = nil
     ) async throws -> T {
         let mutationMethods = ["POST", "PUT", "PATCH", "DELETE"]
         let resolvedIdempotencyKey = idempotencyKey ?? (auth && mutationMethods.contains(method) ? UUID().uuidString : nil)
         var request = URLRequest(url: makeURL(path: path, queryItems: queryItems))
         request.httpMethod = method
+        if let timeout {
+            request.timeoutInterval = timeout
+        }
         request.cachePolicy = .reloadIgnoringLocalCacheData
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("no-store", forHTTPHeaderField: "Cache-Control")
@@ -740,6 +756,16 @@ public actor ThoughtPinsAPIClient {
         // answer to no network -- a draft is written locally and sent later --
         // and that only works if the request admits it failed.
         configuration.waitsForConnectivity = false
+        // 30s suits the ordinary reads and writes. It does not suit a model
+        // round trip: measured against production on 2026-08-27, /v1/chat took
+        // 13.3s, 12.6s and 21.8s on a healthy desktop connection, and a Release
+        // build of the feature sweep hit the timeout on a normal question. Add
+        // a phone's network on top and "That took too long" becomes a routine
+        // answer to a working request.
+        //
+        // Raising it globally is the wrong fix: this timeout is what makes an
+        // unreachable server distinguishable from a slow one, which is what the
+        // offline draft queue depends on. So chat asks for more, per request.
         configuration.timeoutIntervalForRequest = 30
         configuration.timeoutIntervalForResource = 60
         return URLSession(configuration: configuration)
