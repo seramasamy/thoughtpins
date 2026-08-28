@@ -380,11 +380,48 @@ def check_built_info_plist(app_path: Path) -> list[str]:
     for key in ("GIDClientID", "GIDServerClientID"):
         if key in info and not str(info.get(key) or "").strip():
             failures.append(f"{plist}: {key} is present but empty")
+
+    # App Store Connect rejects an upload whose top-level CFBundleIconName is
+    # missing: ITMS-90713. Xcode injects it from
+    # ASSETCATALOG_COMPILER_APPICON_NAME only when it *generates* the
+    # Info.plist, and GENERATE_INFOPLIST_FILE is NO here, so it has to be
+    # stated in the source plist. actool separately writes nested copies under
+    # CFBundleIcons, which is why this failure is invisible on a device -- the
+    # icon appears, and only the upload is refused.
+    if not str(info.get("CFBundleIconName") or "").strip():
+        failures.append(
+            f"{plist}: no top-level CFBundleIconName. App Store Connect rejects the "
+            "upload as ITMS-90713. The nested CFBundleIcons entries actool writes are "
+            "not a substitute."
+        )
+
+    # These were absent from every archive until 2026-08-27, because project.yml
+    # declared them under a `resources:` key that XcodeGen does not have and
+    # silently ignored. The generated project had no Copy Bundle Resources
+    # phase at all, so the app shipped with no icon, no privacy manifest and a
+    # launch screen pointing at assets that were not there. Nothing noticed,
+    # because the archive still built and the plist still validated.
+    for name, why in (
+        ("Assets.car", "the compiled asset catalog: without it there is no app icon and no launch image"),
+        ("PrivacyInfo.xcprivacy", "the privacy manifest Apple requires for the APIs this app uses"),
+    ):
+        if not (app_path / name).exists():
+            failures.append(f"{app_path.name} contains no {name} -- {why}")
+
     return failures
 
 
 def _check_info_plist(failures: list[str]) -> None:
     info = load_plist(TARGET / "Resources" / "Info.plist", failures)
+    if info and str(info.get("CFBundleIconName") or "").strip() != "AppIcon":
+        # Also asserted on the built app, but this runs on Linux in the python
+        # job, so the failure is caught on every push rather than only when the
+        # macOS archive job runs.
+        failures.append(
+            "Resources/Info.plist must set CFBundleIconName to AppIcon. Xcode only "
+            "injects it when it generates the Info.plist, and GENERATE_INFOPLIST_FILE "
+            "is NO, so an upload without it is rejected as ITMS-90713."
+        )
     if not info:
         return
     if info.get("CFBundleDisplayName") != "Thought Pins":

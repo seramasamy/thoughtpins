@@ -8,6 +8,15 @@
     <string>Thought Pins</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
+    <!-- Required by App Store Connect. An upload with no top-level
+         CFBundleIconName is rejected as ITMS-90713. Xcode injects it from
+         ASSETCATALOG_COMPILER_APPICON_NAME only when it generates the
+         Info.plist, and GENERATE_INFOPLIST_FILE is NO here because this file
+         is hand written. actool separately writes nested copies under
+         CFBundleIcons, so the icon appears on the device while the upload is
+         still refused, which is why this key is stated explicitly. -->
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
     <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
     <key>CFBundleInfoDictionaryVersion</key>

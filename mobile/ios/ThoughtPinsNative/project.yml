@@ -43,10 +43,24 @@ targets:
   ThoughtPins:
     type: application
     platform: iOS
+    # `resources:` is not an XcodeGen target key. It was silently ignored, so
+    # the asset catalog and the privacy manifest were never added to the target
+    # at all: the generated project had no Copy Bundle Resources phase and the
+    # archive contained only Info.plist, PkgInfo and the executable. No app
+    # icon, no PrivacyInfo.xcprivacy, and a launch screen referencing a colour
+    # and an image that were not in the bundle.
+    #
+    # Resources belong under `sources:`; XcodeGen routes each file to the right
+    # build phase by extension. Info.plist and the entitlements are excluded
+    # because they are consumed as build settings -- copying them into the
+    # bundle as resources would ship a duplicate Info.plist, which App Store
+    # Connect also rejects.
     sources:
       - Sources
-    resources:
-      - Resources
+      - path: Resources
+        excludes:
+          - Info.plist
+          - ThoughtPins.entitlements
     dependencies:
       - package: ThoughtPinsApp
         product: ThoughtPinsApp
