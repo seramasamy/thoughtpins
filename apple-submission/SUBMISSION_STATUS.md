@@ -31,59 +31,83 @@ switched off.
 
 ---
 
-## What is verified
+## What is verified, and against what
 
-Verified means a command was run and its output read, or a screen was looked at.
-Not "the code looks right".
+Three near-rejections this week — no bundle resources, no `CFBundleIconName`, a
+placeholder app icon — all came from checking the **source** and calling it
+verified. So every claim below now carries what it was actually checked against:
+
+- **ARTIFACT** — the built `.app` or `.xcarchive`, or a screen of the running
+  binary. This is the only tier that says anything about what ships.
+- **LIVE** — a real request to production and the response read.
+- **SOURCE** — the repository only. True of the code; says nothing about the
+  build. **These are the ones that hid three defects.**
 
 ### The app itself
 
-- **The shipping app target builds and runs on this Mac** — for the first time.
-  Removing GoogleSignIn made that possible; it was the only reason a Swift 5.9
-  toolchain could not resolve the project. Every earlier verification ran
-  against a scratch copy outside the repository.
-- **The real binary was checked, not a stand-in:** committed Info.plist, bundle
-  id `com.thoughtpins.app`, portrait-only iPhone and all-four iPad, no Google
-  keys or URL types surviving into the built plist, no embedded frameworks,
-  5.9 MB, and a launch that resolved `https://api.thoughtpins.com` from its own
-  Info.plist and got 200 from `/v1/client-config` over HTTP/2.
-- **Both release levers fire.** With the minimum raised, the app shows "Update
-  Thought Pins to continue", both version numbers, and a working store button;
-  put back, it returns to normal. Maintenance mode shows its message as a banner
-  with the app usable underneath — not a dead screen.
-- **A single entry can be deleted from the app**, which the privacy policy
-  grants as a right. Verified end to end against production: the assistant
-  could recall the entry's content before the delete and could not after, and
-  deleting an entry takes its retained recording with it. The throwaway account
-  used for that test was deleted afterwards.
-- **Account export gives you a file.** 135 KB JSON through the share sheet, with
-  Save to Files. It previously fetched the payload and discarded it while saying
-  "Your export is ready."
-- The detail screens have had the accessibility, iPad, Dynamic Type, light/dark,
-  375pt, offline, empty-state and error passes; errors and offline were driven
-  with real injected 404s, 500s and dropped connections.
+- **ARTIFACT — the shipping target builds and runs on this Mac.** Removing
+  GoogleSignIn made it possible; it was the only reason a Swift 5.9 toolchain
+  could not resolve the project.
+- **ARTIFACT — the bundle contains what it must.** `Assets.car`,
+  `PrivacyInfo.xcprivacy` at the bundle root, both icon PNGs, and a top-level
+  `CFBundleIconName`. *Until 2026-08-27 none of this was true and nothing
+  noticed, because the checks read `project.yml` instead of the `.app`.*
+- **ARTIFACT — the built Info.plist**, key by key: bundle id, versions,
+  `ITSAppUsesNonExemptEncryption`, `LSRequiresIPhoneOS`, orientations, the
+  microphone string, and `THOUGHTPINS_API_BASE_URL` pointing at production.
+- **ARTIFACT — the app icon is the real mark**, 1024×1024 at source with no
+  alpha, fully opaque at every rendered size.
+- **ARTIFACT — cold launch, both appearances.** Launch background samples
+  #F2F2F7 light and #000000 dark, matching the settled page background exactly.
+  No flash, no step. *The earlier measurement of this was void: it ran on a
+  build where `LaunchBackground` was not in the bundle at all.*
+- **ARTIFACT — a virgin `git clone` from GitHub archives.** Empty `$HOME`, the
+  post-clone script run as Apple runs it, `CFBundleVersion` carrying the
+  injected build number.
+- **ARTIFACT — Release configuration behaves as Debug does.** The whole feature
+  sweep, 15 steps, run with `-configuration Release`.
+- **LIVE — both release levers fire.** Minimum raised: the update screen with
+  both version numbers and a working store button. Maintenance: a banner with
+  the app usable underneath.
+- **LIVE — a single entry can be deleted**, and the assistant that could recite
+  its content before could not after.
+- **LIVE — account export produces a 135 KB file** through the share sheet.
+- **ARTIFACT — the detail screens** passed the accessibility, iPad, Dynamic
+  Type, light/dark, 375pt, offline, empty-state and error passes, with real
+  injected 404s, 500s and dropped connections.
 
 ### The backend
 
-- **Journal text and tokens reach no log line.** Driven with a sentinel through
-  the real app at DEBUG, asserted across every logger. This found a real leak —
-  the model provider's SDK logs the full prompt at DEBUG — now clamped
-  regardless of `LOG_LEVEL`.
-- **Account deletion purges.** Walked every table in the schema after a real
-  deletion: nothing owned by the user survives, and the journal text is gone
-  from every column. The user row remains as an anonymised tombstone, which is
-  deliberate; it no longer keeps the account's settings.
-- **Registration works against production**, proven by a check that registers a
-  throwaway account, asserts it is admitted, and deletes it.
-- **Spend is capped**: $3/user/month and $50/platform/month, enforced before the
-  provider is called. A production deploy that would silently disable that is
-  now refused.
+- **LIVE — journal text and tokens reach no log line.** A sentinel driven
+  through the running app at DEBUG. Found a real leak in the provider SDK.
+- **LIVE — account deletion purges**, verified by walking every table in the
+  database afterwards.
+- **LIVE — registration works against production**, by registering and deleting
+  a throwaway account.
+- **SOURCE — spend is capped** at $3/user and $50/platform per month. The code
+  enforces it before the provider is called and a deploy that disables it is
+  refused, but **no request has ever been driven past the cap**. Untested.
 
 ### CI
 
-Seven jobs green on an ordinary push to `main`, `ios` included. Build number is
-the commit count, asserted against the built binary. Archive and dSYMs kept 30
-days. Signing and upload steps authored and skipped until secrets exist.
+- **ARTIFACT — seven jobs green**, `ios` included, with the archive and its
+  dSYMs kept for 30 days, and the build number asserted inside the built binary.
+- **ARTIFACT — the post-clone script itself is exercised on every run**, both
+  build-number branches, from a clean checkout.
+
+### Still SOURCE-only, and honestly so
+
+These are true of the repository and have never been observed in the shipping
+artifact. They are the remaining candidates for the same class of surprise:
+
+- The spend cap has never been hit in anger.
+- Keychain writes have never run under a **real** signature — only ad-hoc.
+  Unsigned builds are refused by `SecItemAdd`, TestFlight builds should not be,
+  and no build in between has been tested.
+- Sign in with Apple ships as an entitlement with no button. Reasoned inert;
+  never observed on a signed build.
+- The privacy manifest's contents have never been reconciled against what Apple
+  actually asks at upload — only its presence in the bundle is checked.
 
 ---
 
@@ -247,3 +271,9 @@ script and never the code.
   13–22s against what was a 30s timeout. Chat now gets 90s; the global timeout
   is unchanged, because it is what distinguishes an unreachable server from a
   slow one.
+- **The committed evidence screenshots are of the wrong build.** Before the
+  asset catalog shipped there was no `AccentColor`, so every control outside the
+  signed-in shell rendered in system blue; they are orange now. The two files in
+  `screenshots/evidence/` show blue and should be recaptured. The twelve store
+  screenshots are unaffected — they contain no system blue, because the
+  signed-in screens were already tinted explicitly.
