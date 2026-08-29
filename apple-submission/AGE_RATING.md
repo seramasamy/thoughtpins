@@ -74,6 +74,40 @@ live form** — these are the intended answers, not a transcription.
 | User Generated Content | **No** | Nothing is shared. There is no feed, no profiles, no following, no comments, no links out, and no way for one account to see another's content |
 | Made for Kids | **No** | Never enable this |
 
+### The July 9, 2026 social-capability questions
+
+Apple added these after the AI questions. For this app every answer is the
+negative one, and each is grounded in the code, not memory.
+
+| Question | Answer | Why |
+|---|---|---|
+| User-to-user communication (messaging, chat between users) | **None** | Chat is exclusively user-to-assistant (`chat/reply.py` calls the model). There are no messaging endpoints in `api_routes/` and no route by which one account can send anything to another |
+| User-generated content shared with or visible to other users | **None** | Every entry, reply, and card is tenant-scoped; no endpoint exposes another account's content |
+| Social networking features (profiles, following, discovery) | **None** | No profiles, no follow graph, no discovery surface exist in the code |
+| Can users contact each other? | **No** | Same as above; there is no inter-account surface at all |
+
+Two things to disclose in the rationale so they are not mistaken for social
+features: the app presents the OS **share sheet** (`ThoughtPinsShareSheet`,
+used at the account-export step) — that hands a file to the person's own other
+apps, not to another Thought Pins user — and **invite redemption**
+(`redeemInvite`) gates access during the closed beta; a code admits the account
+that enters it and connects it to no one.
+
+### Parental controls and frequency
+
+| Question | Answer | Why |
+|---|---|---|
+| Does the app offer parental controls / age gates within the app? | **No** | The 17+/18+ store rating is the gate; there is no in-app control |
+| Frequency of the mature content that drives the rating | **Infrequent/Mild** is defensible, but choose **Frequent/Intense** if unsure | The app ships no mature content of its own; the exposure is entirely what an unfiltered model *could* generate from what the person writes. Rate to the capability, not the expectation |
+
+### Korea (KMRB/GRAC) rating override, added 2026-08-12
+
+Apple now asks for a Korea-specific rating. With unrestricted AI generation and
+no in-app moderation, the honest Korea answer matches the mature tier — do
+**not** self-assign a lower Korea rating than the overall one. If Apple's Korea
+questionnaire asks specifically about AI-generated content, answer that it is
+present and unfiltered, consistent with the AI questions above.
+
 ## The UGC answer is the one most likely to be challenged
 
 Answer **No**, and be ready to explain why in the review notes: Apple's UGC
@@ -84,7 +118,7 @@ What we do have anyway, and should say so: an in-app report action on any chat
 reply (Chat → "Report this reply"), which posts to `/v1/safety/reports` and is
 answered at support@thoughtpins.com.
 
-## Confirmed against the submission build (2026-08-26)
+## Confirmed against the submission build (2026-08-29)
 
 Re-checked mechanically rather than from memory, because every reason below is
 a claim about what the code does:
@@ -95,7 +129,7 @@ a claim about what the code does:
 | The assistant still returns model prose | `/v1/chat` unchanged | holds |
 | In-app reporting exists, as this file claims | Chat > "Report this reply" > `reportChatReply` > `POST /v1/safety/reports` | wired and exercised against production |
 | No in-app browser | searched for `WKWebView` and `SFSafariViewController` | neither is present anywhere in the iOS source |
-| No account-to-account surface | searched for share, follow, feed, comment | none. The one "share" wording was a Capture section title that only imports a file, and has been retitled "Add a file" |
+| No account-to-account surface | searched for follow, feed, comment, and every share path | no inter-account surface. The one on-screen "share" is the OS share sheet (`ThoughtPinsShareSheet`) used to export the account's own data to the person's other apps — it moves nothing between accounts |
 
 **The decision stands: mature tier.** Nothing changed that would justify a
 lower one, and the route to a lower one is unchanged and stated below: a

@@ -9,8 +9,15 @@ about 1,400 characters and left the true margin at fifteen. Re-measure after
 every edit rather than trusting the number:
 
 ```bash
-sed -n '/^## .* BEGIN/,/^## .* END/p' apple-submission/REVIEW_NOTES.md \
-  | sed '1d;$d' | wc -m
+# Character count (not bytes). wc -m counts bytes under a POSIX/C locale, so
+# measure with Python, which counts Unicode characters regardless of locale.
+python3 -c "import sys,io; \
+  block=[]; keep=False
+for line in io.open('apple-submission/REVIEW_NOTES.md', encoding='utf-8'):
+    if line.startswith('## ') and 'END' in line: keep=False
+    if keep: block.append(line)
+    if line.startswith('## ') and 'BEGIN' in line: keep=True
+print(len(''.join(block)))"
 ```
 
 If you need the extra paragraph the invite-gate scenario below calls for, cut
@@ -216,7 +223,6 @@ wall, and finds no explanation files a 2.1 rejection.
       (`config_urls.public_client_url`), and `scripts/validate_production.py`
       blocks a deploy on a mangled value. Set such variables with
       `MSYS_NO_PATHCONV=1`, or give a full `https://` URL.
-      ```
 
 ### Things deliberately not claimed
 

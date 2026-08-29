@@ -86,7 +86,7 @@ reaches hardware, before TestFlight goes wider.
 `"Microphone access was not granted. You can attach an audio file instead."`
 and returns without opening the session. That branch has never executed.
 
-1. Fresh install. Capture tab, tap the record control.
+1. Fresh install. Chat tab, tap the mic.
 2. At the system prompt, tap **Don't Allow**.
 3. Expect: no recording indicator, no timer, the message above on screen, and
    the file-attach route still working. Nothing is uploaded.

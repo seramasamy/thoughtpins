@@ -15,6 +15,16 @@ off". Record the result next to each heading as PASS / FAIL / N/A with a date.
 
 **Screenshots are a separate job.** See "What this is not" at the end.
 
+**This run is also the iOS-26 SDK re-verification.** Every "ARTIFACT" claim in
+`apple-submission/SUBMISSION_STATUS.md` was verified on an Xcode 15.2 / iOS 17.2
+build. App Store Connect requires the Xcode 26 / iOS 26 SDK, and that rebuild
+can restyle system backgrounds, Form presentation, and the launch transition
+(`LaunchBackground` was matched to iOS 17.2's grouped-background values by
+hand). Running this script on the TestFlight build **is** the re-verification of
+those visual ARTIFACT claims: the settled launch colour and no launch flash,
+the orange tint (not system blue) on the sign-in screen, Form/grouped-list
+backgrounds, and the tab bar. Note any drift against `SUBMISSION_STATUS.md`.
+
 ---
 
 ## Before you start

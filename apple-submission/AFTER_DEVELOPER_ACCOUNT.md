@@ -245,9 +245,9 @@ Do this *before* the archive, so the app the reviewer opens has data.
       -destination 'platform=iOS Simulator,name=iPhone 15 Pro' \
       CODE_SIGNING_ALLOWED=NO build
     ```
-    *Expect compile errors on the first attempt.* Roughly 400 lines of SwiftUI
-    in this repo have never been through a compiler. See
-    "Known-unverified Swift" in [`README.md`](README.md).
+    The app target compiles cleanly on this Ventura Mac now that GoogleSignIn
+    is removed; the shipping build has been archived here. See
+    `apple-submission/SUBMISSION_STATUS.md`.
 
 11. **Simulator pass across the device matrix.** Run on, at minimum:
     iPhone SE (3rd gen), the current Pro and Pro Max your Xcode offers
@@ -272,12 +272,13 @@ Do this *before* the archive, so the app the reviewer opens has data.
     - **Dark mode cold launch** — confirm no white flash (fixed, unverified)
     - **iPad Slide Over at 320pt** — drag the app into a Slide Over window
 
-12. **The archive is not built on this Mac.** macOS 13.7.8 with Xcode 15.2
-    cannot produce an uploadable archive — App Store uploads have required
-    Xcode 26+ since 28 April 2026 — and the app target does not build here at
-    all, because GoogleSignIn 9.1.0 ships a `swift-tools-version:6.0` manifest
-    that a Swift 5.9 toolchain refuses to resolve (verbatim error in
-    [`MAC_START_HERE.md`](MAC_START_HERE.md)). Build it on `macos-latest`:
+12. **The uploadable archive is not built on this Mac.** The app target now
+    builds and archives here (GoogleSignIn was removed), but macOS 13.7.8 with
+    Xcode 15.2 cannot produce an *uploadable* archive — App Store uploads have
+    required Xcode 26+ since 28 April 2026. The upload build comes from Xcode
+    Cloud (see [`../docs/release/XCODE_CLOUD_RUNBOOK.md`](../docs/release/XCODE_CLOUD_RUNBOOK.md)),
+    with GitHub Actions as an untested fallback. A local Xcode 15.2 archive is
+    only for on-device debugging:
 
     ```bash
     gh workflow run ci.yml --ref main -f run_native=true
@@ -320,8 +321,12 @@ Do this *before* the archive, so the app the reviewer opens has data.
 14. **App Privacy.** Answers are pre-derived in
     [`docs/release/APPLE_REVIEW_ANSWERS.md`](../docs/release/APPLE_REVIEW_ANSWERS.md)
     and must match `PrivacyInfo.xcprivacy` exactly — Apple compares them.
-    Declared: Email, Phone, User ID, Other User Content, Audio, Device ID — all
-    "Linked to you", all "App Functionality", **none** used for tracking.
+    The authoritative type-by-type list is
+    [`apple-submission/APP_PRIVACY.md`](APP_PRIVACY.md), which matches
+    `PrivacyInfo.xcprivacy` exactly. Declared: Email, Phone, User ID, Other
+    User Content, Audio, Photos or Videos — all "Linked to you", all "App
+    Functionality", **none** used for tracking. If crash telemetry (Sentry) is
+    enabled, add "Crash Data" under Diagnostics, not linked to identity.
 
 15. **Age rating.** The app shows user-generated text and unmoderated
     AI-generated text. Answer the questionnaire from

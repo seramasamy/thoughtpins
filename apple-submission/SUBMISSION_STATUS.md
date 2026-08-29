@@ -1,6 +1,6 @@
 # Submission status — Thought Pins 1.0.0
 
-**Last updated:** 2026-08-26, at the end of the final Mac session.
+**Last updated:** 2026-08-29, after the pre-submission audit run.
 **Written for:** someone on a Windows machine, with no Mac and no memory of how
 any of this happened.
 

@@ -78,7 +78,7 @@ state. Do them first; Stage 1 fails confusingly without them.
    - Name: `Thought Pins`
    - Primary language: English (U.S.)
    - Bundle ID: pick `com.thoughtpins.app` from the list
-   - SKU: `thoughtpins-ios-1` (any stable string; never shown to users)
+   - SKU: `thoughtpins-ios-001` (any stable string; never shown to users)
    - User Access: Full Access
 
    You need the App Manager, Admin or Account Holder role to do this. If you
@@ -432,6 +432,16 @@ there.
 GitHub Actions already builds an **unsigned** archive of every commit to `main`
 that touches iOS, and keeps it with its dSYMs for 30 days. The signing and
 upload steps are written and switched off in `.github/workflows/ci.yml`; turning
-them on needs five secrets, listed in a comment beside them. That is the
+them on needs six secrets, listed in a comment beside them. That is the
 fallback if Xcode Cloud proves unworkable — it is not the primary path, because
 it needs signing material in a repository secret, and Xcode Cloud does not.
+
+**Treat the signed Actions path as untested.** The unsigned archive is proven
+on every push; the signed export and App Store upload steps have never run
+end to end from this Mac-less setup. Two things in particular are unverified:
+the export needs a signing certificate and a distribution profile minted from a
+PC (Apple's Developer portal can export a `.p12` and a profile, but nobody has
+done it here), and the `-allowProvisioningUpdates` export now passes an App
+Store Connect API key so it can create a profile headlessly — plausible, not
+demonstrated. Expect to iterate on the first real run. Xcode Cloud avoids all
+of this because Apple signs on their infrastructure.

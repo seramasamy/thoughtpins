@@ -120,57 +120,23 @@ explains what that floor is for. The simulator command above builds for iOS,
 which is what the app ships for, and sidesteps the host entirely. On a Mac
 running macOS 14+, plain `swift test` works fine.
 
-### Trap 2: GoogleSignIn 9.1.0 cannot resolve on Xcode 15.2
+### Trap 2 (historical): GoogleSignIn is gone
 
-Confirmed, not hypothetical. Verbatim:
+Earlier revisions pinned GoogleSignIn 9.1.0, whose `swift-tools-version:6.0`
+manifest a Swift 5.9 toolchain could not resolve, so the app target would not
+build on this machine at all. **That dependency was removed for v1** (Google
+sign-in is hidden on iOS under Guideline 4.8 until Sign in with Apple is
+configured beside it). `project.yml` no longer declares any remote package,
+`scripts/check_ios_submission_source.py` now asserts the *absence* of remote
+packages, and the app target compiles and archives on this Ventura Mac. The
+only remaining host limit is Trap 1 (`swift test`) and the Xcode-26 SDK
+requirement for an uploadable archive, which is why the upload build comes from
+Xcode Cloud.
 
-```
-$ xcodebuild -project ThoughtPins.xcodeproj -scheme ThoughtPins \
-    -destination 'platform=iOS Simulator,name=iPhone 15 Pro' \
-    CODE_SIGNING_ALLOWED=NO build
+### Running the app on a Ventura machine
 
-xcodebuild: error: Could not resolve package dependencies:
-  Dependencies could not be resolved because 'googlesignin-ios' >= 9.1.0
-  contains incompatible tools version (6.0.0) and root depends on
-  'googlesignin-ios' 9.1.0.
-```
-
-GoogleSignIn 9.1.0 ships a `swift-tools-version:6.0` manifest, and a 5.9
-toolchain cannot parse a manifest above its own version — it fails before
-compiling a line. There is no flag for it and no workaround short of a newer
-Xcode.
-
-**Do not remove or downgrade the dependency.** `project.yml` pins
-`exactVersion: 9.1.0` and `scripts/check_ios_submission_source.py` fails the
-build without it. Google sign-in cannot be exercised on this machine anyway: it
-needs client IDs that only exist in a signed release build, and with
-`GOOGLE_IOS_CLIENT_ID` empty the provider's `supports(_:)` returns false.
-
-The consequence: **`GoogleOAuthTokenProvider.swift` cannot be compiled here in
-the normal way**, because it is the only importer of GoogleSignIn. Everything
-else in the app compiles.
-
-It has since been compiled against a stand-in. Each declaration the file uses
-was checked against the real 9.1.0 public headers and reproduced with the same
-nullability — `GIDSignIn.sharedInstance` (class property), `handleURL:`,
-`signInWithPresentingViewController:completion:` (the async form the file
-calls), `GIDSignInResult.user` (non-null), `GIDGoogleUser.idToken` and
-`.profile` (both nullable), `GIDToken.tokenString` and `GIDProfileData.name`
-(both non-null). Against that, the file compiles clean under
-`SWIFT_STRICT_CONCURRENCY: complete` for the iOS 17 simulator, and its symbols
-link into the app binary.
-
-So its syntax, its isolation, and its use of that API are no longer unknown.
-What a stand-in cannot prove is that the real package resolves, links, and
-behaves — that still needs the `ios` job in `.github/workflows/ci.yml` on
-`macos-latest`, and it is the last thing standing between here and a verified
-archive.
-
-### Running the app on a Ventura machine anyway
-
-The rest of the app can be built and run by excluding that single file. Do it in
-a scratch copy outside the repository — never by editing `project.yml`, which
-the submission gate checks. Two things that are not obvious:
+The app target builds and runs directly now — no file needs excluding. Two
+things that are not obvious:
 
 - **Build ad-hoc signed, not `CODE_SIGNING_ALLOWED=NO`, if you intend to sign
   in.** An unsigned app has no `application-identifier` entitlement, so
