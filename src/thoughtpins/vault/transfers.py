@@ -419,9 +419,13 @@ def _cleanup_expired_in_context(user_id: str | None, limit: int) -> int:
 
 
 def _active_user_ids() -> list[str]:
+    # All users, deliberately including deactivated tombstones: an in-flight
+    # upload whose owner deleted their account still has an archive on disk,
+    # and filtering to active users left exactly those archives unswept
+    # forever. Account deletion removes them too; this is the backstop.
     session = get_session()
     try:
-        return [str(row[0]) for row in session.query(User.id).filter(User.is_active.is_(True)).all()]
+        return [str(row[0]) for row in session.query(User.id).all()]
     finally:
         session.close()
 

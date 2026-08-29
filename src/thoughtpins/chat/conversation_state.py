@@ -106,6 +106,27 @@ def remember_conversation_turn(
     (persist or save_conversation_cache)()
 
 
+def forget_conversation(
+    chat_id: str,
+    *,
+    cache: ConversationCache = CONVERSATION_CACHE,
+    path: Path | None = None,
+) -> bool:
+    """Drop one chat's retained turns from memory and from disk.
+
+    Account deletion calls this: the cache is keyed by Telegram chat id and
+    lives outside the database, so without it a deleted user's conversation
+    text survived on the filesystem. Loads the on-disk cache first so a key
+    written by an earlier process generation is still found.
+    """
+    load_conversation_cache(cache, path=path)
+    with _CACHE_LOCK:
+        removed = cache.pop(chat_id, None) is not None
+    if removed:
+        save_conversation_cache(cache, path=path)
+    return removed
+
+
 def history_for_prompt(
     history: list[ConversationMessage],
     max_chars: int = HISTORY_PROMPT_CHARS,

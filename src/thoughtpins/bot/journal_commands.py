@@ -203,7 +203,11 @@ async def cmd_report(update, context) -> None:
         qtext = parts[1] if len(parts) > 1 else ""
         md = gen.generate_markdown(qtype, qtext)
 
-        reports_dir = config.reports_path()
+        # Per-user directory: the file is written, then re-opened to send, so
+        # a same-named write from another account landing in between would
+        # have delivered that account's report here. Scoping the path removes
+        # the collision entirely.
+        reports_dir = config.reports_path() / user_id
         reports_dir.mkdir(parents=True, exist_ok=True)
         safe_name = query.replace(" ", "_")[:60]
         md_path = reports_dir / f"{safe_name}_{local_today().isoformat()}.md"

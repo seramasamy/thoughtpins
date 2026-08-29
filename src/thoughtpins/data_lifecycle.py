@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -34,6 +35,7 @@ from thoughtpins.db import (
     Report,
     SafetyReport,
     User,
+    VaultImportSession,
     VoiceAsset,
 )
 from thoughtpins.source_policy import SourceExportPolicy, export_policy_for_source
@@ -51,6 +53,9 @@ INTERNAL_EXPORT_KEYS = {
     "oauth_profiles",
     "storage_ref",
 }
+# telegram_chat_id is deliberately NOT in this set: it identifies the user's
+# own Telegram account, which is their data to take with them, the same way
+# their email address is exported.
 
 
 class DataDeletionUnavailable(RuntimeError):
@@ -209,8 +214,72 @@ def _document_id_from_provenance(value: str | None) -> str | None:
     return value[len(prefix) :] if value and value.startswith(prefix) else None
 
 
+def _purge_user_files(session: Session, user_id: str, user: User | None) -> None:
+    """Remove this account's content from stores no row cascade reaches.
+
+    Runs while the user row still holds its identifiers: the conversation
+    cache is keyed by telegram_chat_id and magic-link tokens by email, so both
+    must be resolved before the tombstone nulls them.
+    """
+    import shutil
+
+    from thoughtpins.config import config
+
+    # Generated report files. The rows record where they were written.
+    for report in session.query(Report).filter(Report.user_id == user_id).all():
+        for path_text in (report.output_markdown_path, report.output_pdf_path, report.output_html_path):
+            if path_text:
+                Path(path_text).unlink(missing_ok=True)
+    # Reports are also written under a per-user directory (api_routes/exports
+    # and the Telegram bot), which the rows do not always record.
+    shutil.rmtree(config.reports_path() / user_id, ignore_errors=True)
+
+    # The vault projection, its export zip, and graph visual exports.
+    from thoughtpins.vault.export_support import clean_generated_vault
+
+    vault_root = config.vault_path()
+    user_vault = vault_root / user_id
+    if user_vault.exists():
+        clean_generated_vault(user_vault, vault_root, user_id)
+    (vault_root / f"{user_id}.zip").unlink(missing_ok=True)
+    shutil.rmtree(vault_root / "_system" / "graph_exports" / user_id, ignore_errors=True)
+
+    # Staged vault-import archives. The expiry sweep only serves active
+    # accounts, so without this a deleted account's uploaded zip stayed
+    # forever.
+    from thoughtpins.vault.transfers import _remove_archive
+
+    for transfer in session.query(VaultImportSession).filter(VaultImportSession.user_id == user_id).all():
+        if transfer.storage_key:
+            try:
+                _remove_archive(transfer.storage_key)
+            except RuntimeError:
+                # A malformed storage key names no reachable file; it must not
+                # block the deletion of everything else.
+                pass
+
+    # Telegram conversation cache, keyed by chat id.
+    if user is not None and user.telegram_chat_id:
+        from thoughtpins.chat.conversation_state import forget_conversation
+
+        forget_conversation(str(user.telegram_chat_id))
+
+    # Magic-link tokens are deliberately keyed by email, so the user_id purge
+    # cannot see them; they would otherwise retain the address as PII until
+    # their expiry sweep.
+    if user is not None and user.email:
+        from thoughtpins.db_platform import MagicLinkToken
+
+        session.query(MagicLinkToken).filter(MagicLinkToken.email == user.email).delete(synchronize_session=False)
+
+
 def delete_user_data(session: Session, user_id: str) -> dict[str, int]:
-    """Delete all user-owned data and deactivate the user account."""
+    """Delete all user-owned data and deactivate the user account.
+
+    Backups are the one deliberate exception: the daily archive rotation keeps
+    up to 14 zips, so deleted content ages out of backups within 14 days
+    rather than immediately.
+    """
     from thoughtpins.voice_archive import delete_voice_archive
 
     # Serialize deletion against ingestion/chat writes. PostgreSQL writers use
@@ -252,6 +321,15 @@ def delete_user_data(session: Session, user_id: str) -> dict[str, int]:
 
     deleted: dict[str, int] = delete_voice_archive(session, user_id, commit=False)
 
+    # Content this account left on the FILESYSTEM, which no row cascade can
+    # reach. Each of these survived a real deletion until it was looked for:
+    # generated report files, the vault projection and its export zip, graph
+    # visual exports, staged vault-import archives, and (for Telegram-linked
+    # accounts) the on-disk conversation cache. Best effort by design — a
+    # missing file is already the desired state — but attempted before the
+    # rows go, because the rows are where the paths are recorded.
+    _purge_user_files(session, user_id, user)
+
     ordered_models = [
         ApiIdempotencyRecord,
         EventParticipant,
@@ -277,6 +355,7 @@ def delete_user_data(session: Session, user_id: str) -> dict[str, int]:
         AuditLog,
         LlmUsageEvent,
         InviteRequest,
+        VaultImportSession,
     ]
 
     for model in ordered_models:

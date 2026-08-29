@@ -34,7 +34,12 @@ def create_exports_router(*, current_user_dependency: Callable[..., str]) -> API
         try:
             generator = ReportGenerator(session, user_id=user_id)
             markdown = generator.generate_markdown(type, query or type)
-            reports_dir = config.reports_path()
+            # Per-user directory, not the shared root: two users asking for
+            # the same report type produced the same filename, and the second
+            # write replaced the first user's file with the second user's
+            # content. The response returns the markdown either way; the file
+            # is a per-account convenience copy.
+            reports_dir = config.reports_path() / user_id
             reports_dir.mkdir(parents=True, exist_ok=True)
             safe_name = f"{type}_{query}" if query else type
             safe_name = "".join(char if char.isalnum() or char in {"-", "_", "."} else "_" for char in safe_name)
