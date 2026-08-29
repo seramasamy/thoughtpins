@@ -33,6 +33,24 @@ switched off.
 
 ## What is verified, and against what
 
+> **2026-08-29 pre-submission audit.** A five-agent re-verification found and
+> fixed, at SHA f89c0b4: six iOS defects a device would surface (a 60s session
+> cap silently overriding the 90s chat timeout; a voice-note failure that
+> promised the recording was kept while the recorder had deleted it; a file
+> picker whose cancel wedged all imports; a 20-minute vault poll with no
+> cancel; a cold-start stranding on a revoked session; a stray "--"), three
+> backend logging bypasses (a production DEBUG file sink, diagnose tracebacks,
+> an unscrubbed Sentry), four boot-validation gaps, rate-limit holes (a
+> spoofable client IP, an unthrottled password endpoint), an ungated
+> transcription spend, an unverifiable telegram registration, six filesystem
+> stores account deletion never reached, and a cross-user report-file
+> collision. Every fix is gated or tested. Open owner decisions are listed in
+> the project memory and this run's report. **A new gate,
+> `ci_scripts/ci_post_xcodebuild.sh`, now asserts every archive is
+> upload-ready (Xcode 26 SDK, icon, assets, privacy manifest) — all prior
+> ARTIFACT ticks were on Xcode 15.2 and are VOID for the uploadable archive
+> until the device pass re-checks them.**
+
 Three near-rejections this week — no bundle resources, no `CFBundleIconName`, a
 placeholder app icon — all came from checking the **source** and calling it
 verified. So every claim below now carries what it was actually checked against:
@@ -200,9 +218,10 @@ after a deploy, which config validation cannot.
   ... from the app", was a stated right rather than a description, so the app
   was changed to honour it instead of scoping the sentence.
   `WEB_IOS_PARITY.md`.
-- **The person-card promise is loose.** The listing says "when you last spoke";
-  the screen shows *Last mentioned*, which is when you last wrote about them.
-  No field was invented to make the copy true — change the sentence.
+- **The person-card promise is loose.** A "when you last spoke" phrasing does
+  not match the screen, which shows *Last mentioned* (when you last wrote about
+  them). The listing copy in `APP_STORE_METADATA.md` avoids the phrase; do not
+  reintroduce it.
 - **Three worker-recovery tests fail locally** for want of a broker URL. They
   fail identically at `HEAD` before this session's work and pass with
   `REDIS_URL` set.
