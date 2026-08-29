@@ -425,6 +425,22 @@ struct ThoughtPinsCaptureScreen: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                if model.vaultImportPhase != .idle {
+                    Section("Vault import") {
+                        HStack(spacing: 10) {
+                            ProgressView()
+                            Text(model.vaultImportPhase == .applying
+                                ? "Importing your vault. This can take a few minutes for a large vault."
+                                : "Reading your vault. This can take a few minutes for a large vault.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Button("Cancel", role: .destructive) {
+                            model.cancelVaultImportInProgress()
+                        }
+                        .accessibilityIdentifier("thoughtpins-vault-cancel")
+                    }
+                }
                 if let transfer = model.pendingVaultImport, let preview = transfer.result {
                     Section("Vault preview") {
                         Text("\(preview.newNotes) new, \(preview.changedNotes) changed, \(preview.unchangedNotes) unchanged")

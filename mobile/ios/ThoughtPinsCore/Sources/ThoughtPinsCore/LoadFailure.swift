@@ -80,7 +80,7 @@ public enum ThoughtPinsLoadFailure: Equatable, Sendable {
         case .gone:
             return "This is no longer in your journal. It may have been deleted on another device."
         case .serverUnavailable:
-            return "Thought Pins could not answer just now. Nothing is wrong with your connection -- try again shortly."
+            return "Thought Pins could not answer just now. Nothing is wrong with your connection — try again shortly."
         case .signedOut:
             return "Your session ended. Sign in again to read this."
         case .unexpected:

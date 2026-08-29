@@ -743,7 +743,10 @@ public actor ThoughtPinsAPIClient {
         return message.isEmpty ? nil : String(message.prefix(512))
     }
 
-    private nonisolated static func makeEphemeralSession() -> URLSession {
+    // Internal rather than private so the test suite can assert the session's
+    // actual timeout configuration -- a constant-only test passed while a
+    // session-level cap silently undercut it.
+    nonisolated static func makeEphemeralSession() -> URLSession {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.urlCache = nil
         configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
@@ -766,8 +769,16 @@ public actor ThoughtPinsAPIClient {
         // Raising it globally is the wrong fix: this timeout is what makes an
         // unreachable server distinguishable from a slow one, which is what the
         // offline draft queue depends on. So chat asks for more, per request.
+        //
+        // There is deliberately NO timeoutIntervalForResource here. It is a
+        // session-wide cap on total transfer time that a per-request
+        // timeoutInterval cannot override, so the 60 it briefly held silently
+        // reimposed a 60s ceiling on chat's 90 -- the exact failure the
+        // per-request timeout exists to prevent -- and capped the 25MB upload
+        // path with it. The fail-fast property lives entirely in the request
+        // timeout above: it is an idle timer, and an unreachable server sends
+        // no bytes, so 30s of silence still fails fast.
         configuration.timeoutIntervalForRequest = 30
-        configuration.timeoutIntervalForResource = 60
         return URLSession(configuration: configuration)
     }
 }

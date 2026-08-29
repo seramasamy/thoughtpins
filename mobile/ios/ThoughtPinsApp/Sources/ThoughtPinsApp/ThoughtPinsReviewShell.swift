@@ -71,13 +71,22 @@ public struct ThoughtPinsRootView: View {
             }
         }
         .task { await model.bootstrap() }
+        // The onCancellation handler is load-bearing: the base fileImporter
+        // overload never calls onCompletion when the person cancels (or swipes
+        // the sheet away), which stranded the awaiting continuation and wedged
+        // file import until relaunch -- the import button's task hung forever
+        // and every later attempt failed as "already in progress".
         .fileImporter(
             isPresented: $uploadProvider.isImporterPresented,
             allowedContentTypes: [.item, .text, .pdf, .image, .audio],
-            allowsMultipleSelection: false
-        ) { result in
-            Task { @MainActor in uploadProvider.completeFileImport(result) }
-        }
+            allowsMultipleSelection: false,
+            onCompletion: { result in
+                Task { @MainActor in uploadProvider.completeFileImport(result) }
+            },
+            onCancellation: {
+                Task { @MainActor in uploadProvider.cancelFileImport() }
+            }
+        )
         // Problems inset rather than overlay, so one that stays does not sit on
         // the navigation bar, and so it can carry its own dismiss control.
         .safeAreaInset(edge: .top) {

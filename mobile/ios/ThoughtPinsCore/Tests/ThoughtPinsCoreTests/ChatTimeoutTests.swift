@@ -40,3 +40,39 @@ final class ChatTimeoutTests: XCTestCase {
         XCTAssertLessThanOrEqual(globalRequestTimeout, 30)
     }
 }
+
+/// The constant is only half the truth: URLSession's resource timeout is a
+/// session-wide cap on total transfer time that a per-request timeoutInterval
+/// cannot override. A 60-second value here once silently reimposed a 60s
+/// ceiling on chat's 90 while every constant-level test stayed green.
+final class SessionTimeoutConfigurationTests: XCTestCase {
+    func testTheSessionResourceTimeoutCannotUndercutChat() {
+        let configuration = ThoughtPinsAPIClient.makeEphemeralSession().configuration
+        XCTAssertGreaterThanOrEqual(
+            configuration.timeoutIntervalForResource,
+            ThoughtPinsAPIClient.chatTimeout,
+            "the session-wide resource cap fires before chat's per-request timeout, so the 90s is a lie"
+        )
+    }
+
+    func testTheSessionResourceTimeoutLeavesRoomForTheLargestUpload() {
+        // 25MB of audio becomes ~33MB of base64 JSON. On a slow cellular
+        // uplink (1 Mbit/s ≈ 125 KB/s) that is ~270s of transfer before the
+        // server even starts transcribing.
+        let configuration = ThoughtPinsAPIClient.makeEphemeralSession().configuration
+        XCTAssertGreaterThanOrEqual(
+            configuration.timeoutIntervalForResource,
+            600,
+            "a full-size voice upload cannot finish under this session-wide cap"
+        )
+    }
+
+    func testTheIdleTimeoutStillFailsFast() {
+        let configuration = ThoughtPinsAPIClient.makeEphemeralSession().configuration
+        XCTAssertEqual(
+            configuration.timeoutIntervalForRequest,
+            30,
+            "the idle timer is what distinguishes an unreachable server from a slow one"
+        )
+    }
+}

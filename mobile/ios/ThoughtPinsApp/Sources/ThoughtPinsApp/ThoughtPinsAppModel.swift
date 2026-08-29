@@ -60,6 +60,19 @@ public final class ThoughtPinsAppModel: ObservableObject {
     public let api: ThoughtPinsAPIClient
     private let sessionStore: SessionStore
     private let drafts: FileDraftStore
+    private let voiceRetry: VoiceRetryStore
+
+    /// Where a vault import currently is, so the screen can show progress and
+    /// a cancel control instead of twenty silent minutes of polling.
+    public enum VaultImportPhase: Equatable {
+        case idle
+        case previewing
+        case applying
+    }
+
+    @Published public private(set) var vaultImportPhase: VaultImportPhase = .idle
+    private var cancelVaultWork: (() -> Void)?
+
     private let oauthTokenProvider: any ThoughtPinsOAuthTokenProvider
     private let uploadProvider: any ThoughtPinsUploadProvider
     private var currentAppleNonce: String?
@@ -75,6 +88,9 @@ public final class ThoughtPinsAppModel: ObservableObject {
         self.api = ThoughtPinsAPIClient(baseURL: baseURL, sessionStore: sessionStore)
         self.sessionStore = sessionStore
         self.drafts = FileDraftStore(directory: draftDirectory.appendingPathComponent("ThoughtPins", isDirectory: true))
+        self.voiceRetry = VoiceRetryStore(
+            directory: draftDirectory.appendingPathComponent("ThoughtPins/voice-retry", isDirectory: true)
+        )
         self.oauthTokenProvider = oauthTokenProvider
         self.uploadProvider = uploadProvider
     }
@@ -198,19 +214,34 @@ public final class ThoughtPinsAppModel: ObservableObject {
                 config: config,
                 currentVersion: thoughtPinsRunningVersion
             )
-            self.me = try? await api.me()
+            // Not `try?`: swallowing here made the sessionExpired catch below
+            // unreachable from a cold start, which is the one moment it
+            // matters most -- a server-revoked session booted into a signed-in
+            // shell where every request failed. Other failures (offline, 500)
+            // still soften to nil so the app opens.
+            do {
+                self.me = try await api.me()
+            } catch APIClientError.sessionExpired {
+                throw APIClientError.sessionExpired
+            } catch {
+                self.me = nil
+            }
             await refreshPreferences()
             // Ask the gate before loading anything it would refuse. Without
             // this the shell rendered a signed-in app whose every request came
             // back 403, which reads as broken rather than as a closed beta.
             await refreshInviteStatus()
             await refreshVoiceArchive()
-            // Only sync under a live session. Signed out, every draft posts
-            // into a 401, comes back marked failed and burns an attempt, so a
-            // few cold launches on the sign-in screen were enough to exhaust
-            // work the user had not lost.
-            if me != nil {
+            // Only sync under a live session, WITH consent, and past the
+            // invite gate. Signed out, every draft posts into a 401, comes
+            // back marked failed and burns an attempt. Without consent, this
+            // was the one content-bearing call that fired before the person
+            // accepted AI processing -- an automatic POST of their queued
+            // words. Behind the invite gate, every POST 403s and burns
+            // attempts the same way the signed-out case did.
+            if me != nil, aiProcessingConsentAccepted, !isBlockedByInviteGate {
                 try? await syncDrafts()
+                await retryQueuedVoiceNotes()
             }
             await refreshReadModels()
             isOffline = false
@@ -540,10 +571,20 @@ public final class ThoughtPinsAppModel: ObservableObject {
         do {
             let payload = try await uploadProvider.payload(for: destination)
             if destination == .obsidianVault {
-                let preview = try await api.previewObsidianVaultResumable(
-                    filename: payload.filename,
-                    contentBase64: payload.contentBase64
-                )
+                // The preview polls the server for up to twenty minutes. Run
+                // it as a cancellable task and publish a phase, so the screen
+                // shows progress and a cancel control instead of a silent
+                // spinner with no way out.
+                let previewTask = Task {
+                    try await api.previewObsidianVaultResumable(
+                        filename: payload.filename,
+                        contentBase64: payload.contentBase64
+                    )
+                }
+                vaultImportPhase = .previewing
+                cancelVaultWork = { previewTask.cancel() }
+                defer { vaultImportPhase = .idle; cancelVaultWork = nil }
+                let preview = try await previewTask.value
                 pendingVaultImport = preview
                 let result = preview.result
                 showSuccess("Vault preview ready: \(result?.newNotes ?? 0) new, \(result?.changedNotes ?? 0) changed.")
@@ -567,6 +608,11 @@ public final class ThoughtPinsAppModel: ObservableObject {
                 showProblem(response.error ?? "We could not read any text from that file. Paste the text you want kept.")
             }
             await refreshReadModels()
+        } catch ThoughtPinsNativeUploadError.cancelled {
+            // Closing the picker is a decision, not a problem to report.
+        } catch is CancellationError {
+            // The person cancelled a vault preview mid-poll.
+            showProblem("Vault import cancelled.")
         } catch {
             showProblem(thoughtPinsPlainMessage(for: error, fallback: "That did not work. Try again."))
         }
@@ -574,17 +620,32 @@ public final class ThoughtPinsAppModel: ObservableObject {
 
     public func applyPendingVaultImport() async {
         guard let pendingVaultImport else { return }
-        do {
-            let response = try await api.applyPreviewedVaultImport(
+        // Applying polls the same up-to-twenty-minute loop as the preview.
+        let applyTask = Task {
+            try await api.applyPreviewedVaultImport(
                 transferId: pendingVaultImport.id,
                 conflictPolicy: pendingVaultImport.conflictPolicy
             )
+        }
+        vaultImportPhase = .applying
+        cancelVaultWork = { applyTask.cancel() }
+        defer { vaultImportPhase = .idle; cancelVaultWork = nil }
+        do {
+            let response = try await applyTask.value
             self.pendingVaultImport = nil
             showSuccess("Imported \(response.imported) notes. \(response.journalJobsQueued) are still being read.")
             await refreshReadModels()
+        } catch is CancellationError {
+            showProblem("Vault import cancelled. The preview is still here if you want to try again.")
         } catch {
             showProblem(thoughtPinsPlainMessage(for: error, fallback: "That did not work. Try again."))
         }
+    }
+
+    /// Stop a preview or apply that is mid-poll. The pending preview, if any,
+    /// is left in place so the person can retry rather than re-upload.
+    public func cancelVaultImportInProgress() {
+        cancelVaultWork?()
     }
 
     public func discardPendingVaultImport() async {
@@ -627,16 +688,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
             return
         }
         do {
-            let response = try await api.uploadFile(
-                filename: "voice-note-\(Int(Date().timeIntervalSince1970)).m4a",
-                contentBase64: data.base64EncodedString(),
-                mediaType: "audio/mp4",
-                destination: "journal",
-                caption: "Voice note",
-                title: "Voice note",
-                sourceType: "voice_note",
-                conversationId: "ios-voice"
-            )
+            let response = try await postVoiceNote(data)
             if response.entryId == nil {
                 showProblem(response.error ?? "No speech was recognized in that voice note.")
             } else if response.voiceAssetId != nil {
@@ -645,8 +697,60 @@ public final class ThoughtPinsAppModel: ObservableObject {
                 showSuccess("Voice note saved. The recording was discarded after transcription.")
             }
             await refreshReadModels()
+        } catch APIClientError.sessionExpired {
+            await clearLocalAccountState()
+            showProblem("Your session expired. Please sign in again.")
         } catch {
-            showProblem("Voice note failed. Your draft remains on this device.")
+            // The banner used to promise "Your draft remains on this device"
+            // while the bytes were already gone -- the recorder deletes its
+            // temp file before upload even starts. Keep the recording for
+            // real, then say so; if even that fails, say that instead.
+            do {
+                _ = try await voiceRetry.keep(data)
+                showProblem("Voice note failed to upload. The recording is saved on this device and will be retried.")
+            } catch {
+                showProblem("Voice note failed, and the recording could not be kept. Try again.")
+            }
+        }
+    }
+
+    private func postVoiceNote(_ data: Data) async throws -> UploadIngestResponse {
+        try await api.uploadFile(
+            filename: "voice-note-\(Int(Date().timeIntervalSince1970)).m4a",
+            contentBase64: data.base64EncodedString(),
+            mediaType: "audio/mp4",
+            destination: "journal",
+            caption: "Voice note",
+            title: "Voice note",
+            sourceType: "voice_note",
+            conversationId: "ios-voice"
+        )
+    }
+
+    /// Upload recordings kept by earlier failed attempts. Runs beside the
+    /// text-draft sync at bootstrap, under the same session/consent/invite
+    /// conditions. A response counts as delivered whatever the transcription
+    /// outcome; only a thrown transport error keeps the file for next time.
+    private func retryQueuedVoiceNotes() async {
+        guard let pending = try? await voiceRetry.pending(), !pending.isEmpty else { return }
+        var delivered = 0
+        for url in pending {
+            guard let data = try? Data(contentsOf: url), !data.isEmpty else {
+                await voiceRetry.discard(url)
+                continue
+            }
+            do {
+                _ = try await postVoiceNote(data)
+                await voiceRetry.discard(url)
+                delivered += 1
+            } catch {
+                break
+            }
+        }
+        if delivered > 0 {
+            showSuccess(delivered == 1
+                ? "A voice note from earlier was uploaded."
+                : "\(delivered) voice notes from earlier were uploaded.")
         }
     }
 
@@ -742,6 +846,9 @@ public final class ThoughtPinsAppModel: ObservableObject {
     /// is posted into the next account that opens the app here.
     func clearLocalAccountState() async {
         try? await drafts.purge()
+        // Same rule as text drafts: a recording queued under one account must
+        // never upload into the next account on this device.
+        await voiceRetry.purge()
         me = nil
         chatReply = ""
         routeLabel = "chat"
@@ -761,7 +868,19 @@ public final class ThoughtPinsAppModel: ObservableObject {
     }
 
     public func refreshReadModels() async {
-        librarySources = (try? await api.librarySources(limit: 20)) ?? librarySources
+        // This runs after every mutating action, which makes it the net that
+        // catches a session revoked mid-use: the API client has already
+        // cleared the Keychain and thrown sessionExpired, and without this the
+        // shell stayed "signed in" with every screen failing until relaunch.
+        do {
+            librarySources = try await api.librarySources(limit: 20)
+        } catch APIClientError.sessionExpired {
+            await clearLocalAccountState()
+            showProblem("Your session expired. Please sign in again.")
+            return
+        } catch {
+            // Offline or transient: keep what is already on screen.
+        }
         memoryCards = (try? await api.memoryCards(section: "people", limit: 12).items) ?? memoryCards
         placeCards = (try? await api.memoryCards(section: "places", limit: 12).items) ?? placeCards
         recentEntries = (try? await api.entries(page: 1, limit: 40).items) ?? recentEntries

@@ -136,6 +136,10 @@ public enum ThoughtPinsNativeUploadError: Error, LocalizedError {
     case filePickerNotConfigured(String)
     case filePickerAlreadyActive
     case noFileSelected
+    /// The person cancelled the picker on purpose. Distinct from
+    /// `noFileSelected` so callers can stay silent instead of showing a
+    /// problem banner for a deliberate choice.
+    case cancelled
     case fileAccessDenied(String)
     case fileTooLarge(String)
 
@@ -147,6 +151,8 @@ public enum ThoughtPinsNativeUploadError: Error, LocalizedError {
             return "A file import is already in progress."
         case .noFileSelected:
             return "No file was selected."
+        case .cancelled:
+            return "The file picker was closed."
         case .fileAccessDenied(let filename):
             return "Thought Pins could not read \(filename)."
         case .fileTooLarge(let filename):
@@ -200,7 +206,7 @@ public final class ThoughtPinsDocumentPickerUploadProvider: ObservableObject, Th
         guard let continuation = pendingContinuation else { return }
         pendingContinuation = nil
         isImporterPresented = false
-        continuation.resume(throwing: ThoughtPinsNativeUploadError.noFileSelected)
+        continuation.resume(throwing: ThoughtPinsNativeUploadError.cancelled)
     }
 
     private func makePayload(from url: URL, destination: ThoughtPinsUploadDestination) throws -> ThoughtPinsUploadPayload {
