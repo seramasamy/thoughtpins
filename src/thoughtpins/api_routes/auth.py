@@ -517,9 +517,19 @@ def create_auth_router(
                 status_code=403,
                 detail="System is locked. Registration is disabled.",
             )
-        if not (req.email or req.phone or req.telegram_chat_id):
-            raise HTTPException(status_code=422, detail="Provide email, phone, or telegram_chat_id")
-        if (req.email or req.phone) and not req.password:
+        if req.telegram_chat_id:
+            # Nothing here can prove the caller controls that chat. Accepting
+            # it let anyone pre-bind a chat id they do not own, and the bot
+            # would later route the real owner's messages into the squatter's
+            # account. Telegram accounts are created by the bot itself, which
+            # knows the chat id first-hand; this endpoint refuses them.
+            raise HTTPException(
+                status_code=422,
+                detail="Telegram accounts are created through the Telegram bot, not this endpoint.",
+            )
+        if not (req.email or req.phone):
+            raise HTTPException(status_code=422, detail="Provide email or phone")
+        if not req.password:
             raise HTTPException(status_code=422, detail="Password is required for email or phone registration")
         try:
             user = create_user(

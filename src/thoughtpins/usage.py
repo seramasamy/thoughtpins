@@ -202,6 +202,7 @@ def record_llm_usage(
     prompt_tokens: int,
     completion_tokens: int = 0,
     request_id: str | None = None,
+    cost_usd_override: float | None = None,
 ) -> None:
     """Persist one metered provider call. Never raises into the caller.
 
@@ -218,7 +219,12 @@ def record_llm_usage(
 
     prompt_tokens = max(0, int(prompt_tokens or 0))
     completion_tokens = max(0, int(completion_tokens or 0))
-    cost_usd = estimate_cost_usd(model, prompt_tokens, completion_tokens)
+    # Not every metered call is priced in tokens: hosted transcription bills by
+    # audio minute, so its caller passes the dollars directly.
+    if cost_usd_override is not None:
+        cost_usd = max(0.0, float(cost_usd_override))
+    else:
+        cost_usd = estimate_cost_usd(model, prompt_tokens, completion_tokens)
 
     session: Session | None = None
     try:

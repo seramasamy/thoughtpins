@@ -40,6 +40,12 @@ def hash_refresh_token(refresh_token: str) -> str:
 
 
 def _jwt_secret() -> str:
+    # Boot validation already refuses production without JWT_SECRET, but this
+    # function is the thing that signs every access token, so it refuses on its
+    # own too: a process that somehow reached here misconfigured must not mint
+    # tokens under the API key or a string printed in this file.
+    if not config.JWT_SECRET and config.is_production():
+        raise RuntimeError("JWT_SECRET is not set; refusing to sign tokens with a fallback secret in production.")
     return config.JWT_SECRET or config.API_KEY or "thoughtpins-local-dev-secret"
 
 

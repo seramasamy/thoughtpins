@@ -138,6 +138,9 @@ class Config:
     TRANSCRIPTION_MODEL: str = _env("TRANSCRIPTION_MODEL", "whisper-1")
     TRANSCRIPTION_LOCAL_MODEL: str = _env("TRANSCRIPTION_LOCAL_MODEL", "base")
     TRANSCRIPTION_TIMEOUT_SECONDS: int = _env_int("TRANSCRIPTION_TIMEOUT_SECONDS", 120)
+    # What one minute of hosted transcription costs, for the spend meter.
+    # OpenAI whisper-1 is $0.006/min as of 2026-08.
+    TRANSCRIPTION_COST_PER_MINUTE_USD: float = _env_float("TRANSCRIPTION_COST_PER_MINUTE_USD", 0.006)
     LLM_TIMEOUT_SECONDS: int = _env_int("LLM_TIMEOUT_SECONDS", 180)
     LLM_MAX_RETRIES: int = _env_int("LLM_MAX_RETRIES", 2)
     LLM_EMPTY_RESPONSE_RETRIES: int = _env_int("LLM_EMPTY_RESPONSE_RETRIES", 3)
@@ -658,6 +661,28 @@ class Config:
             (
                 cls.ENABLE_TELEGRAM_BOT and not cls.TELEGRAM_ALLOWED_USER_IDS,
                 "TELEGRAM_ALLOWED_USER_IDS must be set when Telegram is enabled.",
+            ),
+            # The next three refuse states nobody chose. Each is legal when the
+            # operator sets it explicitly; what boots must never do is arrive
+            # there by a default or a side effect, because each one silently
+            # changes who can use the service.
+            (
+                cls.REQUIRE_EMAIL_VERIFICATION,
+                "REQUIRE_EMAIL_VERIFICATION must be false: no code path delivers the "
+                "verification token with any EMAIL_PROVIDER, so email/password accounts "
+                "could register but never log in. Build delivery before turning this on.",
+            ),
+            (
+                cls.SYSTEM_LOCKED and "SYSTEM_LOCKED" not in os.environ,
+                "SYSTEM_LOCKED is locked by its default, not by choice. Set SYSTEM_LOCKED=false "
+                "to open registration, or SYSTEM_LOCKED=true to state that a locked deployment "
+                "is intended.",
+            ),
+            (
+                cls.ENABLE_TELEGRAM_BOT and "ENABLE_TELEGRAM_BOT" not in os.environ,
+                "ENABLE_TELEGRAM_BOT is on only because TELEGRAM_BOT_TOKEN is present. A second "
+                "client must be a decision: set ENABLE_TELEGRAM_BOT=true to run the bot, or "
+                "ENABLE_TELEGRAM_BOT=false to hold the token without it.",
             ),
         )
         problems.extend(message for failed, message in checks if failed)

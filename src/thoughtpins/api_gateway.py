@@ -96,9 +96,14 @@ def is_public_auth_path(path: str) -> bool:
 
 
 def _client_ip(request: Request) -> str | None:
+    # Rightmost entry, not leftmost. X-Forwarded-For is client-writable: the
+    # sender can prepend any addresses it likes, and the only entry the edge
+    # proxy vouches for is the one it appended itself — the last. Taking the
+    # first let one machine rotate fake IPs through the header and dodge every
+    # IP-keyed rate limit on the auth endpoints.
     forwarded = request.headers.get("X-Forwarded-For", "")
     if forwarded:
-        return forwarded.split(",", 1)[0].strip()
+        return forwarded.rsplit(",", 1)[-1].strip()
     return request.client.host if request.client else None
 
 
@@ -142,7 +147,15 @@ def _security_headers() -> dict[str, str]:
 def _rate_limit_for_path(path: str) -> int:
     if is_public_auth_path(path):
         return config.RATE_LIMIT_AUTH_PER_MINUTE
+    # Setting a password is a credential operation even though it is
+    # authenticated; it was falling through to the 120/min default.
+    if path == "/v1/account/password":
+        return config.RATE_LIMIT_AUTH_PER_MINUTE
     if path in {"/v1/entries", "/v1/entries/async", "/v1/uploads", "/v1/import/obsidian", "/ingest"}:
+        return config.RATE_LIMIT_INGEST_PER_MINUTE
+    # The resumable vault-upload family carries large bodies but is not in the
+    # exact-string set above, so it too fell to the default tier.
+    if path.startswith("/v1/import/obsidian/"):
         return config.RATE_LIMIT_INGEST_PER_MINUTE
     if path in {"/v1/ask", "/ask", "/v1/chat"}:
         return config.RATE_LIMIT_LLM_PER_MINUTE

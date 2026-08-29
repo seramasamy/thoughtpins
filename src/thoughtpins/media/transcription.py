@@ -79,9 +79,24 @@ def _transcribe_local(content: bytes, *, suffix: str, language: str | None) -> M
             tmp_path.unlink(missing_ok=True)
 
 
+# Rough voice-note bitrate for costing: AAC speech lands near 500 KB/minute.
+# Used only to estimate transcription minutes from payload size, rounded up,
+# so the spend meter can charge the call without decoding the audio.
+_APPROX_AUDIO_BYTES_PER_MINUTE = 500_000
+
+
 def _transcribe_hosted(content: bytes, *, suffix: str, language: str | None) -> MediaExtraction:
     if not config.TRANSCRIPTION_API_KEY:
         return MediaExtraction(kind="audio", error="transcription_not_configured")
+    # Hosted transcription spends real money per call. It was the one
+    # provider-billed path outside the spend cap: chat, extraction and
+    # embeddings all check the budget before calling out, and a voice note
+    # went straight to the provider. Same gate, same meter.
+    from thoughtpins.tenancy import get_current_tenant_id
+    from thoughtpins.usage import ensure_budget_available, record_llm_usage
+
+    tenant_id = get_current_tenant_id()
+    ensure_budget_available(tenant_id)
     media_type = _MEDIA_TYPES.get(suffix) or mimetypes.types_map.get(suffix, "application/octet-stream")
     endpoint = urljoin(config.TRANSCRIPTION_BASE_URL.rstrip("/") + "/", "audio/transcriptions")
     form = {"model": config.TRANSCRIPTION_MODEL}
@@ -96,6 +111,16 @@ def _transcribe_hosted(content: bytes, *, suffix: str, language: str | None) -> 
                 data=form,
             )
         response.raise_for_status()
+        estimated_minutes = max(1, -(-len(content) // _APPROX_AUDIO_BYTES_PER_MINUTE))
+        record_llm_usage(
+            user_id=tenant_id,
+            provider="transcription",
+            model=config.TRANSCRIPTION_MODEL,
+            operation="transcription",
+            prompt_tokens=0,
+            completion_tokens=0,
+            cost_usd_override=estimated_minutes * config.TRANSCRIPTION_COST_PER_MINUTE_USD,
+        )
         payload = response.json()
         text = str(payload.get("text") or "").strip() if isinstance(payload, dict) else ""
         detected_language = (
