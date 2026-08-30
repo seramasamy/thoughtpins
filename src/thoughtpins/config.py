@@ -679,10 +679,12 @@ class Config:
                 "is intended.",
             ),
             (
-                cls.ENABLE_TELEGRAM_BOT and "ENABLE_TELEGRAM_BOT" not in os.environ,
-                "ENABLE_TELEGRAM_BOT is on only because TELEGRAM_BOT_TOKEN is present. A second "
-                "client must be a decision: set ENABLE_TELEGRAM_BOT=true to run the bot, or "
-                "ENABLE_TELEGRAM_BOT=false to hold the token without it.",
+                cls.ENABLE_TELEGRAM_BOT,
+                "ENABLE_TELEGRAM_BOT must be false in production. The Telegram bot is a second "
+                "client that writes journal data outside the API's consent and audit path, and it "
+                "is disabled for v1 (removal is scheduled as a 1.1 refactor; it is not a leaf, so "
+                "it cannot be excised safely before launch). Set ENABLE_TELEGRAM_BOT=false and do "
+                "not set TELEGRAM_BOT_TOKEN in production.",
             ),
         )
         problems.extend(message for failed, message in checks if failed)

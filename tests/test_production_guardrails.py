@@ -63,18 +63,18 @@ def test_a_deliberate_lock_still_boots(production, monkeypatch):
     assert not any("locked by its default" in p for p in config.validate_startup())
 
 
-def test_a_bot_enabled_only_by_token_presence_cannot_boot(production, monkeypatch):
+def test_the_telegram_bot_cannot_be_enabled_in_production(production):
+    # Disable-and-gate for v1: the bot is a second client outside the API's
+    # consent/audit path and is not a leaf, so it stays off until a 1.1
+    # refactor can remove it cleanly.
     production("ENABLE_TELEGRAM_BOT", True)
     production("TELEGRAM_ALLOWED_USER_IDS", [12345])
-    monkeypatch.delenv("ENABLE_TELEGRAM_BOT", raising=False)
-    assert any("only because TELEGRAM_BOT_TOKEN" in p for p in config.validate_startup())
+    assert any("ENABLE_TELEGRAM_BOT must be false" in p for p in config.validate_startup())
 
 
-def test_a_bot_enabled_on_purpose_is_not_flagged(production, monkeypatch):
-    production("ENABLE_TELEGRAM_BOT", True)
-    production("TELEGRAM_ALLOWED_USER_IDS", [12345])
-    monkeypatch.setenv("ENABLE_TELEGRAM_BOT", "true")
-    assert not any("only because TELEGRAM_BOT_TOKEN" in p for p in config.validate_startup())
+def test_the_bot_disabled_is_not_flagged(production):
+    production("ENABLE_TELEGRAM_BOT", False)
+    assert not any("ENABLE_TELEGRAM_BOT" in p for p in config.validate_startup())
 
 
 def test_jwt_secret_fallback_is_fatal_in_production(production):
