@@ -25,7 +25,11 @@ final class VoiceRetryStoreTests: XCTestCase {
         let audio = Data("not really audio, but bytes are bytes".utf8)
         let url = try await store.keep(audio)
         let pending = try await store.pending()
-        XCTAssertEqual(pending, [url])
+        // Compare by filename: `keep` returns a URL under the temp dir as
+        // given, while `pending` reads it back through the directory listing,
+        // which resolves the /var -> /private/var symlink on macOS. Same file,
+        // different string.
+        XCTAssertEqual(pending.map(\.lastPathComponent), [url.lastPathComponent])
         XCTAssertEqual(try Data(contentsOf: url), audio, "the kept file must be the recording, byte for byte")
     }
 
@@ -34,7 +38,11 @@ final class VoiceRetryStoreTests: XCTestCase {
         let second = try await store.keep(Data("two".utf8))
         await store.discard(first)
         let pending = try await store.pending()
-        XCTAssertEqual(pending, [second], "discarding one recording must not touch another")
+        XCTAssertEqual(
+            pending.map(\.lastPathComponent),
+            [second.lastPathComponent],
+            "discarding one recording must not touch another"
+        )
     }
 
     func testTheQueueRefusesRatherThanSilentlyDropping() async throws {

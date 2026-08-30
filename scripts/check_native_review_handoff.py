@@ -38,6 +38,7 @@ REQUIRED_NATIVE_SHELL_FILES = {
     "ios": [
         "mobile/ios/ThoughtPinsApp/Package.swift",
         "mobile/ios/ThoughtPinsApp/Sources/ThoughtPinsApp/ThoughtPinsAppModel.swift",
+        "mobile/ios/ThoughtPinsApp/Sources/ThoughtPinsApp/ThoughtPinsUploads.swift",
         "mobile/ios/ThoughtPinsApp/Sources/ThoughtPinsApp/ThoughtPinsNativeProviders.swift",
         "mobile/ios/ThoughtPinsApp/Sources/ThoughtPinsApp/ThoughtPinsReviewShell.swift",
         "mobile/ios/ThoughtPinsApp/Sources/ThoughtPinsApp/ThoughtPinsScreens.swift",
