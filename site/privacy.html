@@ -77,6 +77,7 @@
                 <li><strong>Diagnostics:</strong> error events, worker status, audit events, service health metrics, device and app version, and limited security metadata.</li>
                 <li><strong>Preferences:</strong> notification choices, timezone, recap settings, privacy choices, personality settings, and legal acceptances.</li>
               </ul>
+              <p>Messages you send to the assistant are saved with your entries so it can recall the conversation, and appear in your timeline alongside notes you write. They can be deleted individually like any other entry.</p>
               <p>Journal and source content may contain sensitive information because users choose what to write. Thought Pins processes that content only to provide requested product functions, protect the service, meet legal obligations, or act on the user's instructions.</p>
             </section>
 
@@ -89,6 +90,7 @@
             <section class="reveal" id="providers">
               <h2>AI and service-provider processing <a class="anchor-link" href="#providers" aria-label="Link to this section">#</a></h2>
               <p>Journal and document content may be sent to configured third-party AI providers to classify messages, extract memories, summarize sources, create embeddings, and answer questions from saved context. A user-initiated voice note may be transcribed locally or sent to the deployment's disclosed transcription processor. Article-fetch providers may process user-submitted URLs. Infrastructure, email, authentication, and crash-reporting providers may process the limited data needed to perform those services.</p>
+              <p>The service uses a third-party error-monitoring provider to record diagnostics when something fails. Request bodies, journal content, and credentials are stripped before an error is sent, so the provider receives the technical details of a failure and not what you wrote.</p>
               <p>Before production use, Thought Pins presents notice and obtains explicit permission for AI and provider processing through account creation, onboarding, legal acceptance, or an equivalent in-app control. Provider categories and active product capabilities are disclosed without exposing security credentials. Providers are permitted to process data only for contracted or configured service purposes and are subject to their own privacy and security terms.</p>
             </section>
 
