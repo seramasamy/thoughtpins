@@ -50,6 +50,16 @@ switched off.
 > upload-ready (Xcode 26 SDK, icon, assets, privacy manifest) — all prior
 > ARTIFACT ticks were on Xcode 15.2 and are VOID for the uploadable archive
 > until the device pass re-checks them.**
+>
+> The owner decisions were then resolved and CI was taken fully green:
+> **all eight GitHub Actions jobs pass on SHA `c12ab47`** (python, postgres,
+> web, android, ios-changes, ios, container, probe), including the backend
+> suite on SQLite and PostgreSQL and the macOS iOS build and Core tests. The
+> Telegram bot is disabled-and-gated for v1, chat-in-timeline and the
+> error-monitoring provider are disclosed, locked-out recovery is
+> support-mediated, and the invite wall is reworded. One decision is still
+> open by choice: the governing-law clause is drafted and waiting on the
+> owner's home state.
 
 Three near-rejections this week — no bundle resources, no `CFBundleIconName`, a
 placeholder app icon — all came from checking the **source** and calling it
