@@ -154,6 +154,7 @@ struct ThoughtPinsAuthView: View {
     @State private var phone = ""
     @State private var legalAccepted = false
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.openURL) private var openURL
 
     /// Whether a provider can actually produce a button.
     ///
@@ -276,6 +277,19 @@ struct ThoughtPinsAuthView: View {
                         .accessibilityLabel("Signing in")
                         .accessibilityIdentifier("thoughtpins-auth-progress")
                     }
+                    // Recovery is support-mediated for v1 (a self-service reset
+                    // and magic-link sign-in are 1.1). Without this, a forgotten
+                    // password is a permanent lockout that cannot even reach
+                    // account deletion. Opens a pre-filled mail to support with
+                    // the account identifier — never the password.
+                    Button("Forgot password?") {
+                        if let url = forgotPasswordMailURL() {
+                            openURL(url)
+                        }
+                    }
+                    .font(.footnote)
+                    .disabled(model.authBusy)
+                    .accessibilityIdentifier("thoughtpins-forgot-password")
                 } footer: {
                     if let registrationBlocker {
                         Text(registrationBlocker)
@@ -284,6 +298,29 @@ struct ThoughtPinsAuthView: View {
             }
             .navigationTitle("Thought Pins")
         }
+    }
+
+    /// A pre-filled support email for password recovery. Carries the account
+    /// identifier so support can locate the account, and deliberately nothing
+    /// secret — no password, ever.
+    private func forgotPasswordMailURL() -> URL? {
+        let account = identifier.isEmpty ? phone : identifier
+        let subject = "Thought Pins password help"
+        let body = """
+            I cannot sign in and would like to reset my password.
+
+            Account email or phone: \(account.isEmpty ? "(fill this in)" : account)
+
+            Please do not include my password in any reply.
+            """
+        var components = URLComponents()
+        components.scheme = "mailto"
+        components.path = "support@thoughtpins.com"
+        components.queryItems = [
+            URLQueryItem(name: "subject", value: subject),
+            URLQueryItem(name: "body", value: body),
+        ]
+        return components.url
     }
 
     /// Why Create account is disabled, or nil when it is not.
@@ -453,7 +490,7 @@ public final class ThoughtPinsVoiceRecorder: ObservableObject {
 }
 
 
-/// The closed-beta wall.
+/// The invitation wall shown to an account that is not yet admitted.
 ///
 /// Registration is deliberately open, so an account can exist before it may be
 /// used. Without this the shell rendered a signed-in app whose every request
@@ -472,9 +509,9 @@ struct ThoughtPinsInviteView: View {
                     VStack(spacing: 12) {
                         ThoughtPinsBrandMark()
                             .frame(width: 72, height: 72)
-                        Text("You're on the list")
+                        Text("Invitation required")
                             .font(.system(.title2, design: .serif).weight(.semibold))
-                        Text("Thought Pins is in private testing. Your account is saved — enter an invite code to start using it.")
+                        Text("Thought Pins is invitation-only right now. Your account is saved — enter an invite code to start using it.")
                             .font(.body)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -518,7 +555,7 @@ struct ThoughtPinsInviteView: View {
                     Button("Delete account", role: .destructive) { showingDeleteConfirmation = true }
                 }
             }
-            .navigationTitle("Private testing")
+            .navigationTitle("Invitation required")
             .confirmationDialog(
                 "Permanently delete your Thought Pins account?",
                 isPresented: $showingDeleteConfirmation,
