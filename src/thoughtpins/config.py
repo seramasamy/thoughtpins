@@ -15,7 +15,7 @@ from thoughtpins.config_urls import is_shell_mangled_path, public_client_url  # 
 from thoughtpins.config_validation import (
     graph_backend_problems,
     llm_pricing_problems,
-    usage_enforcement_problem,
+    runtime_production_problems,
 )
 
 load_dotenv()
@@ -606,88 +606,7 @@ class Config:
                 Fernet(cls.DATA_ENCRYPTION_KEY.encode("utf-8"))
             except Exception:
                 problems.append("DATA_ENCRYPTION_KEY must be a valid Fernet key.")
-        checks = (
-            (cls.DATABASE_URL.startswith("sqlite"), "DATABASE_URL must use PostgreSQL outside local development."),
-            (not cls.REDIS_URL, "REDIS_URL must be set outside local development."),
-            (not cls.RATE_LIMIT_ENABLED, "RATE_LIMIT_ENABLED must be true outside local development."),
-            usage_enforcement_problem(cls.USAGE_ENFORCEMENT_ENABLED, cls.USAGE_TRACKING_ENABLED),
-            (not cls.PROCESS_ENTRIES_ASYNC, "PROCESS_ENTRIES_ASYNC must be true outside local development."),
-            (
-                cls.INGESTION_QUEUE_BACKEND != "celery",
-                "INGESTION_QUEUE_BACKEND must be celery outside local development.",
-            ),
-            (
-                cls.INGESTION_QUEUE_BACKEND == "celery" and not (cls.CELERY_BROKER_URL or cls.REDIS_URL),
-                "CELERY_BROKER_URL or REDIS_URL must be set for Celery workers.",
-            ),
-            (
-                not 10 <= cls.WORKER_RECOVERY_INTERVAL_SECONDS <= 3_600,
-                "WORKER_RECOVERY_INTERVAL_SECONDS must be between 10 and 3600.",
-            ),
-            (not cls.SENTRY_DSN, "SENTRY_DSN must be set outside local development."),
-            (
-                cls.MAGIC_LINK_ENABLED and cls.EMAIL_PROVIDER == "none",
-                "EMAIL_PROVIDER must deliver real mail when MAGIC_LINK_ENABLED is true; "
-                "the 'none' provider logs sign-in links instead of sending them.",
-            ),
-            (
-                cls.MAGIC_LINK_ENABLED and not cls.EMAIL_FROM_ADDRESS,
-                "EMAIL_FROM_ADDRESS must be set when MAGIC_LINK_ENABLED is true.",
-            ),
-            (
-                cls.MAGIC_LINK_ENABLED and cls.MAGIC_LINK_TTL_MINUTES > 60,
-                "MAGIC_LINK_TTL_MINUTES must be 60 or less; a sign-in link is a bearer credential.",
-            ),
-            (not cls.SECURITY_HEADERS_ENABLED, "SECURITY_HEADERS_ENABLED must be true outside local development."),
-            (cls.MAX_REQUEST_BODY_BYTES < 65_536, "MAX_REQUEST_BODY_BYTES must allow normal journal payloads."),
-            (cls.LLM_TIMEOUT_SECONDS < 5, "LLM_TIMEOUT_SECONDS must be at least 5."),
-            (cls.MEMORY_CONTEXT_MODE not in {"smart", "full"}, "MEMORY_CONTEXT_MODE must be smart or full."),
-            (cls.MEMORY_CONTEXT_MAX_CHARS < 20_000, "MEMORY_CONTEXT_MAX_CHARS must be at least 20000."),
-            (cls.TELEGRAM_TEST_MODE, "TELEGRAM_TEST_MODE must be false outside local development."),
-            (
-                cls.ARTICLE_ALLOW_RESTRICTED_DOMAINS,
-                "ARTICLE_ALLOW_RESTRICTED_DOMAINS must be false outside local development: "
-                "publisher access limits apply to any deployment serving other people.",
-            ),
-            (cls.ENABLE_FOUNDER_MODE, "ENABLE_FOUNDER_MODE must be false outside local development."),
-            (
-                cls.VOICE_ARCHIVE_ENABLED and not cls.voice_archive_is_durable(),
-                "VOICE_ARCHIVE_ENABLED requires durable storage. The archive path resolves inside the "
-                "container filesystem, which is discarded on every redeploy — a user who consented to "
-                "keeping their recordings would silently lose them. Mount a volume and set "
-                "VOICE_ARCHIVE_PATH to it, or set VOICE_ARCHIVE_DURABLE=true if the path is durable "
-                "by other means.",
-            ),
-            (
-                cls.ENABLE_TELEGRAM_BOT and not cls.TELEGRAM_ALLOWED_USER_IDS,
-                "TELEGRAM_ALLOWED_USER_IDS must be set when Telegram is enabled.",
-            ),
-            # The next three refuse states nobody chose. Each is legal when the
-            # operator sets it explicitly; what boots must never do is arrive
-            # there by a default or a side effect, because each one silently
-            # changes who can use the service.
-            (
-                cls.REQUIRE_EMAIL_VERIFICATION,
-                "REQUIRE_EMAIL_VERIFICATION must be false: no code path delivers the "
-                "verification token with any EMAIL_PROVIDER, so email/password accounts "
-                "could register but never log in. Build delivery before turning this on.",
-            ),
-            (
-                cls.SYSTEM_LOCKED and "SYSTEM_LOCKED" not in os.environ,
-                "SYSTEM_LOCKED is locked by its default, not by choice. Set SYSTEM_LOCKED=false "
-                "to open registration, or SYSTEM_LOCKED=true to state that a locked deployment "
-                "is intended.",
-            ),
-            (
-                cls.ENABLE_TELEGRAM_BOT,
-                "ENABLE_TELEGRAM_BOT must be false in production. The Telegram bot is a second "
-                "client that writes journal data outside the API's consent and audit path, and it "
-                "is disabled for v1 (removal is scheduled as a 1.1 refactor; it is not a leaf, so "
-                "it cannot be excised safely before launch). Set ENABLE_TELEGRAM_BOT=false and do "
-                "not set TELEGRAM_BOT_TOKEN in production.",
-            ),
-        )
-        problems.extend(message for failed, message in checks if failed)
+        problems.extend(runtime_production_problems(cls))
         problems.extend(graph_backend_problems(cls.GRAPH_PROVIDER, cls.GRAPH_SHADOW_ENABLED))
         problems.extend(llm_pricing_problems((cls.LLM_MODEL, cls.LLM_FALLBACK_MODEL, cls.LLM_EXTRACTION_MODEL)))
         return problems
