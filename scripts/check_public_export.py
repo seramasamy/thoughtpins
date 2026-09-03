@@ -56,6 +56,15 @@ EXCLUDED_DIRS = {
     # against a file that is not part of the repository.
     ".gradle",
     ".kotlin",
+    # Per-developer Xcode state, which carries the developer's username in the
+    # directory name (`<user>.xcuserdatad`) and their window/scheme state
+    # inside. This walker reads the filesystem rather than the git index, so
+    # .gitignore does not protect the archive: the moment anyone runs xcodebuild
+    # or opens the project, Xcode writes these beside ThoughtPins.xcodeproj and
+    # they were swept into a "public" export. Latent until the generated project
+    # started being committed -- before that it usually did not exist on disk at
+    # export time, which is why a fresh clone (and CI) never caught it.
+    "xcuserdata",
     "__pycache__",
     "backups",
     "build",
@@ -83,6 +92,10 @@ EXCLUDED_SUFFIXES = {
     ".sqlite",
     ".sqlite3",
     ".tsbuildinfo",
+    # Xcode's serialized window state. Belt-and-braces beside the xcuserdata
+    # directory exclusion above: it is per-developer, binary, and describes
+    # nobody's project but the machine that wrote it.
+    ".xcuserstate",
     ".zip",
 }
 PUBLIC_BINARY_SUFFIXES = {".gif", ".jpeg", ".jpg", ".png", ".webp"}
