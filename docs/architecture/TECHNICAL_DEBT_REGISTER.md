@@ -172,6 +172,46 @@ reads the decision, so no build has ever been blocked or nudged by it.
   in `ThoughtPinsCore` tests, and prove the blocked screen still offers the
   store link and sign-out before it ships.
 
+### TD-008: App Ingestion Never Writes To The Vector Index
+
+Saving a journal entry through the API — which is every web, iOS and Android
+save — creates `Memory` rows in PostgreSQL and stops there. Nothing in
+`src/thoughtpins/ingestion/` touches the vector store; the word "vector" does
+not appear in that package. The five `vector_store.add(...)` call sites are
+`bot/journal_commands.py` (Telegram), `library.py` (saved readings),
+`memory/corrections.py`, `memory/reindex.py`, and `memory/vector_refresh.py`
+(repair after an entry rewrite). None of them is the app's ingestion path.
+
+So the vector channel only ever held content that arrived through Telegram, or
+that someone rebuilt by hand with `scripts/reindex_vectors.py`.
+
+Found on 2026-09-03 while restoring a deleted Qdrant cluster: a new account
+saved an entry, the entry was retrievable by chat within seconds, and the
+Qdrant collection stayed at zero points across eight minutes of polling. The
+collection was auto-created, so the credentials and connection were fine.
+
+- Risk: one of eight retrieval channels is dark for app-created content.
+  `RankingWeights` was tuned with vector evidence available, so the blend is
+  running off-design, and the benchmark numbers in the README were measured on
+  a corpus that had been reindexed by hand.
+- Containment: real, and it is why this went unnoticed for so long. The other
+  seven channels answer well — the same entry that produced no vector was
+  recalled correctly and specifically by chat one minute later. Retrieval
+  degrades rather than fails, which is the intended design and also the reason
+  nothing alerted.
+- Deliberately not fixed before submission: indexing on ingest adds an
+  embedding call to the write path, which means new latency on the one
+  interaction that must feel instant, and a new failure mode — what a failed
+  embedding does to an otherwise successful save. Neither is a change to make
+  days before a first review, and no reviewer can see the gap.
+- Interim: `scripts/reindex_vectors.py` populates the index from the database
+  and can run on any schedule. It needs a shell inside Railway, since
+  `DATABASE_URL` is internal-only and `DATABASE_PUBLIC_URL` is unset.
+- Exit: write vectors from the ingestion pipeline, asynchronously, so a failed
+  embedding leaves the entry saved and queues a retry rather than failing the
+  write. Prove it with a test that saves through the API and asserts the vector
+  count rose, which is the assertion that would have caught this.
+
 ## Closed In The 2026-08-05 Retrieval Pass
 
 Four defects found by auditing the retrieval path rather than by a failing

@@ -66,7 +66,12 @@ telegram = [
     "python-telegram-bot>=21.0",
     "easyocr>=1.7",
     "openai-whisper>=20240930",
-    "pypdf>=4.0",
+    # Floor raised for CVE-2026-84309/84310/84311, all fixed in 6.16.1. This
+    # parses PDFs a person uploads, so it reads untrusted input by design and a
+    # parser advisory here is not theoretical. A floor rather than a pin: the
+    # lock decides the exact version, and this stops a resolve wandering back
+    # onto a vulnerable release.
+    "pypdf>=6.16.1",
 ]
 workers = [
     "celery>=5.3",

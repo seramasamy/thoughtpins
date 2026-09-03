@@ -1,0 +1,59 @@
+# Keeps the managed vector store alive, and says so when production is not ready.
+#
+# On 2026-09-03 the Qdrant free cluster was deleted permanently for inactivity.
+# Nothing had queried it because the app has no traffic yet, and nothing watched
+# it, so the first symptom was account deletion returning 503 — `delete_user_data`
+# purges vectors before it will commit, and refuses rather than report a deletion
+# it could not perform. That is a Guideline 5.1.1(v) failure discovered by hand.
+#
+# `/ready` fixes both halves at once. It is a live check, not a cached one:
+# production runs with VECTOR_HEALTHCHECK_LIVE=true, so hitting it queries the
+# vector store for real. That query is the activity the free tier wants, and a
+# non-200 is the alert nobody had.
+#
+# Daily, because the free tier measures inactivity in days and a heavier
+# schedule buys nothing. Ubuntu minutes, not macOS, so the cost is seconds.
+
+name: production heartbeat
+
+on:
+  schedule:
+    # 07:14 UTC. Deliberately not on the hour: GitHub queues scheduled jobs at
+    # popular times and delays can run to tens of minutes.
+    - cron: "14 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ready:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe /ready
+        run: |
+          set -uo pipefail
+          # Retry before failing. One dropped request during a Railway redeploy
+          # is not an outage, and an alert that cries wolf gets muted.
+          for attempt in 1 2 3; do
+            body="$(curl -sS --max-time 30 -w '\n%{http_code}' https://api.thoughtpins.com/ready || true)"
+            code="$(printf '%s' "$body" | tail -n 1)"
+            payload="$(printf '%s' "$body" | sed '$d')"
+            echo "attempt $attempt: HTTP ${code:-none} ${payload}"
+            if [ "$code" = "200" ]; then
+              echo "production is ready"
+              exit 0
+            fi
+            [ "$attempt" -lt 3 ] && sleep 20
+          done
+
+          echo "::error::/ready did not return 200 after three attempts."
+          echo "The payload above names the failing dependency."
+          echo "vector=error usually means the Qdrant cluster is gone or suspended:"
+          echo "  1. cloud.qdrant.io — check the cluster still exists"
+          echo "  2. railway variables --service api    --set QDRANT_URL=... --set QDRANT_API_KEY=..."
+          echo "  3. railway variables --service worker --set QDRANT_URL=... --set QDRANT_API_KEY=..."
+          echo "     Both services need it. The worker was left on a dead cluster once."
+          echo "  4. railway redeploy --service api --yes && railway redeploy --service worker --yes"
+          exit 1
