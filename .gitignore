@@ -81,7 +81,13 @@ mobile/android/thoughtpins-app/keystore.properties
 # future release needs someone sitting at it. Releases from Windows are worth
 # more than a diff that the pin already prevents.
 #
-# If it ever does churn, regenerate with the pinned version and commit the
+# It does churn in one known way, seen in practice: opening the project in
+# Xcode -- or merely running `xcodebuild` against it -- rewrites the shared
+# scheme, downgrading its `version` attribute and rewriting BuildableName to
+# the product's display name. That edit is Xcode's, not XcodeGen's, and
+# committing it would make every later regeneration produce a diff. Discard it
+# (`git checkout --`) and keep the generated copy. If the project ever does
+# need updating, regenerate with the pinned XcodeGen version and commit that
 # result; do not build from it, and do not resolve a conflict by hand.
 #
 # There is no rule here for it: the entry that ignored it was removed, and the
