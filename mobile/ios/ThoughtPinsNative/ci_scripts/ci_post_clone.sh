@@ -3,11 +3,16 @@
 # Xcode Cloud runs this immediately after cloning the repository, before it
 # looks for anything to build.
 #
-# It exists because `ThoughtPins.xcodeproj` is not in the repository. The
-# project is generated from `project.yml` by XcodeGen, and `.gitignore` keeps
-# the generated copy out of source control so two machines cannot produce
-# conflicting pbxproj diffs. A cloud runner clones the repository and finds no
-# project at all unless this script makes one.
+# `project.yml` is the source of truth and this script regenerates
+# `ThoughtPins.xcodeproj` from it on every build, so the build never depends on
+# whatever project happened to be checked out.
+#
+# A copy of the project IS committed, but only so App Store Connect's web UI can
+# find a shared scheme when creating a workflow -- that scan reads the
+# repository, and this script runs far too late for it. Regenerating here
+# overwrites the committed copy in the runner's checkout, which is the point:
+# the build stays correct even if the committed copy is stale, and the build
+# number stamped below reaches the binary. See `.gitignore` for the tradeoff.
 #
 # Location, per Apple: "Custom build scripts reside in a directory named
 # ci_scripts that's located in the same directory as your Xcode project or

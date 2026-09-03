@@ -52,14 +52,42 @@ write_probe_*/
 mobile/android/thoughtpins-app/keystore.properties
 
 # macOS and Xcode local state. None of this describes the project: .DS_Store is
-# Finder's, .build is SwiftPM's cache, and xcuserdata/xcworkspace hold one
-# developer's window and scheme state. ThoughtPins.xcodeproj is generated from
-# project.yml by XcodeGen on each machine and is not the source of truth.
+# Finder's, .build is SwiftPM's cache, and xcuserdata/project.xcworkspace hold
+# one developer's window and scheme state, which Xcode rewrites on open.
 .DS_Store
 .build/
-*.xcodeproj/xcuserdata/
-*.xcodeproj/project.xcworkspace/
-mobile/ios/ThoughtPinsNative/ThoughtPins.xcodeproj/
+# `**/` matters: a pattern with a slash in the middle is anchored to this file's
+# directory, so the previous `*.xcodeproj/xcuserdata/` only ever matched a
+# project at the repository root. It never covered the real one under
+# mobile/ios/ThoughtPinsNative/, which was ignored wholesale instead. Now that
+# the project itself is tracked, these have to match where it actually lives.
+**/*.xcodeproj/xcuserdata/
+**/*.xcodeproj/project.xcworkspace/
+
+# ThoughtPins.xcodeproj IS committed, deliberately. `project.yml` remains the
+# source of truth and `ci_scripts/ci_post_clone.sh` regenerates the project on
+# every cloud build, so nothing is built from the committed copy -- it exists
+# because App Store Connect's web UI scans the repository at workflow-creation
+# time and refuses to create a workflow when it finds no shared scheme. The
+# generation step inside the build is too late for that scan.
+#
+# The tradeoff, stated so the next person knows it was chosen: this file was
+# ignored because two machines generating it can produce conflicting pbxproj
+# diffs. Measured at the pinned XcodeGen 2.46.0 the output is byte-identical
+# across regenerations and across checkout directories, so the conflict does
+# not arise while everyone uses the pin -- a different XcodeGen version is what
+# would reintroduce it. Weighed against that: this is the only Mac, it cannot
+# produce an App Store archive at all, and leaving the project out means every
+# future release needs someone sitting at it. Releases from Windows are worth
+# more than a diff that the pin already prevents.
+#
+# If it ever does churn, regenerate with the pinned version and commit the
+# result; do not build from it, and do not resolve a conflict by hand.
+#
+# There is no rule here for it: the entry that ignored it was removed, and the
+# two `*.xcodeproj/` rules above still exclude the per-developer subdirectories
+# inside it. A `!` negation would be wrong -- it would come after those rules
+# and re-include xcuserdata and project.xcworkspace with them.
 # Opening a Swift package in Xcode writes per-developer scheme state here. It
 # appeared the first time anyone opened the project in the GUI rather than
 # building it from the command line.

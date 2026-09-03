@@ -43,7 +43,7 @@ def main() -> int:
 
 # Xcode Cloud requires these beside the .xcodeproj, executable, with a shebang.
 CI_SCRIPTS = {
-    "ci_post_clone.sh": "generates ThoughtPins.xcodeproj, which is not in the repository",
+    "ci_post_clone.sh": "regenerates ThoughtPins.xcodeproj from project.yml, which is the source of truth",
     "ci_post_xcodebuild.sh": "asserts the archive is upload-ready (Xcode 26 SDK, icon, assets, privacy manifest)",
 }
 
