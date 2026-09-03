@@ -212,6 +212,46 @@ collection was auto-created, so the credentials and connection were fine.
   write. Prove it with a test that saves through the API and asserts the vector
   count rose, which is the assertion that would have caught this.
 
+### TD-009: The Review Seeder Cannot Write Content To Production
+
+`scripts/seed_review_account.py --allow-production` creates the account and sets
+the password, then fails inserting its demo content:
+
+```
+psycopg2.errors.InsufficientPrivilege: new row violates row-level security
+policy for table "raw_entries"
+```
+
+That is RLS behaving correctly. `_set_postgres_tenant_context` in `store.py` is
+an `after_begin` listener, so it issues
+`set_config('app.current_user_id', ...)` only when a transaction *begins* inside
+a tenant context. `review_seed.py` never establishes one — it references neither
+`tenant_context` nor any equivalent — so the session variable the policy reads is
+never set and every insert for the new user is refused.
+
+It has passed locally throughout because SQLite has no row-level security. This
+is the "works on the dev database, fails on the production one" shape the RLS
+gates exist to catch, in a script those gates do not cover.
+
+- Risk: partial failure is the bad part. The account is left signed-in-able and
+  empty, and `REVIEW_NOTES.md` promises a reviewer a pre-loaded account. A
+  reviewer signing into blank screens cannot evaluate the app, and the notes
+  read as untrue. Discovered on 2026-09-03 days before submission.
+- Containment: the account was populated afterwards through the public API,
+  which scopes correctly — and which is arguably better evidence, since the demo
+  data is then created exactly the way a person creates it. The review notes now
+  say to check for content after any reseed.
+- Deliberately not fixed now: the fix has to establish the tenant context
+  *before* the transaction opens, and getting that subtly wrong yields a seeder
+  that appears to work while writing nothing, which is how this got here. It
+  needs a test against PostgreSQL rather than SQLite, and that is not a change
+  to land days before a first review while the working review account depends
+  on the same code path.
+- Exit: wrap the seeding in a tenant context established before the session
+  begins its transaction, and cover it in the PostgreSQL RLS suite rather than
+  the SQLite one — asserting rows exist afterwards, not merely that the call
+  returned.
+
 ## Closed In The 2026-08-05 Retrieval Pass
 
 Four defects found by auditing the retrieval path rather than by a failing

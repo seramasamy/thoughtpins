@@ -24,6 +24,9 @@ venv/
 founder/private/
 founder/*.local.*
 founder/*.secret.*
+# Operator notes holding live credentials. The App Store review account
+# password belongs in App Store Connect and on this machine, never here.
+*.local.md
 *.sqlite3
 *.log
 *.egg-info/

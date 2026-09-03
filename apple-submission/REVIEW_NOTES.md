@@ -132,21 +132,30 @@ respond the same day.
 Everything below was checked by talking to `api.thoughtpins.com` and by signing
 in on a clean simulator, not by reading configuration.
 
-**The demo account did not exist.** `review@thoughtpins.com` was not registered
-on production. `POST /v1/auth/register` returned 200 and created it, which means
-it was absent — a reviewer given those credentials would have been unable to
-sign in, and that is a Guideline 2.1 rejection on the first screen. It now
-exists, with `email_verification_required: false`, so there is no mail step in
-the way.
+**The demo account was reseeded on 2026-09-03.** `review@thoughtpins.com`
+exists with `email_verification_required: false`, so there is no mail step in
+the way, and it was reseeded with a fresh password so the credentials in App
+Store Connect are known to work rather than assumed to.
+
+Reseeding is not free of surprises. `scripts/seed_review_account.py
+--allow-production` set the password and then failed part-way: its demo-content
+insert was rejected with `new row violates row-level security policy for table
+"raw_entries"`. That is RLS doing its job — see TD-009 — and it left the account
+signed-in-able but empty, which is worse than either outcome alone because the
+notes above promise a pre-loaded account. The content was written afterwards
+through the public API, which scopes tenants correctly. **If you reseed again,
+check the account has content before you trust it.**
 
 **The password is not in this repository and must not be.** Put it in App Store
 Connect → App Review Information → **Sign-In Information**. If you have lost it,
 change it rather than guessing.
 
-**The account has content.** It was populated through the public API, so the
-data is real rather than injected: journal entries and one saved reading
-("Attention and Recall"), two people cards (User, Maya) and one place card
-(Atlas Cafe).
+**The account has content, verified on 2026-09-03 by reading it back.** Five
+journal entries, all `processed`, and memory cards for Maya and User. Asking
+"What do you remember about Maya?" returns a grounded answer naming Atlas Cafe,
+the copper lantern, and the half marathon — which is the sample question the
+pasteable notes invite the reviewer to try, so it was checked rather than
+assumed. All of it is fictional; no real person appears.
 
 Exact counts are deliberately not stated here. They drift every time the
 account is used for testing — checked against production on 2026-08-26 it held
