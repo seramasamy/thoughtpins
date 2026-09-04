@@ -128,9 +128,12 @@ public struct ThoughtPinsRootView: View {
             uploadProvider.beginPhotoSelection()
             Task { @MainActor in
                 let data = try? await item.loadTransferable(type: Data.self)
-                // PhotosPicker supplies no filename. A stable, sortable one
-                // beats "image", which collides the moment someone attaches two.
-                let stamp = ISO8601DateFormatter.thoughtPinsPhotoStamp.string(from: Date())
+                // PhotosPicker supplies no filename. Milliseconds since the
+                // epoch: sortable, collision-free in practice, and it needs no
+                // formatter — an earlier attempt added a `private extension
+                // ISO8601DateFormatter` for this and cost a build when the
+                // extension did not land.
+                let stamp = Int(Date().timeIntervalSince1970 * 1000)
                 uploadProvider.completePhotoImport(
                     data: data,
                     filename: "photo-\(stamp).jpg",
