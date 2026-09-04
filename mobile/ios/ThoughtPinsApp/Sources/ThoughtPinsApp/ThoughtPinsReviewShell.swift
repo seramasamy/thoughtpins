@@ -111,7 +111,13 @@ public struct ThoughtPinsRootView: View {
             selection: $pickedPhoto,
             matching: .images
         )
-        .onChange(of: pickedPhoto) { _, item in
+        // One parameter, not two. The iOS 17 `onChange(of:initial:_:)` does not
+        // resolve for `PhotosPickerItem?` — the compiler picks the older
+        // `onChange(of:perform:)` and rejects a two-argument closure with
+        // "expects 1 argument, but 2 were used". `scenePhase` two doors down
+        // takes the newer form happily, so this is about the type, not the
+        // deployment target. The argument is the new value either way.
+        .onChange(of: pickedPhoto) { item in
             // Only a real selection. Clearing the binding below sets this to nil
             // again, and that is not an event worth reacting to.
             guard let item else { return }
