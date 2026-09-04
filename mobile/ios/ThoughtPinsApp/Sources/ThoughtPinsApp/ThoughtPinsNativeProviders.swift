@@ -164,6 +164,14 @@ public enum ThoughtPinsNativeUploadError: Error, LocalizedError {
 @MainActor
 public final class ThoughtPinsDocumentPickerUploadProvider: ObservableObject, ThoughtPinsUploadProvider, @unchecked Sendable {
     @Published public var isImporterPresented = false
+    /// Offered alongside Files, because the document picker cannot reach the
+    /// photo library at all. `.image` in `allowedContentTypes` only ever meant
+    /// "an image *file*", so a photo taken on the phone — the most obvious
+    /// thing to attach to a journal entry — was unreachable.
+    @Published public var isPhotoPickerPresented = false
+    /// Which of the two to open. Presented first because only the person knows
+    /// whether the thing they want is a photo or a file.
+    @Published public var isSourceChoicePresented = false
     private var pendingContinuation: CheckedContinuation<ThoughtPinsUploadPayload, Error>?
     private var pendingDestination: ThoughtPinsUploadDestination = .auto
 
@@ -177,8 +185,85 @@ public final class ThoughtPinsDocumentPickerUploadProvider: ObservableObject, Th
             }
             pendingDestination = destination
             pendingContinuation = continuation
-            isImporterPresented = true
+            isSourceChoicePresented = true
         }
+    }
+
+    /// Open Files. Called from the source dialog.
+    public func chooseFiles() {
+        isSourceChoicePresented = false
+        isImporterPresented = true
+    }
+
+    /// Open the photo library. Called from the source dialog.
+    public func choosePhotos() {
+        isSourceChoicePresented = false
+        isPhotoPickerPresented = true
+    }
+
+    /// Dismissing the source dialog has to resume the continuation, for the
+    /// same reason `onCancellation` does on the file importer: an abandoned
+    /// continuation wedges every later attempt as "already in progress".
+    public func cancelSourceChoice() {
+        isSourceChoicePresented = false
+        guard let continuation = pendingContinuation else { return }
+        pendingContinuation = nil
+        continuation.resume(throwing: ThoughtPinsNativeUploadError.cancelled)
+    }
+
+    /// True between a photo being chosen and its bytes arriving.
+    ///
+    /// PhotosPicker has no cancellation callback: dismissing it only flips the
+    /// `isPresented` binding, and that same flip happens after a successful
+    /// pick. Without this flag, treating dismissal as cancellation would cancel
+    /// the good path too — and *not* treating it as cancellation strands the
+    /// continuation, which wedges every later upload as "already in progress".
+    /// That is the same defect `onCancellation` exists to prevent on the file
+    /// importer.
+    private var photoSelectionInFlight = false
+
+    /// A photo was chosen; its bytes are loading. Called before the await.
+    public func beginPhotoSelection() {
+        photoSelectionInFlight = true
+    }
+
+    /// The picker closed. Cancels only if nothing was chosen.
+    public func photoPickerDismissed() {
+        isPhotoPickerPresented = false
+        guard !photoSelectionInFlight else { return }
+        guard let continuation = pendingContinuation else { return }
+        pendingContinuation = nil
+        continuation.resume(throwing: ThoughtPinsNativeUploadError.cancelled)
+    }
+
+    /// Finish a photo-library pick. `data` is nil when the bytes could not be
+    /// loaded, which PhotosPicker reports no differently from success.
+    public func completePhotoImport(data: Data?, filename: String, mediaType: String?) {
+        photoSelectionInFlight = false
+        guard let continuation = pendingContinuation else { return }
+        pendingContinuation = nil
+        isPhotoPickerPresented = false
+
+        guard let data else {
+            continuation.resume(throwing: ThoughtPinsNativeUploadError.cancelled)
+            return
+        }
+        // Same ceiling the file path enforces, checked here too: a photo from a
+        // modern phone camera is comfortably capable of exceeding it.
+        guard data.count <= 25 * 1024 * 1024 else {
+            continuation.resume(throwing: ThoughtPinsNativeUploadError.fileTooLarge(filename))
+            return
+        }
+        continuation.resume(
+            returning: ThoughtPinsUploadPayload(
+                filename: filename,
+                contentBase64: data.base64EncodedString(),
+                mediaType: mediaType,
+                caption: nil,
+                title: filename,
+                sourceType: pendingDestination == .journal ? "journal_upload" : "file_upload"
+            )
+        )
     }
 
     public func completeFileImport(_ result: Result<[URL], Error>) {

@@ -1,6 +1,7 @@
 import Foundation
 import AuthenticationServices
 import AVFoundation
+import PhotosUI
 import SwiftUI
 import ThoughtPinsCore
 import UIKit
@@ -10,6 +11,10 @@ public struct ThoughtPinsRootView: View {
     @StateObject private var model: ThoughtPinsAppModel
     @StateObject private var uploadProvider: ThoughtPinsDocumentPickerUploadProvider
     @StateObject private var voiceRecorder: ThoughtPinsVoiceRecorder
+    /// Held here rather than in the provider because PhotosPicker binds to
+    /// a `PhotosPickerItem`, which is a SwiftUI/PhotosUI type; keeping it out
+    /// of the provider leaves that type out of the upload protocol.
+    @State private var pickedPhoto: PhotosPickerItem?
 
     public init(
         baseURL: URL,
@@ -87,6 +92,51 @@ public struct ThoughtPinsRootView: View {
                 Task { @MainActor in uploadProvider.cancelFileImport() }
             }
         )
+        // Files cannot browse the photo library, so `.image` above only ever
+        // reached image *files*. A photo from the camera roll — the obvious
+        // thing to attach to a journal entry — needs PhotosPicker, which runs
+        // out of process and therefore requires no photo-library permission and
+        // no usage-description key.
+        .confirmationDialog(
+            "Add from",
+            isPresented: $uploadProvider.isSourceChoicePresented,
+            titleVisibility: .visible
+        ) {
+            Button("Photo Library") { uploadProvider.choosePhotos() }
+            Button("Files") { uploadProvider.chooseFiles() }
+            Button("Cancel", role: .cancel) { uploadProvider.cancelSourceChoice() }
+        }
+        .photosPicker(
+            isPresented: $uploadProvider.isPhotoPickerPresented,
+            selection: $pickedPhoto,
+            matching: .images
+        )
+        .onChange(of: pickedPhoto) { _, item in
+            // Only a real selection. Clearing the binding below sets this to nil
+            // again, and that is not an event worth reacting to.
+            guard let item else { return }
+            uploadProvider.beginPhotoSelection()
+            Task { @MainActor in
+                let data = try? await item.loadTransferable(type: Data.self)
+                // PhotosPicker supplies no filename. A stable, sortable one
+                // beats "image", which collides the moment someone attaches two.
+                let stamp = ISO8601DateFormatter.thoughtPinsPhotoStamp.string(from: Date())
+                uploadProvider.completePhotoImport(
+                    data: data,
+                    filename: "photo-\(stamp).jpg",
+                    mediaType: "image/jpeg"
+                )
+                pickedPhoto = nil
+            }
+        }
+        // The only cancellation signal PhotosPicker gives: dismissal flips the
+        // binding. `photoPickerDismissed` ignores it when a selection is in
+        // flight, so this cancels an abandoned pick without cancelling a good
+        // one.
+        .onChange(of: uploadProvider.isPhotoPickerPresented) { _, presented in
+            guard !presented else { return }
+            uploadProvider.photoPickerDismissed()
+        }
         // Problems inset rather than overlay, so one that stays does not sit on
         // the navigation bar, and so it can carry its own dismiss control.
         .safeAreaInset(edge: .top) {
