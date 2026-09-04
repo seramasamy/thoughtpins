@@ -753,6 +753,15 @@ button:focus-visible {
 
 /* ---------------- Responsive ---------------- */
 @media (max-width: 760px) {
+  /* 260vh gives the constellation 160vh of scroll to assemble the mark. That
+     is a fifteen-hundred-pixel runway on a phone, and once the hero copy has
+     faded out — which it does by halfway — the rest is a formed logo you keep
+     scrolling past. Two thirds of the runway, so the effect still plays but
+     nobody sits in the empty part of it. */
+  .lab-hero {
+    height: 190vh;
+  }
+
   .lab-nav-links {
     display: none;
   }

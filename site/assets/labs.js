@@ -114,7 +114,18 @@ async function setupConstellation() {
     canvas.height = Math.round(height * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const scale = Math.min(width, height) * 0.46 / 128;
+    // Sized off the short edge so the mark never overflows sideways. On a
+    // landscape desktop the short edge is the height and 0.46 reads as a
+    // centrepiece; on a portrait phone it is the *width*, which put a ~200px
+    // mark in the middle of a 950px-tall screen — the hero looked empty, and
+    // the long scroll runway made you sit in that emptiness. The narrow case
+    // gets a bigger share of its short edge to land at a comparable weight.
+    // 760 matches the `max-width: 760px` breakpoint that shortens the hero
+    // runway in labs.css. Keep the two the same: at 730px they disagreed, so
+    // that band got the short runway without the larger mark — the one width
+    // where the fix made things slightly worse.
+    const shortEdge = Math.min(width, height);
+    const scale = (shortEdge * (width <= 760 ? 0.66 : 0.46)) / 128;
     const cx = width / 2;
     const cy = height / 2;
     motes = [];
