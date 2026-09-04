@@ -209,6 +209,11 @@ struct ThoughtPinsAuthView: View {
                         .textContentType(.emailAddress)
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)
+                        // Capitalisation was already off; autocorrect was not.
+                        // iOS happily "corrects" an unfamiliar address as you
+                        // leave the field, and the sign-in that follows fails
+                        // for a reason nothing on screen explains.
+                        .autocorrectionDisabled()
                     TextField("Phone", text: $phone)
                         .textContentType(.telephoneNumber)
                         .keyboardType(.phonePad)
@@ -253,10 +258,25 @@ struct ThoughtPinsAuthView: View {
                 }
 
                 Section {
-                    Button("Sign in") {
+                    // Sign in is the primary action and used to look identical
+                    // to Create account: two grey rows of the same weight, in a
+                    // grouped list, which reads as Settings rather than as the
+                    // front door of a product. Filled and full width, so the
+                    // screen has one obvious thing to do.
+                    Button {
                         Task { await model.login(identifier: identifier.isEmpty ? phone : identifier, password: password) }
+                    } label: {
+                        Text("Sign in").frame(maxWidth: .infinity)
                     }
-                    .disabled(model.authBusy)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                    .disabled(model.authBusy || signInBlocker != nil)
+                    if let signInBlocker, !model.authBusy {
+                        Text(signInBlocker)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                     Button("Create account") {
                         Task {
                             await model.register(
@@ -321,6 +341,25 @@ struct ThoughtPinsAuthView: View {
             URLQueryItem(name: "body", value: body),
         ]
         return components.url
+    }
+
+    /// Why Sign in is disabled, or nil when it is not.
+    ///
+    /// Create account has had this guard from the start; Sign in did not, so an
+    /// empty form still posted to `/v1/auth/login`. `LoginRequest` requires a
+    /// password of at least one character, so that round trip could only ever
+    /// fail — and it failed by putting the validator's own words, "Request
+    /// validation failed", in front of the person's very first interaction with
+    /// the app. Seen on a device on 2026-09-04, on the screen every App Review
+    /// begins on.
+    private var signInBlocker: String? {
+        if identifier.isEmpty && phone.isEmpty {
+            return "Enter the email address or phone number for your account."
+        }
+        if password.isEmpty {
+            return "Enter your password."
+        }
+        return nil
     }
 
     /// Why Create account is disabled, or nil when it is not.
