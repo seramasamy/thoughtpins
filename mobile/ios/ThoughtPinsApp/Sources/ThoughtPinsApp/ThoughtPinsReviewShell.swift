@@ -471,10 +471,21 @@ public final class ThoughtPinsVoiceRecorder: ObservableObject {
             errorMessage = "Microphone access was not granted. You can attach an audio file instead."
             return
         }
+        // Which call failed, for the message below. A single "could not start"
+        // for four different failures is undiagnosable from a device, which is
+        // exactly where this first went wrong.
+        var stage = "session"
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.record, mode: .spokenAudio, options: [.allowBluetooth])
+            // `.spokenAudio` is a *playback* mode — Apple documents it for
+            // continuous spoken content like audiobooks, so it can pause under
+            // interruption. Pairing it with the `.record` category asks the
+            // session for a combination that has no meaning, and the throw
+            // surfaced as "the microphone could not start" on an iPhone 17 Pro
+            // Max running iOS 26. `.default` is the mode for plain recording.
+            try session.setCategory(.record, mode: .default, options: [.allowBluetooth])
             try session.setActive(true)
+            stage = "recorder"
             let url = FileManager.default.temporaryDirectory
                 .appendingPathComponent("thoughtpins-voice-\(UUID().uuidString).m4a")
             let settings: [String: Any] = [
@@ -484,20 +495,37 @@ public final class ThoughtPinsVoiceRecorder: ObservableObject {
                 AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
             ]
             let recorder = try AVAudioRecorder(url: url, settings: settings)
+            // Allocate the hardware and create the file before asking it to
+            // run. `record()` prepares implicitly when it has to, but doing it
+            // explicitly separates "could not get the microphone" from "asked
+            // it to start and it refused", and it is what Apple's own sample
+            // code does.
+            stage = "prepare"
+            guard recorder.prepareToRecord() else {
+                try? FileManager.default.removeItem(at: url)
+                try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+                errorMessage = "The microphone could not start (prepare). You can attach an audio file instead."
+                return
+            }
             // record() reports whether the hardware actually started. Ignoring
             // it showed a live recording indicator over a microphone that never
             // opened, and stop() then uploaded an empty file.
+            stage = "record"
             guard recorder.record() else {
                 try? FileManager.default.removeItem(at: url)
                 try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-                errorMessage = "The microphone could not start. You can attach an audio file instead."
+                errorMessage = "The microphone could not start (record). You can attach an audio file instead."
                 return
             }
             self.recorder = recorder
             recordingURL = url
             isRecording = true
         } catch {
-            errorMessage = "The microphone could not start. You can attach an audio file instead."
+            // Naming the stage costs the person nothing and is the difference
+            // between "it broke" and a fix. Without it, four distinct failures
+            // produced one sentence, and the only way to tell them apart was to
+            // guess and spend a build.
+            errorMessage = "The microphone could not start (\(stage)). You can attach an audio file instead."
             try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         }
     }
