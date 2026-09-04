@@ -111,16 +111,20 @@ public struct ThoughtPinsRootView: View {
             selection: $pickedPhoto,
             matching: .images
         )
-        // One parameter, not two. The iOS 17 `onChange(of:initial:_:)` does not
-        // resolve for `PhotosPickerItem?` — the compiler picks the older
-        // `onChange(of:perform:)` and rejects a two-argument closure with
-        // "expects 1 argument, but 2 were used". `scenePhase` two doors down
-        // takes the newer form happily, so this is about the type, not the
-        // deployment target. The argument is the new value either way.
-        .onChange(of: pickedPhoto) { item in
+        // Zero-argument closure, reading the value from state.
+        //
+        // `onChange(of:initial:_:)` has both a `(V, V) -> Void` and a
+        // `() -> Void` form. For `PhotosPickerItem?` the compiler settles on the
+        // second: a two-argument closure was rejected with "expects 1 argument,
+        // but 2 were used", and a one-argument closure with "expects 0
+        // arguments, but 1 was used". `scenePhase` in ThoughtPinsScreens.swift
+        // takes the two-argument form, so this is a property of the type, not of
+        // the deployment target. Reading `pickedPhoto` directly sidesteps the
+        // question entirely and cannot be resolved to the wrong overload.
+        .onChange(of: pickedPhoto) {
             // Only a real selection. Clearing the binding below sets this to nil
             // again, and that is not an event worth reacting to.
-            guard let item else { return }
+            guard let item = pickedPhoto else { return }
             uploadProvider.beginPhotoSelection()
             Task { @MainActor in
                 let data = try? await item.loadTransferable(type: Data.self)
@@ -139,8 +143,8 @@ public struct ThoughtPinsRootView: View {
         // binding. `photoPickerDismissed` ignores it when a selection is in
         // flight, so this cancels an abandoned pick without cancelling a good
         // one.
-        .onChange(of: uploadProvider.isPhotoPickerPresented) { _, presented in
-            guard !presented else { return }
+        .onChange(of: uploadProvider.isPhotoPickerPresented) {
+            guard !uploadProvider.isPhotoPickerPresented else { return }
             uploadProvider.photoPickerDismissed()
         }
         // Problems inset rather than overlay, so one that stays does not sit on
