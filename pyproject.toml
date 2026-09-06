@@ -92,7 +92,7 @@ dev = [
     "bandit==1.9.4",
     "radon==6.0.1",
     "vulture==2.16",
-    "uv==0.12.5",
+    "uv==0.12.9",
 ]
 
 [tool.ruff]
