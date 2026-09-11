@@ -16,6 +16,17 @@ for (const route of ["/", "/classic/"]) {
       const errors: string[] = [];
       page.on("pageerror", error => errors.push(error.message));
       await page.goto(route + "#product");
+      if (route === "/classic/") {
+        await page.evaluate(() => document.fonts.ready);
+        const header = await page.locator(".site-header").evaluate(el => {
+          const brand = el.querySelector(".site-brand")!.getBoundingClientRect();
+          const actions = el.querySelector(".header-actions")!.getBoundingClientRect();
+          const back = el.querySelector(".header-back")!.getBoundingClientRect();
+          return { brandRight: brand.right, actionsLeft: actions.left, switchHeight: back.height };
+        });
+        expect(header.brandRight + 8).toBeLessThanOrEqual(header.actionsLeft);
+        expect(header.switchHeight).toBeGreaterThanOrEqual(44);
+      }
       const root = page.locator("[data-product-demo]");
       const mode = viewport.width <= 680 ? "mobile" : "desktop";
       const active = page.locator(`[data-preview-tab="${mode}"]`);

@@ -145,3 +145,13 @@ Native fixture setup now has its own bounded connection deadline for freshly
 booted cloud simulators. Form-scrolling gestures stay above the software
 keyboard, while password, consent, failure recovery and app-response assertions
 remain in place.
+
+## Final Classic header review
+
+Final phone screenshots exposed wordmark crowding beside the Modern Site switch
+at widths that passed the page-overflow check. Classic now uses its brand mark
+below 480 pixels, preserves the accessible home-link name, and gives the switch
+a 44-pixel minimum height. The browser suite directly checks separation of the
+brand and header actions at all eight widths. All 19 Chromium and 19 WebKit
+scenarios pass again. Cache key `20260911-product-3` covers the updated styling.
+This separate correction preserves the modern homepage hero.

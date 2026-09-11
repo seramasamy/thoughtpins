@@ -7,6 +7,7 @@
 .classic-site .button { min-height: 48px; padding-inline: 24px; border-radius: 999px; font-size: 13px; }
 .classic-site .button-small { min-height: 44px; padding-inline: 20px; }
 .classic-site .theme-toggle { width: 44px; height: 44px; }
+.classic-site .header-back { min-height: 44px; }
 .classic-site .hero { min-height: 720px; color: var(--tp-ink); background: radial-gradient(ellipse at 25% 15%, #b5acd029, transparent 50%), radial-gradient(ellipse at 80% 80%, #dea0801a, transparent 50%), var(--tp-canvas); border-color: var(--tp-line); }
 .classic-site .hero::before { background: transparent; }
 .classic-site .hero-particles { opacity: .32; }
@@ -64,4 +65,7 @@
   .classic-site .showcase-heading h2 { font-size: 34px; }
   .classic-site .button { padding-inline: 18px; }
   .classic-site .header-back { font-size: 11px; padding-inline: 10px; }
+}
+@media (max-width: 480px) {
+  .classic-site .site-header .site-brand span { display: none; }
 }
