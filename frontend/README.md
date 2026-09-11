@@ -55,13 +55,35 @@ Animations honor `prefers-reduced-motion`.
 
 ```powershell
 npm run check
+npm run test:unit
 npm run build
+npm run smoke:web
+npm run smoke:pwa
+npm run smoke:site:ui
+npm run smoke:ios
+npm run smoke:firefox
 ```
 
 On locked Windows hosts, `npm run build` may validate the static fallback when
 Vite cannot spawn its child process. A successful unrestricted build writes
 `dist/.thoughtpins-build.json`; the backend only serves `dist` when that marker
 exists.
+
+Authentication recovery lives in `src/app/useAuthRequest.ts`; a shared guard
+owns pending password, provider and email operations. Single-use emailed links
+retain their request through React Strict Mode effect replay.
+`src/app/passwordAuthentication.ts` resumes a server-confirmed registration
+after a later login or consent failure. `src/components/PasswordField.tsx`
+owns AutoFill, creation-only length validation and reversible visibility.
+`e2e/auth-recovery.spec.ts` exercises these boundaries, consent retry, compact
+layouts and accessibility in Chromium, WebKit and Firefox. Browser screenshots
+and results are retained by CI; test fixtures contain fictional data.
+
+`src/core/sessionRecovery.ts` coordinates one refresh per session for JSON and
+download requests. Late responses may reuse a rotation of the same session,
+but cannot restore a signed-out account or adopt a different account's token.
+Direct unit tests cover those races and rejected/transient refresh failures;
+`e2e/session-recovery.spec.ts` covers the browser/API boundary.
 
 ## OAuth Builds
 

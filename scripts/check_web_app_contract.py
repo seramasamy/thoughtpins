@@ -161,10 +161,40 @@ def main() -> int:
             _req("email registration", 'type="email"'),
             _req("phone registration", 'type="tel"'),
             _req("registration lock", "registrationLocked"),
-            _req("strong password minimum", "minLength={12}"),
+            _req("password field", "<PasswordField", 'registering={mode === "register"}', all_required=True),
             _req("maintenance visible before auth", "maintenance-banner"),
-            _req("register API", "api.register"),
-            _req("login API", "api.login"),
+            _req("guarded authentication", "useAuthRequest", "passwordSignIn", all_required=True),
+        ],
+    )
+    _check_file_markers(
+        FRONTEND / "src" / "app" / "passwordAuthentication.ts",
+        failures,
+        cache,
+        [
+            _req(
+                "password registration and login",
+                "api.register",
+                "api.login",
+                "api.acceptLegalDocument",
+                all_required=True,
+            )
+        ],
+    )
+    _check_file_markers(
+        FRONTEND / "src" / "components" / "PasswordField.tsx",
+        failures,
+        cache,
+        [
+            # Account creation enforces the strength rule. Sign-in must send
+            # existing credentials to the server, whose minimum is one character.
+            _req("registration password minimum", "minLength={registering ? 12 : undefined}"),
+            _req(
+                "password visibility and autofill",
+                "current-password",
+                "new-password",
+                "aria-pressed",
+                all_required=True,
+            ),
         ],
     )
     _check_file_markers(

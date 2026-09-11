@@ -7,6 +7,7 @@
  */
 
 import type { ApiErrorBody, TokenResponse } from "./types";
+import { createSessionRecovery, type SessionTokenPair } from "./core/sessionRecovery";
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
@@ -24,10 +25,7 @@ export class ApiError extends Error {
   }
 }
 
-export type ApiSession = {
-  accessToken: string;
-  refreshToken: string;
-};
+export type ApiSession = SessionTokenPair;
 
 type SessionAccess = {
   get: () => ApiSession | null;
@@ -35,6 +33,17 @@ type SessionAccess = {
 };
 
 let sessionAccess: SessionAccess | null = null;
+const sessionRecovery = createSessionRecovery(
+  { get: () => sessionAccess?.get() ?? null, set: next => sessionAccess?.set(next) },
+  async refreshToken => {
+    const tokens = await request<TokenResponse>("/v1/auth/refresh", {
+      method: "POST", token: null, skipAuthRefresh: true,
+      body: { refresh_token: refreshToken },
+    });
+    return { accessToken: tokens.access_token, refreshToken: tokens.refresh_token };
+  },
+  error => error instanceof ApiError && (error.status === 401 || error.status === 403),
+);
 
 export function configureApiSession(access: SessionAccess | null) {
   sessionAccess = access;
@@ -107,20 +116,15 @@ async function parseResponse<T>(response: Response, requestId: string): Promise<
   return (await response.json()) as T;
 }
 
-async function refreshSession(): Promise<ApiSession | null> {
-  const current = sessionAccess?.get();
-  if (!current?.refreshToken) {
-    return null;
+async function sendWithSession(path: string, options: RequestOptions) {
+  const original = sessionRecovery.capture();
+  const token = options.token !== undefined ? options.token : original?.session.accessToken || null;
+  const attempt = await send(path, options, token);
+  if (attempt.response.status === 401 && !options.skipAuthRefresh && !path.startsWith("/v1/auth/")) {
+    const refreshed = await sessionRecovery.recover(original, token);
+    if (refreshed) return send(path, options, refreshed.accessToken);
   }
-  const tokens = await request<TokenResponse>("/v1/auth/refresh", {
-    method: "POST",
-    token: null,
-    skipAuthRefresh: true,
-    body: { refresh_token: current.refreshToken },
-  });
-  const next = { accessToken: tokens.access_token, refreshToken: tokens.refresh_token };
-  sessionAccess?.set(next);
-  return next;
+  return attempt;
 }
 
 export async function blobToBase64(blob: Blob): Promise<string> {
@@ -147,59 +151,12 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     idempotencyKey:
       options.idempotencyKey || (["POST", "PUT", "PATCH", "DELETE"].includes(method) ? crypto.randomUUID() : undefined),
   };
-  let token = prepared.token !== undefined ? prepared.token : sessionAccess?.get()?.accessToken || null;
-  let attempt = await send(path, prepared, token);
-
-  if (attempt.response.status === 401 && !prepared.skipAuthRefresh) {
-    try {
-      const refreshed = await refreshSession();
-      if (refreshed?.accessToken) {
-        token = refreshed.accessToken;
-        attempt = await send(path, prepared, token);
-      }
-    } catch (error) {
-      clearSessionIfRejected(error);
-    }
-  }
-
+  const attempt = await sendWithSession(path, prepared);
   return parseResponse<T>(attempt.response, attempt.requestId);
 }
 
-/**
- * Only a rejected session ends a session.
- *
- * Every failure of `refreshSession()` used to clear the stored token, which
- * meant a rate-limited refresh signed the user out. The auth tier allows five
- * requests a minute per IP, so an office behind one NAT, or a burst of parallel
- * 401s from a page with several panels, was enough to do it -- and the user's
- * credentials were fine the whole time.
- *
- * The iOS client deliberately makes this distinction already: only 401 and 403
- * clear the session there. This is the same rule. A 429 or a dropped connection
- * leaves the session alone and lets the original call surface its own error.
- */
-function clearSessionIfRejected(error: unknown): void {
-  const status = error instanceof ApiError ? error.status : undefined;
-  if (status === 401 || status === 403) {
-    sessionAccess?.set(null);
-  }
-}
-
 export async function requestBlob(path: string, options: RequestOptions = {}): Promise<Blob> {
-  let token = options.token !== undefined ? options.token : sessionAccess?.get()?.accessToken || null;
-  let attempt = await send(path, options, token);
-
-  if (attempt.response.status === 401 && !options.skipAuthRefresh) {
-    try {
-      const refreshed = await refreshSession();
-      if (refreshed?.accessToken) {
-        token = refreshed.accessToken;
-        attempt = await send(path, options, token);
-      }
-    } catch (error) {
-      clearSessionIfRejected(error);
-    }
-  }
+  const attempt = await sendWithSession(path, options);
   if (!attempt.response.ok) {
     await parseResponse<never>(attempt.response, attempt.requestId);
     throw new ApiError("Request failed", attempt.response.status, "request_failed", attempt.requestId);

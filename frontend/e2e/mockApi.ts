@@ -14,6 +14,7 @@ export async function installMockApi(
     inviteRequired?: boolean;
     inviteAdmitted?: boolean;
     aiConsentAccepted?: boolean;
+    magicLinkEnabled?: boolean;
   } = {},
 ) {
   if (mode === "offline") {
@@ -52,6 +53,7 @@ export async function installMockApi(
         ...clientConfig(mode, Boolean(options.voiceArchiveEnabled)),
         invite_required: Boolean(options.inviteRequired),
         invite_request_email: "invite@thoughtpins.com",
+        magic_link_enabled: Boolean(options.magicLinkEnabled),
       });
     }
     if (path === "/v1/invites/request" && method === "POST") {

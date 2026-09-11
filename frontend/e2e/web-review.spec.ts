@@ -330,7 +330,7 @@ test.describe("Thought Pins web review smoke", () => {
     await captureProofScreenshot(page, flowProofs.auth);
 
     await page.getByLabel("Email or phone").fill("review@example.com");
-    await page.getByLabel("Password").fill("correct horse battery staple");
+    await page.getByLabel("Password", { exact: true }).fill("correct horse battery staple");
     await page.locator("form").getByRole("button", { name: "Login", exact: true }).click();
 
     await expect(page.getByRole("heading", { level: 1, name: "Before you continue", exact: true })).toBeVisible();
@@ -353,7 +353,7 @@ test.describe("Thought Pins web review smoke", () => {
 
     const createAccount = page.getByRole("button", { name: "Create Account", exact: true });
     await page.getByLabel("Email", { exact: true }).fill("new-review@example.com");
-    await page.getByLabel("Password").fill("correct horse battery staple");
+    await page.getByLabel("Password", { exact: true }).fill("correct horse battery staple");
     await expect(createAccount).toBeDisabled();
     await page.getByRole("checkbox").check();
     await expect(createAccount).toBeEnabled();
@@ -634,7 +634,7 @@ test.describe("Thought Pins web review smoke", () => {
     await page.goto("/app/");
 
     await page.getByLabel("Email or phone").fill("review@example.com");
-    await page.getByLabel("Password").fill("correct horse battery staple");
+    await page.getByLabel("Password", { exact: true }).fill("correct horse battery staple");
     await page.locator("form").getByRole("button", { name: "Login", exact: true }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Before you continue", exact: true })).toBeVisible();
     await page.getByRole("checkbox", { name: /I understand and allow this processing/i }).check();

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "check": "tsc --noEmit -p tsconfig.json",
+    "test:unit": "node --experimental-strip-types --test tests/*.test.ts",
     "build": "npm run check && node scripts/build.mjs",
     "dev": "vite --configLoader native --host 127.0.0.1",
     "vite:build": "vite build --configLoader native",
@@ -12,6 +13,7 @@
     "smoke:web": "playwright test",
     "smoke:pwa": "playwright test --config playwright.pwa.config.ts",
     "smoke:ios": "playwright test --config playwright.ios.config.ts",
+    "smoke:firefox": "playwright test --config playwright.firefox.config.ts",
     "smoke:web:headed": "playwright test --headed",
     "smoke:live": "node scripts/capture-live.mjs",
     "smoke:site": "node scripts/capture-site.mjs",

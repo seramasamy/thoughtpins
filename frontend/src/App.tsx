@@ -205,7 +205,7 @@ export default function App() {
   if (!canUseApp) return <AuthScreen clientConfig={clientConfig} setSession={setSession} notice={notice} setNotice={setNotice} />;
   if (!localMode && aiConsentState === "loading") return <LoadingScreen />;
   if (!localMode && aiConsentState === "required") {
-    return <AIConsentScreen clientConfig={clientConfig} busy={busy} onAccept={acceptAIProcessing} onSignOut={logout} />;
+    return <AIConsentScreen clientConfig={clientConfig} busy={busy} onAccept={acceptAIProcessing} onSignOut={logout} notice={notice} clearNotice={() => setNotice(null)} />;
   }
   if (!localMode && inviteState === "loading") return <LoadingScreen />;
   // Shown after consent, so the account is fully created and its details kept

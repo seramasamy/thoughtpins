@@ -3,11 +3,13 @@ import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { api, type ApiSession } from "../api";
 import type { Notice } from "./types";
-import { messageFromError } from "./types";
 import type { ClientConfigResponse } from "../types";
 import { BrandMark, IconButton, NoticeBanner, PrimaryButton } from "../components/ui";
 import { setOAuthClientIds, signInWithProvider, type OAuthProvider } from "./oauth";
 import { toggleTheme, useResolvedTheme } from "../core/theme";
+import { PasswordField } from "../components/PasswordField";
+import { useAuthRequest } from "./useAuthRequest";
+import { createPasswordAuthentication } from "./passwordAuthentication";
 
 function GoogleIcon() {
   return (
@@ -45,14 +47,14 @@ export function AuthScreen({
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [legalAccepted, setLegalAccepted] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [oauthBusy, setOauthBusy] = useState<OAuthProvider | null>(null);
-  const [magicBusy, setMagicBusy] = useState(false);
+  const [passwordSignIn] = useState(() => createPasswordAuthentication());
+  const { pending, run: runAuth } = useAuthRequest(setSession, setNotice);
+  const busy = pending !== null;
+  const oauthBusy = pending === "google" || pending === "apple" ? pending : null;
+  const magicBusy = pending === "email" || pending === "code";
   const [magicSentTo, setMagicSentTo] = useState<string | null>(null);
   const [magicCode, setMagicCode] = useState("");
-  // Starts true when the URL carries a token so the form never flashes before
-  // the automatic sign-in resolves.
-  const [consumingMagicLink, setConsumingMagicLink] = useState(() => magicTokenFromUrl() !== null);
+  const consumingMagicLink = pending === "link";
   const theme = useResolvedTheme();
   const registrationLocked = clientConfig?.registration_locked ?? true;
   const showGoogle = clientConfig?.oauth_google_enabled ?? false;
@@ -78,119 +80,48 @@ export function AuthScreen({
     });
   }, [clientConfig?.oauth_google_client_id, clientConfig?.oauth_apple_client_id]);
 
-  // Complete a sign-in arriving from an emailed link. Runs once on mount.
-  useEffect(() => {
-    const token = magicTokenFromUrl();
-    if (!token) return;
-    let cancelled = false;
-
-    // Strip the token from the address bar immediately so it is not left in
-    // history, bookmarks, or a shared screenshot. It is single-use, but it is
-    // still a credential until consumed.
-    clearMagicTokenFromUrl();
-
-    (async () => {
-      try {
-        const tokens = await api.consumeMagicLink(token);
-        if (cancelled) return;
-        setSession({ accessToken: tokens.access_token, refreshToken: tokens.refresh_token });
-      } catch (error) {
-        if (cancelled) return;
-        setNotice({
-          tone: "warn",
-          text:
-            error instanceof Error && error.message
-              ? error.message
-              : "That sign-in link is no longer valid. Request a new one below.",
-        });
-      } finally {
-        if (!cancelled) setConsumingMagicLink(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [setSession, setNotice]);
-
   function selectMode(next: "login" | "register") {
+    if (busy) return;
     setMode(next);
+    setNotice(null);
     const url = new URL(window.location.href);
     url.searchParams.set("auth", next);
     window.history.replaceState({}, "", url);
   }
 
-  const oauthSubmit = async (provider: OAuthProvider) => {
-    setOauthBusy(provider);
-    setNotice(null);
-    try {
-      const { idToken, displayName, authorizationCode, redirectUri, nonce } = await signInWithProvider(provider);
-      const tokens = await api.oauthLogin(provider, idToken, displayName, authorizationCode, redirectUri, nonce);
-      setSession({ accessToken: tokens.access_token, refreshToken: tokens.refresh_token });
-    } catch (error) {
-      setNotice({ tone: "warn", text: error instanceof Error ? error.message : "Sign-in did not complete." });
-    } finally {
-      setOauthBusy(null);
-    }
+  const complete = (tokens: { access_token: string; refresh_token: string }) => {
+    setSession({ accessToken: tokens.access_token, refreshToken: tokens.refresh_token });
   };
 
-  const sendMagicLink = async () => {
+  const oauthSubmit = (provider: OAuthProvider) => runAuth(provider, async () => {
+    const { idToken, displayName, authorizationCode, redirectUri, nonce } = await signInWithProvider(provider);
+    return api.oauthLogin(provider, idToken, displayName, authorizationCode, redirectUri, nonce);
+  }, complete);
+
+  const sendMagicLink = () => {
     const address = (mode === "login" ? identifier : email).trim();
-    if (!address) return;
-    setMagicBusy(true);
-    setNotice(null);
-    try {
-      await api.requestMagicLink(address);
-      // The API answers identically whether or not the account exists, so the
-      // wording here must not imply one or the other.
+    if (!address || !magicLinkEnabled) return;
+    return runAuth("email", () => api.requestMagicLink(address), () => {
       setMagicSentTo(address);
-    } catch (error) {
-      setNotice(messageFromError(error));
-    } finally {
-      setMagicBusy(false);
-    }
-  };
-
-  const submitMagicCode = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!magicSentTo) return;
-    setMagicBusy(true);
-    setNotice(null);
-    try {
-      const tokens = await api.consumeMagicCode(magicSentTo, magicCode);
-      setSession({ accessToken: tokens.access_token, refreshToken: tokens.refresh_token });
-    } catch (error) {
-      setNotice(messageFromError(error));
       setMagicCode("");
-    } finally {
-      setMagicBusy(false);
-    }
+    });
   };
 
-  const submit = async (event: FormEvent) => {
+  const submitMagicCode = (event: FormEvent) => {
     event.preventDefault();
-    setBusy(true);
-    setNotice(null);
-    try {
-      if (mode === "register") {
-        await api.register({ email: email.trim() || null, phone: phone.trim() || null, password });
-      }
-      const loginId = mode === "register" ? email.trim() || phone.trim() : identifier.trim();
-      const tokens = await api.login(loginId, password);
-      if (mode === "register") {
-        const version = clientConfig?.legal_document_version || "2026-07-13";
-        await Promise.all([
-          api.acceptLegalDocument(tokens.access_token, "privacy", version),
-          api.acceptLegalDocument(tokens.access_token, "terms", version),
-          api.acceptLegalDocument(tokens.access_token, "ai_disclosure", version),
-        ]);
-      }
-      setSession({ accessToken: tokens.access_token, refreshToken: tokens.refresh_token });
-    } catch (error) {
-      setNotice(messageFromError(error));
-    } finally {
-      setBusy(false);
-    }
+    const code = magicCode.replace(/\D/g, "");
+    if (!magicSentTo || code.length !== 6 || !magicLinkEnabled) return;
+    return runAuth("code", () => api.consumeMagicCode(magicSentTo, code), complete, () => setMagicCode(""));
+  };
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    const loginId = mode === "register" ? email.trim() || phone.trim() : identifier.trim();
+    if (!loginId || !password || (mode === "register" && (registrationLocked || !legalAccepted || password.length < 12))) return;
+    return runAuth("password", () => passwordSignIn({
+      register: mode === "register", identifier: loginId, email, phone, password,
+      legalVersion: clientConfig?.legal_document_version || "2026-07-13",
+    }), complete);
   };
 
   if (consumingMagicLink) {
@@ -210,13 +141,16 @@ export function AuthScreen({
 
   return (
     <main className="auth-layout">
-      <IconButton className="auth-theme-toggle" onClick={() => toggleTheme()} aria-label={theme === "dark" ? "Appearance: dark. Switch to light." : "Appearance: light. Switch to dark."} title={theme === "dark" ? "Appearance: dark - switch to light" : "Appearance: light - switch to dark"}>
-        {theme === "dark" ? <Moon size={16} /> : <Sun size={16} />}
-      </IconButton>
       <section className="auth-panel auth-split">
         <aside className="auth-brand-pane">
-          <a className="auth-home-link" href="/"><ArrowLeft size={15} />Home</a>
+          <div className="auth-brand-nav">
+            <a className="auth-home-link" href="/"><ArrowLeft size={15} />Home</a>
+            <IconButton className="auth-theme-toggle" onClick={() => toggleTheme()} aria-label={theme === "dark" ? "Appearance: dark. Switch to light." : "Appearance: light. Switch to dark."} title={theme === "dark" ? "Appearance: dark - switch to light" : "Appearance: light - switch to dark"}>
+              {theme === "dark" ? <Moon size={16} /> : <Sun size={16} />}
+            </IconButton>
+          </div>
           <BrandMark />
+          <p className="auth-mobile-promise">Your memory, connected.</p>
           <p className="auth-promise">A private place for the moments, people, places, and ideas you want to remember.</p>
           <ul className="auth-trust">
             <li><ShieldCheck size={16} />Your journal stays private to your account</li>
@@ -230,11 +164,11 @@ export function AuthScreen({
             <p>{mode === "login" ? "Return to the memory you have been building." : "Start with a private journal that becomes easier to revisit."}</p>
           </div>
           <div className="segmented" role="group" aria-label="Auth mode">
-          <button aria-pressed={mode === "login"} className={mode === "login" ? "active" : ""} onClick={() => selectMode("login")} type="button">Login</button>
+          <button disabled={busy} aria-pressed={mode === "login"} className={mode === "login" ? "active" : ""} onClick={() => selectMode("login")} type="button">Login</button>
           <button
             aria-pressed={mode === "register"}
             className={mode === "register" ? "active" : ""}
-            disabled={registrationLocked}
+            disabled={registrationLocked || busy}
             onClick={() => selectMode("register")}
             type="button"
             title={registrationLocked ? "Registration is closed for this deployment" : "Register"}
@@ -248,13 +182,13 @@ export function AuthScreen({
         {showOAuth && (
           <div className="auth-oauth">
             {showGoogle && (
-              <button type="button" className="oauth-button oauth-google" disabled={busy || oauthBusy !== null} onClick={() => oauthSubmit("google")}>
+              <button type="button" className="oauth-button oauth-google" disabled={busy} onClick={() => oauthSubmit("google")}>
                 {oauthBusy === "google" ? <Loader2 className="spin" size={18} /> : <GoogleIcon />}
                 <span>Continue with Google</span>
               </button>
             )}
             {showApple && (
-              <button type="button" className="oauth-button oauth-apple" disabled={busy || oauthBusy !== null} onClick={() => oauthSubmit("apple")}>
+              <button type="button" className="oauth-button oauth-apple" disabled={busy} onClick={() => oauthSubmit("apple")}>
                 {oauthBusy === "apple" ? <Loader2 className="spin" size={18} /> : <AppleIcon />}
                 <span>Continue with Apple</span>
               </button>
@@ -262,36 +196,25 @@ export function AuthScreen({
             <div className="auth-divider"><span>or {mode === "login" ? "sign in" : "sign up"} with email or phone</span></div>
           </div>
         )}
-        <form className="form-stack" onSubmit={submit}>
+        <form className="form-stack auth-password-form" aria-busy={pending === "password"} onSubmit={submit}>
           {mode === "login" ? (
             <label>
               Email or phone
-              <input value={identifier} onChange={(event) => setIdentifier(event.target.value)} autoComplete="username" required />
+              <input disabled={busy} autoCapitalize="none" spellCheck={false} value={identifier} onChange={(event) => setIdentifier(event.target.value)} autoComplete="username" required />
             </label>
           ) : (
             <div className="two-col">
               <label>
                 Email
-                <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" />
+                <input disabled={busy} autoCapitalize="none" spellCheck={false} value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" />
               </label>
               <label>
                 Phone
-                <input value={phone} onChange={(event) => setPhone(event.target.value)} type="tel" autoComplete="tel" />
+                <input disabled={busy} value={phone} onChange={(event) => setPhone(event.target.value)} type="tel" autoComplete="tel" />
               </label>
             </div>
           )}
-          <label>
-            Password
-            <input
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              type="password"
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
-              minLength={12}
-              required
-              aria-describedby={mode === "register" ? "password-requirement" : undefined}
-            />
-          </label>
+          <PasswordField value={password} onChange={setPassword} disabled={busy} registering={mode === "register"} />
           {mode === "register" && (
             // State the length rule before it is enforced. Left unsaid, the form
             // silently refuses to submit and the only feedback is a browser
@@ -304,15 +227,16 @@ export function AuthScreen({
           )}
           {mode === "register" && (
             <label className="auth-consent check-row">
-              <input type="checkbox" checked={legalAccepted} onChange={(event) => setLegalAccepted(event.target.checked)} required />
+              <input type="checkbox" disabled={busy} checked={legalAccepted} onChange={(event) => setLegalAccepted(event.target.checked)} required />
               <span>I agree to the <a href="/terms" target="_blank" rel="noreferrer">Terms</a>, acknowledge the <a href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>, and consent to the processing described in the <a href="/ai-disclosure" target="_blank" rel="noreferrer">AI Disclosure</a>.</span>
             </label>
           )}
           <PrimaryButton disabled={busy || !password || (mode === "register" && !legalAccepted) || (mode === "login" ? !identifier.trim() : !email.trim() && !phone.trim())}>
-            <ShieldCheck size={16} />
+            {pending === "password" ? <Loader2 className="spin" size={16} aria-hidden="true" /> : <ShieldCheck size={16} aria-hidden="true" />}
             {mode === "login" ? "Login" : "Create Account"}
           </PrimaryButton>
         </form>
+        {pending === "password" && <p className="auth-progress inline-help" role="status">{mode === "login" ? "Signing you in…" : "Creating your account…"}</p>}
         {magicLinkEnabled && (
           <div className="auth-magic">
             {magicSentTo ? (
@@ -321,10 +245,11 @@ export function AuthScreen({
                   If an account can be reached at <strong>{magicSentTo}</strong>, an email is on its way.
                   Click the link in it, or enter the 6-digit code below. Either works once and expires in 15 minutes.
                 </p>
-                <form className="form-stack" onSubmit={submitMagicCode}>
+                <form className="form-stack" aria-busy={pending === "code"} onSubmit={submitMagicCode}>
                   <label>
                     Sign-in code
                     <input
+                      disabled={busy}
                       value={magicCode}
                       onChange={(event) => setMagicCode(event.target.value)}
                       inputMode="numeric"
@@ -334,7 +259,7 @@ export function AuthScreen({
                       required
                     />
                   </label>
-                  <PrimaryButton disabled={magicBusy || magicCode.replace(/\D/g, "").length !== 6}>
+                  <PrimaryButton disabled={busy || magicCode.replace(/\D/g, "").length !== 6}>
                     {magicBusy ? <Loader2 className="spin" size={16} /> : <ShieldCheck size={16} />}
                     Sign in with code
                   </PrimaryButton>
@@ -342,7 +267,7 @@ export function AuthScreen({
                 <button
                   type="button"
                   className="link-button"
-                  disabled={magicBusy}
+                  disabled={busy}
                   onClick={() => {
                     setMagicSentTo(null);
                     setMagicCode("");
@@ -358,7 +283,7 @@ export function AuthScreen({
                 <button
                   type="button"
                   className="oauth-button"
-                  disabled={busy || magicBusy || !(mode === "login" ? identifier.trim() : email.trim())}
+                  disabled={busy || !(mode === "login" ? identifier.trim() : email.trim())}
                   onClick={sendMagicLink}
                 >
                   {magicBusy ? <Loader2 className="spin" size={18} /> : <Mail size={18} />}
@@ -377,18 +302,6 @@ export function AuthScreen({
     </main>
   );
 }
-
 function requestedAuthMode(): "login" | "register" {
   return new URLSearchParams(window.location.search).get("auth") === "register" ? "register" : "login";
-}
-
-function magicTokenFromUrl(): string | null {
-  const token = new URLSearchParams(window.location.search).get("magic");
-  return token && token.trim() ? token.trim() : null;
-}
-
-function clearMagicTokenFromUrl(): void {
-  const url = new URL(window.location.href);
-  url.searchParams.delete("magic");
-  window.history.replaceState({}, "", url);
 }

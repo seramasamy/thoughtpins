@@ -147,6 +147,12 @@
 .auth-form-pane { padding: 36px; }
 .auth-heading h1 { font-size: 30px; }
 .auth-consent-panel { border-radius: 24px; }
+.auth-form-pane input:not([type="checkbox"]) { border-radius: 14px; min-height: 50px; }
+.auth-form-pane input:focus { box-shadow: none; }
+.auth-form-pane input:focus-visible { outline: 2px solid var(--tp-action); outline-offset: 2px; }
+.auth-form-pane .primary-button, .auth-form-pane .segmented button { min-height: 44px; }
+.auth-form-pane .oauth-button { border-radius: 12px; }
+.auth-magic .oauth-button:not(.oauth-google):not(.oauth-apple) { color: var(--tp-ink); background: var(--tp-surface); border: 1px solid var(--tp-line-strong); }
 
 @media (min-width: 701px) and (max-width: 1100px) {
   .rail-section-label, .workspace-eyebrow { display: none; }
@@ -195,8 +201,14 @@
   .recap-metrics strong { font-size: 28px; }
   .recap-entry-body { padding: 18px; }
   .recap-insights { margin-top: 24px; }
-  .auth-brand-pane { padding: 26px; }
+  .auth-layout { padding: 12px; align-items: start; }
+  .auth-panel.auth-split { border-radius: 24px; }
+  .auth-brand-pane { padding: 12px 24px 20px; gap: 10px; }
+  .auth-brand-pane .brand { margin-top: 0; }
+  .auth-brand-pane .auth-promise, .auth-brand-pane .auth-trust { display: none; }
+  .auth-mobile-promise { display: block; color: #bbc7df; font-size: 13px; }
   .auth-form-pane { padding: 24px; }
+  .auth-heading h1 { font-size: 28px; }
 }
 
 @media (max-height: 740px) and (max-width: 700px) {

@@ -9,15 +9,19 @@
   background: color-mix(in srgb, var(--tp-brand-soft) 42%, var(--tp-canvas));
 }
 
-/* Quiet theme choice, available before sign-in so the screen honors it. */
+/* Appearance belongs to the header, without a floating control over content. */
+.auth-brand-nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.auth-brand-nav .auth-home-link { align-self: center; min-height: 44px; }
 .auth-theme-toggle {
-  position: fixed;
-  top: 14px;
-  right: 14px;
-  z-index: 20;
-  border: 1px solid var(--tp-line);
-  background: var(--tp-surface);
+  flex-shrink: 0;
+  width: 44px;
+  min-height: 44px;
+  border: 1px solid #ffffff30;
+  color: #edf2ff;
+  background: #ffffff0a;
 }
+.auth-theme-toggle:hover:not(:disabled) { background: #ffffff16; border-color: #ffffff55; }
+.auth-mobile-promise { display: none; }
 
 .auth-panel {
   width: min(440px, 100%);
@@ -165,6 +169,27 @@
   gap: 10px;
   margin-top: 14px;
 }
+
+.password-field { display: grid; gap: 8px; min-width: 0; }
+.password-input-wrap { position: relative; min-width: 0; }
+.password-input-wrap input { width: 100%; padding-right: 54px; min-height: 50px; }
+.password-visibility {
+  position: absolute;
+  inset: 3px 3px auto auto;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--tp-ink-soft);
+  cursor: pointer;
+}
+.password-visibility:hover:not(:disabled) { color: var(--tp-ink); background: var(--tp-blue-soft); }
+.password-visibility:disabled { opacity: 0.5; cursor: wait; }
+.auth-progress { margin-top: 10px; }
 
 .auth-magic input[autocomplete="one-time-code"] {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;

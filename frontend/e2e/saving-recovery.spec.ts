@@ -59,7 +59,7 @@ test("deletion requires the exact confirmation and a failure keeps the account o
   const mock = await installMockApi(page, "auth", 0, "product", { aiConsentAccepted: true });
   await page.goto("/app/");
   await page.getByLabel("Email or phone").fill("review@example.com");
-  await page.getByLabel("Password").fill("fictional password");
+  await page.getByLabel("Password", { exact: true }).fill("fictional password");
   await page.locator("form").getByRole("button", { name: "Login", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Chat", exact: true, level: 1 })).toBeVisible();
   await openUtility(page, "Settings & account");
