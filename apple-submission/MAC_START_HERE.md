@@ -76,11 +76,13 @@ XcodeGen, and attempts an unsigned generic Simulator build. Add
 
 ## Stage 2 — The first compile
 
-**Status as of 2026-08-25:** this has been done on a Ventura / Xcode 15.2
-machine. `ThoughtPinsCore` and `ThoughtPinsApp` both compile clean under
-`SWIFT_STRICT_CONCURRENCY: complete`, and 15 of 15 core tests pass. Exactly one
-file remains uncompiled anywhere — see **GoogleSignIn** below. Read the two
-traps here before running anything; both cost a session real time.
+**Status as of 2026-09-11:** the production simulator target builds on Ventura /
+Xcode 15.2 for arm64 and x86_64, and all 78 shared Swift tests pass. The former
+GoogleSignIn build blocker described below has been removed. Native UI/model
+tests now run against fictional fixtures on both iPhone and iPad in CI; inspect
+the individual iOS job for the commit you intend to distribute. See the
+[release review](../docs/release/RELEASE_POLISH_CHANGELOG.md) for evidence and
+the remaining signing and device checks.
 
 ```bash
 cd mobile/ios/ThoughtPinsCore
@@ -162,7 +164,7 @@ xcrun simctl list devicetypes | grep iPhone
 
 xcodebuild -project ThoughtPins.xcodeproj -scheme ThoughtPins \
   -destination 'platform=iOS Simulator,name=iPhone 15 Pro' \
-  CODE_SIGNING_ALLOWED=NO build
+  CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=YES build
 ```
 
 `iPhone 15 Pro` is the right destination on Xcode 15.2; the iPhone 17 simulators

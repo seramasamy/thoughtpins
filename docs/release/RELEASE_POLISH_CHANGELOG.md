@@ -52,11 +52,23 @@ supports showing/hiding a password and dismissing the phone keyboard, and offers
 a support-email fallback when a password-help email cannot open. The password
 visibility icon retains its 44-point touch target at large text sizes.
 
-Four native model tests and three iPhone SE UI workflows pass on iOS 17.2. They
+Seven native model tests and five iPhone SE UI workflows pass on iOS 17.2. They
 cover failed disk writes, persisted offline notes, duplicate requests, invalid
 input, 401/429 recovery, failed-link retry, back navigation, password visibility,
-and registration/legal controls at accessibility5. Further device and final CI
+complete consent-gated registration, all five tabs, and registration/legal
+controls at accessibility5. Further device and final CI
 results are recorded in the final verification section below.
+
+Deeper password checks exposed two problems. Requesting automatic strong-password
+generation on the iOS 17.2 review target, which has no `webcredentials` association,
+could stop entry after one character. The field now advertises ordinary password
+AutoFill; automatic generation requires that association and a separate signed
+device check. Showing and hiding a password could also make the next character
+replace all existing text. The field now keeps one native input and rebuilds its
+editing buffer when visibility changes. Direct tests cover exact Unicode and
+whitespace, selection, continued typing and deletion; a UI test continues typing
+with the actual keyboard after concealing the password. The auth scroll view also
+clips its content so scrolled headings do not draw over the status bar.
 
 The iOS CI change filter now compares the previous remote head with the entire
 pushed tree. Five regression cases cover merge promotion, a multi-commit push,
@@ -86,3 +98,35 @@ it immediately after tapping Done. The normal and largest-text screenshots were
 inspected, including the corrected password icon. The production iOS simulator
 target builds for arm64 and x86_64. The modern homepage hero was reviewed last
 and retained; the shared Product section supplies its visual improvement.
+
+The floating tab bar on current iPadOS exposes interactive cells outside an XCUI
+`TabBar`. Native tests now resolve those cells as well as traditional tab buttons,
+then verify every destination in portrait and iPad landscape. Commit `3aa59e1`
+passes all GitHub CI jobs in
+[run 34641395099](https://github.com/seramasamy/thoughtpins/actions/runs/34641395099),
+including iPhone 17 Pro and iPad Pro 13-inch (M5) checks and the unsigned production
+archive on the current Xcode runner. CI exports portable screenshots alongside
+XCTest bundles, so their review does not require the runner's Xcode version.
+
+## Verification and distribution boundary
+
+The strict release command passes all 50 checks: 891 Python tests pass with 16
+optional Telegram skips, the full 452-file type check passes, and production
+builds, dependency audits, migrations, architecture and public-export checks
+pass. GitHub's web job passes 131 browser cases, the PWA offline case, 38 website
+cases, and 45 iOS browser cases. A further local 32-page/width website review has
+no axe violations or horizontal overflow.
+
+On iOS 17.2, all seven native model tests and five UI workflows pass on iPhone SE.
+iPad Pro dark-mode review passes the model tests, sign-in recovery, capture,
+portrait/landscape tabs and largest-text controls. The complete iPad signup case
+also passes after deferring the email Next-button focus transfer until its own
+keyboard action has finished. Screenshots and raw XCTest results retain the
+evidence, including failed cases that prompted fixes.
+
+These checks use fictional fixtures and make no paid model-provider calls.
+An unsigned archive does not establish signed TestFlight readiness. Distribution
+still requires signing/provisioning, the live review backend, physical-device
+checks and real Apple/Google/password-manager flows where enabled. Automatic
+strong-password generation is not enabled without a web-credentials association.
+Pushing this source to GitHub is separate from deploying the hosted service.

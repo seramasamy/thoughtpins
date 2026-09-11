@@ -1,6 +1,8 @@
 import XCTest
 
 final class AuthAndCaptureTests: XCTestCase {
+    override func setUpWithError() throws { continueAfterFailure = false }
+
     private func configure(_ failures: [String: [Int]] = [:], delays: [String: Int] = [:]) throws {
         let done = expectation(description: "Configure fictional API")
         var request = URLRequest(url: URL(string: "http://127.0.0.1:8877/__review")!)
@@ -38,6 +40,17 @@ final class AuthAndCaptureTests: XCTestCase {
             predicate: NSPredicate(format: "exists == false"), object: app.keyboards.firstMatch
         )
         XCTAssertEqual(XCTWaiter.wait(for: [hidden], timeout: 5), .completed)
+    }
+
+    private func waitForPasswordKeyboard(in app: XCUIApplication) {
+        // Password AutoFill can delay the software keyboard on the simulator.
+        // Sending keys before it appears can enter just one letter.
+        let ready = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "hittable == true"), object: app.keyboards.keys["a"]
+        )
+        let result = XCTWaiter.wait(for: [ready], timeout: 20)
+        if result != .completed { shot("Auth-keyboard-unavailable") }
+        XCTAssertEqual(result, .completed)
     }
 
     private func signedOutApp(accessibility: Bool = false) -> XCUIApplication {
@@ -82,13 +95,18 @@ final class AuthAndCaptureTests: XCTestCase {
         let email = app.textFields["Email"]
         reveal(email, in: app); email.tap(); email.typeText("   ")
         let password = app.secureTextFields["Password"]
-        password.tap(); password.typeText("fictional password only")
+        password.tap(); waitForPasswordKeyboard(in: app)
+        password.typeText("fictional password only")
         let submit = app.buttons["thoughtpins-auth-submit"]
         XCTAssertFalse(submit.isEnabled)
         app.buttons["Show password"].tap()
         XCTAssertEqual(app.textFields["Password"].value as? String, "fictional password only")
         app.buttons["Hide password"].tap()
         XCTAssertTrue(app.secureTextFields["Password"].exists)
+        app.keys["a"].tap()
+        app.buttons["Show password"].tap()
+        XCTAssertEqual(app.textFields["Password"].value as? String, "fictional password onlya")
+        app.buttons["Hide password"].tap()
         email.tap(); email.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 3) + "review@example.com")
         dismissKeyboard(in: app)
         for _ in 0..<2 {
@@ -115,11 +133,15 @@ final class AuthAndCaptureTests: XCTestCase {
         reveal(phone, in: app); phone.tap(); phone.typeText("+15555550123")
         dismissKeyboard(in: app)
         let password = app.secureTextFields["Password"]
-        reveal(password, in: app); password.tap(); password.typeText("short")
+        reveal(password, in: app); password.tap(); waitForPasswordKeyboard(in: app)
+        password.typeText("short")
         dismissKeyboard(in: app)
         let submit = app.buttons["thoughtpins-auth-submit"]
         reveal(submit, in: app); XCTAssertFalse(submit.isEnabled)
         XCTAssertTrue(app.staticTexts["Choose a password of at least 12 characters."].exists)
+        let show = app.buttons["Show password"]
+        reveal(show, in: app); show.tap()
+        XCTAssertEqual(app.textFields["Password"].value as? String, "short")
         shot("Auth-create-account-accessibility")
         let consent = app.switches.firstMatch
         reveal(consent, in: app); XCTAssertTrue(consent.isHittable)
@@ -127,6 +149,36 @@ final class AuthAndCaptureTests: XCTestCase {
         // SwiftUI Link is exposed as a button on some simulator versions.
         let legal = privacy.exists ? privacy : app.buttons["Privacy"]
         reveal(legal, in: app); shot("Auth-legal-accessibility")
+    }
+
+    func testCreateAccountCompletesAfterConsent() throws {
+        try configure()
+        let app = signedOutApp()
+        app.buttons["Create account"].firstMatch.tap()
+        let email = app.textFields["Email"]
+        reveal(email, in: app); email.tap(); email.typeText("new-review@example.com\n")
+        let password = app.secureTextFields["Password"]
+        let focused = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: password)
+        XCTAssertEqual(XCTWaiter.wait(for: [focused], timeout: 5), .completed)
+        waitForPasswordKeyboard(in: app)
+        password.typeText("fictional password only")
+        app.buttons["Show password"].tap()
+        XCTAssertEqual(app.textFields["Password"].value as? String, "fictional password only")
+        app.buttons["Hide password"].tap()
+        dismissKeyboard(in: app)
+        let submit = app.buttons["thoughtpins-auth-submit"]
+        reveal(submit, in: app); XCTAssertFalse(submit.isEnabled)
+        let consent = app.switches.firstMatch
+        reveal(consent, in: app)
+        // SwiftUI exposes the label and switch as one element. Hit the actual
+        // trailing switch, then verify its state before attempting signup.
+        consent.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        XCTAssertEqual(consent.value as? String, "1")
+        reveal(submit, in: app); XCTAssertTrue(submit.isEnabled)
+        shot("Auth-registration-ready")
+        submit.tap()
+        XCTAssertTrue(app.thoughtPinsTab("Chat").waitForExistence(timeout: 20))
+        shot("Auth-registration-complete")
     }
 
     func testFailedLinkRetainsDraftAndCaptureCanGoBack() throws {

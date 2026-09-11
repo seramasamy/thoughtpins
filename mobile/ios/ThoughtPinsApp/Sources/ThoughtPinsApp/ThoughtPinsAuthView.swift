@@ -16,7 +16,7 @@ struct ThoughtPinsAuthView: View {
     @State private var legalAccepted = false
     @State private var showingPasswordHelp = false
     @FocusState private var identifierFocused: Bool
-    @FocusState private var passwordFocused: Bool
+    @State private var passwordFocused = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
 
@@ -90,21 +90,24 @@ struct ThoughtPinsAuthView: View {
                             }
                             if usePhone {
                                 TextField("Phone", text: $phone)
-                                    .textContentType(.telephoneNumber).keyboardType(.phonePad)
+                                    .textContentType(.username).keyboardType(.phonePad)
                                     .focused($identifierFocused)
                                     .padding(15).background(ThoughtPinsTheme.canvas, in: RoundedRectangle(cornerRadius: 14))
                             } else {
                                 TextField("Email", text: $identifier)
-                                    .textContentType(.emailAddress).keyboardType(.emailAddress)
+                                    .textContentType(.username).keyboardType(.emailAddress)
                                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                                     .focused($identifierFocused).submitLabel(.next)
-                                    .onSubmit { passwordFocused = true }
+                                    .onSubmit {
+                                        identifierFocused = false
+                                        DispatchQueue.main.async { passwordFocused = true }
+                                    }
                                     .padding(15).background(ThoughtPinsTheme.canvas, in: RoundedRectangle(cornerRadius: 14))
                             }
                         }
                         VStack(alignment: .leading, spacing: 10) {
                             Text("Password").font(.subheadline.weight(.medium))
-                            ThoughtPinsPasswordField(text: $password, creatingAccount: creatingAccount,
+                            ThoughtPinsPasswordField(text: $password,
                                                      isFocused: $passwordFocused, submit: authenticate)
                         }
                         if creatingAccount {
@@ -173,6 +176,7 @@ struct ThoughtPinsAuthView: View {
                 .frame(maxWidth: 540).frame(maxWidth: .infinity)
             }
             .scrollDismissesKeyboard(.interactively)
+            .clipped()
             .thoughtPinsScreen()
             .toolbar(.hidden, for: .navigationBar)
             .toolbar {

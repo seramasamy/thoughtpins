@@ -7,12 +7,28 @@ dismissal, a chat prompt and reply, account access, sign-out, and email sign-in.
 are XCTest attachments. Run on iPhone SE, a current iPhone, and iPad in both
 appearances. Separate tests cover landscape and the largest Dynamic Type size.
 
-`AuthAndCaptureTests` adds password visibility, whitespace validation, 401/429
-sign-in recovery, phone keyboard dismissal, signup/legal controls at the largest
-text size, failed-link draft preservation, and Capture back navigation.
+`AuthAndCaptureTests` adds password visibility and editing after concealment,
+whitespace validation, 401/429 sign-in recovery, consent-gated account creation,
+phone keyboard dismissal, signup/legal controls at the largest text size,
+failed-link draft preservation, and Capture back navigation. It exercises every
+tab in portrait and, on iPad, landscape. `NavigationSupport` resolves both
+traditional tabs and the floating tab cells used by current iPadOS.
 `ModelTests/SubmissionTests` verifies the acceptance contract directly, including
 disk-write failure, durable offline storage, duplicate-request guards, and
 invalid input. Tests run serially against the shared fixture server.
+CI retains both XCTest bundles and portable screenshot attachments so review
+does not require the runner's Xcode version.
+
+`ModelTests/PasswordFieldTests` checks exact Unicode and whitespace preservation,
+selection across visibility changes, typing/deletion after concealment, and
+publishing the latest input before Return submits. Password entry keeps one
+native text field rather than replacing it when Show/Hide changes.
+
+The app currently advertises ordinary password AutoFill. Automatic strong-password
+generation needs a configured `webcredentials` association and a separate signed
+device check; requesting it without that association blocked manual entry on the
+iOS 17.2 review host. The tests wait for usable keyboard keys and check the entire
+entered value. They do not prove a real iCloud/password-manager round trip.
 
 From the repository root, with frontend dependencies installed and Node 22.6+:
 
