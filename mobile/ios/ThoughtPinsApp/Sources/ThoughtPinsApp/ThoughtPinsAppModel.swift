@@ -10,7 +10,7 @@ import UniformTypeIdentifiers
 @MainActor
 public final class ThoughtPinsAppModel: ObservableObject {
     @Published public private(set) var config: ClientConfig?
-    @Published public private(set) var me: MeResponse?
+    @Published public internal(set) var me: MeResponse?
     @Published public private(set) var maintenanceMessage: String?
     @Published public internal(set) var chatReply: String = ""
     @Published public internal(set) var routeLabel: String = "chat"
@@ -30,13 +30,15 @@ public final class ThoughtPinsAppModel: ObservableObject {
     /// An unreachable server therefore does not fail fast: it can sit for up to
     /// a minute. Without this the buttons stayed enabled and nothing on screen
     /// changed, so the app looked broken exactly where App Review starts.
-    @Published public private(set) var authBusy: Bool = false
+    @Published public internal(set) var authBusy: Bool = false
     @Published public internal(set) var voiceArchiveStatus: VoiceArchiveStatusResponse?
     @Published public private(set) var librarySources: [LibrarySourceResponse] = []
     @Published public private(set) var memoryCards: [MemoryCardResponse] = []
     @Published public private(set) var placeCards: [MemoryCardResponse] = []
     @Published public internal(set) var recentEntries: [EntryResponse] = []
     @Published public internal(set) var pendingVaultImport: VaultImportSessionResponse?
+    @Published public internal(set) var savingJournal = false
+    @Published public internal(set) var importingLink = false
     @Published public private(set) var draftCount: Int = 0
     @Published public var banner: String?
     /// Whether the current banner is something the person may need to act on.
@@ -59,7 +61,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
 
     public let api: ThoughtPinsAPIClient
     private let sessionStore: SessionStore
-    private let drafts: FileDraftStore
+    let drafts: FileDraftStore
     let voiceRetry: VoiceRetryStore
 
     /// Where a vault import currently is, so the screen can show progress and
@@ -73,10 +75,10 @@ public final class ThoughtPinsAppModel: ObservableObject {
     @Published public internal(set) var vaultImportPhase: VaultImportPhase = .idle
     var cancelVaultWork: (() -> Void)?
 
-    private let oauthTokenProvider: any ThoughtPinsOAuthTokenProvider
+    let oauthTokenProvider: any ThoughtPinsOAuthTokenProvider
     let uploadProvider: any ThoughtPinsUploadProvider
-    private var currentAppleNonce: String?
-    private var currentAppleState: String?
+    var currentAppleNonce: String?
+    var currentAppleState: String?
 
     public init(
         baseURL: URL,
@@ -159,7 +161,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
     private static let consentDefaultsKey = "thoughtpins.aiProcessingConsentAccepted"
 
     /// Whether a session is on this device, asked before any network call.
-    private func refreshStoredSessionFlag() {
+    func refreshStoredSessionFlag() {
         hasStoredSession = (try? sessionStore.load()) != nil
         if hasStoredSession {
             // Consent is server state, and offline we cannot fetch it. Without a
@@ -260,165 +262,6 @@ public final class ThoughtPinsAppModel: ObservableObject {
         await refreshDraftCount()
     }
 
-    public func register(email: String?, phone: String?, password: String, consentToAIProcessing: Bool) async {
-        guard consentToAIProcessing else {
-            showProblem("Review and accept the privacy, terms, and AI processing disclosure to create an account.")
-            return
-        }
-        // Checked before the account exists. Registering first and discovering
-        // afterwards that there is nothing to sign in with leaves an orphan.
-        guard let identifier = [email, phone].compactMap({ $0 }).first(where: { !$0.isEmpty }) else {
-            showProblem("Add an email address or phone number.")
-            return
-        }
-        authBusy = true
-        defer { authBusy = false }
-        do {
-            _ = try await api.register(email: email, phone: phone, password: password)
-            _ = try await api.login(identifier: identifier, password: password)
-            refreshStoredSessionFlag()
-            me = try await api.me()
-        } catch {
-            // "Check credentials" was wrong for most of what lands here -- a
-            // dropped connection, a 500, a Keychain that refused the write.
-            showProblem(ThoughtPinsAuthFailure(error).registrationMessage)
-            return
-        }
-        // A brand new account is exactly the one the closed beta has not
-        // admitted, so this cannot wait for the next cold start.
-        await refreshInviteStatus()
-        // The account exists and the session is live from here down. A failure
-        // recording consent is not a failed registration, and saying it was
-        // sends people back to a Create account button that now collides with
-        // the account they just made.
-        do {
-            let version = config?.legalDocumentVersion ?? "2026-07-13"
-            for document in ["privacy", "terms", "ai_disclosure"] {
-                _ = try await api.acceptLegalDocument(document, version: version)
-            }
-            showSuccess("Account created.")
-        } catch {
-            showProblem("Account created, but your consent was not recorded. You will be asked again.")
-        }
-        await refreshPreferences()
-        await refreshVoiceArchive()
-        await refreshReadModels()
-    }
-
-    public func oauthLogin(provider: ThoughtPinsOAuthProvider) async {
-        do {
-            let credential = try await oauthTokenProvider.credential(for: provider)
-            _ = try await api.oauthLogin(
-                provider: provider.rawValue,
-                idToken: credential.idToken,
-                displayName: credential.displayName,
-                authorizationCode: credential.authorizationCode,
-                redirectUri: credential.redirectUri,
-                nonce: credential.nonce
-            )
-            refreshStoredSessionFlag()
-            me = try await api.me()
-            await refreshPreferences()
-            await refreshInviteStatus()
-            showSuccess("Signed in with \(provider.label).")
-            await refreshReadModels()
-        } catch {
-            showProblem(
-                thoughtPinsPlainMessage(
-                    for: error,
-                    fallback: "\(provider.label) was not completed. Try again."
-                )
-            )
-        }
-    }
-
-    public func completeAppleSignIn(_ result: Result<ASAuthorization, Error>) async {
-        let expectedNonce = currentAppleNonce
-        let expectedState = currentAppleState
-        defer {
-            currentAppleNonce = nil
-            currentAppleState = nil
-        }
-        do {
-            let authorization = try result.get()
-            guard
-                let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
-                let tokenData = credential.identityToken,
-                let idToken = String(data: tokenData, encoding: .utf8),
-                let codeData = credential.authorizationCode,
-                let authorizationCode = String(data: codeData, encoding: .utf8)
-            else {
-                showProblem("Apple did not return a usable sign-in credential.")
-                return
-            }
-            guard
-                let expectedNonce,
-                let expectedState,
-                credential.state == expectedState
-            else {
-                showProblem("Apple sign-in could not be verified. Please try again.")
-                return
-            }
-            let displayName = credential.fullName.map { PersonNameComponentsFormatter().string(from: $0) }
-            _ = try await api.oauthLogin(
-                provider: "apple",
-                idToken: idToken,
-                displayName: displayName,
-                authorizationCode: authorizationCode,
-                nonce: expectedNonce
-            )
-            refreshStoredSessionFlag()
-            me = try await api.me()
-            await refreshPreferences()
-            await refreshInviteStatus()
-            showSuccess("Signed in with Apple.")
-            await refreshReadModels()
-        } catch {
-            showProblem("Sign in with Apple was not completed.")
-        }
-    }
-
-    public func configureAppleSignInRequest(_ request: ASAuthorizationAppleIDRequest) {
-        let nonce = Self.secureOAuthValue()
-        let state = Self.secureOAuthValue()
-        currentAppleNonce = nonce
-        currentAppleState = state
-        request.requestedScopes = [.fullName, .email]
-        request.nonce = nonce
-        request.state = state
-    }
-
-    private static func secureOAuthValue() -> String {
-        var bytes = [UInt8](repeating: 0, count: 32)
-        let status = bytes.withUnsafeMutableBytes { buffer in
-            SecRandomCopyBytes(kSecRandomDefault, buffer.count, buffer.baseAddress!)
-        }
-        if status == errSecSuccess {
-            return Data(bytes)
-                .base64EncodedString()
-                .replacingOccurrences(of: "+", with: "-")
-                .replacingOccurrences(of: "/", with: "_")
-                .replacingOccurrences(of: "=", with: "")
-        }
-        return UUID().uuidString + UUID().uuidString
-    }
-
-    public func login(identifier: String, password: String) async {
-        authBusy = true
-        defer { authBusy = false }
-        do {
-            _ = try await api.login(identifier: identifier, password: password)
-            refreshStoredSessionFlag()
-            me = try await api.me()
-            await refreshPreferences()
-            await refreshInviteStatus()
-            showSuccess("Signed in.")
-            await refreshReadModels()
-        } catch {
-            showProblem(ThoughtPinsAuthFailure(error).signInMessage)
-        }
-    }
-
     /// Report a model reply as unsafe or wrong.
     ///
     /// The app generates open-ended text, and Apple expects a way to report
@@ -459,62 +302,6 @@ public final class ThoughtPinsAppModel: ObservableObject {
             showSuccess("Reported. Thank you — we review these.")
         } catch {
             showProblem("Could not send that report. Email support@thoughtpins.com and we will act on it.")
-        }
-    }
-
-    public func saveJournal(_ text: String) async {
-        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        guard aiProcessingConsentAccepted else {
-            showProblem("Allow AI processing before saving journal content.")
-            return
-        }
-        do {
-            let response = try await api.ingest(text: text)
-            showSuccess(response.jobId == nil ? "Saved." : "Saved. Still reading it for what to remember.")
-            await refreshReadModels()
-        } catch {
-            // `try?` here claimed "Saved as an offline draft." whether or not
-            // anything was saved. The queue can refuse, and a person told their
-            // thought was kept when it was not is exactly the failure this app
-            // exists to avoid.
-            // Not always offline. A 429 lands here too, and telling someone
-            // their note was "saved as an offline draft" while their signal is
-            // full is the kind of untrue sentence this file exists to avoid.
-            // The note is genuinely queued either way; only the reason differs.
-            let sentOffline: Bool
-            if case APIClientError.httpStatus(429, _) = error {
-                sentOffline = false
-            } else {
-                sentOffline = true
-            }
-            do {
-                _ = try await drafts.enqueue(text: text)
-                showSuccess(
-                    sentOffline
-                        ? "Saved as an offline draft."
-                        : "You are sending faster than we can keep up. Saved on this device and it will send shortly."
-                )
-            } catch DraftStoreError.queueFull(let limit) {
-                showProblem("\(limit) drafts are still waiting to send. Nothing saved has been lost — reconnect to send them, then this one will save.")
-            } catch {
-                showProblem("Could not save this offline. Keep a copy before leaving this screen.")
-            }
-            await refreshDraftCount()
-        }
-    }
-
-    public func ingestLink(_ url: String) async {
-        guard !url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        guard aiProcessingConsentAccepted else {
-            showProblem("Allow AI processing before adding a reading.")
-            return
-        }
-        do {
-            _ = try await api.createLibrarySource(url: url, sourceType: "article")
-            showSuccess("Reading saved.")
-            await refreshReadModels()
-        } catch {
-            showProblem("Could not import that link.")
         }
     }
 
@@ -669,7 +456,7 @@ public final class ThoughtPinsAppModel: ObservableObject {
         recentEntries = (try? await api.entries(page: 1, limit: 40).items) ?? recentEntries
     }
 
-    private func refreshDraftCount() async {
+    func refreshDraftCount() async {
         draftCount = ((try? await drafts.list()) ?? []).count
     }
 }

@@ -38,7 +38,7 @@ an `ios` job on `macos-latest`, which carries a current Xcode. It runs
 grow the signed archive. Trigger it by hand:
 
 ```bash
-gh workflow run ci.yml --ref main -f run_native=true
+gh workflow run ci.yml --ref main -f run_native=true -f upload_testflight=false
 ```
 
 Other routes if that does not suit: Xcode Cloud (Apple's own, 25 compute
@@ -60,8 +60,8 @@ git clone https://github.com/seramasamy/thoughtpins.git
 cd thoughtpins
 ```
 
-The repo is private, so git will ask for GitHub credentials. Use a personal
-access token, not your password.
+The repository is public, so cloning does not require authentication. Pushing
+changes requires an authorized GitHub account through your credential helper.
 
 ```bash
 ./scripts/bootstrap_macos.sh

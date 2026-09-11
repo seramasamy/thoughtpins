@@ -10,10 +10,17 @@ from thoughtpins.memory.temporal_relevance import parse_temporal_window, tempora
 def test_relative_date_windows_are_calendar_aware() -> None:
     as_of = date(2026, 7, 21)
 
-    assert parse_temporal_window("what happened 5 days ago?", as_of=as_of).start == date(2026, 7, 16)
-    assert parse_temporal_window("what happened last Saturday?", as_of=as_of).start == date(2026, 7, 18)
-    assert parse_temporal_window("what happened last week?", as_of=as_of).start == date(2026, 7, 13)
-    assert parse_temporal_window("what happened last month?", as_of=as_of).end == date(2026, 6, 30)
+    for query, expected in [
+        ("what happened 5 days ago?", date(2026, 7, 16)),
+        ("what happened last Saturday?", date(2026, 7, 18)),
+        ("what happened last week?", date(2026, 7, 13)),
+    ]:
+        window = parse_temporal_window(query, as_of=as_of)
+        assert window is not None
+        assert window.start == expected
+    month = parse_temporal_window("what happened last month?", as_of=as_of)
+    assert month is not None
+    assert month.end == date(2026, 6, 30)
 
 
 def test_temporal_match_decays_outside_the_requested_window() -> None:

@@ -41,6 +41,9 @@ def test_public_export_ignores_generated_local_state(tmp_path: Path) -> None:
     package_metadata = tmp_path / "src" / "thoughtpins.egg-info"
     package_metadata.mkdir(parents=True)
     (package_metadata / "SOURCES.txt").write_text("stale generated package metadata", encoding="utf-8")
+    swift_cache = tmp_path / "mobile" / "ios" / "ThoughtPinsCore" / ".build"
+    swift_cache.mkdir(parents=True)
+    (swift_cache / "local-build.json").write_text("generated compiler state", encoding="utf-8")
 
     files = list(mod._candidate_files(tmp_path))
     assert files == []
@@ -60,6 +63,9 @@ def test_forbidden_scan_ignores_generated_local_state_and_catches_provider_keys(
         "jina_" + "thisgeneratedvalueisnotpartofthepublictree",
         encoding="utf-8",
     )
+    swift_cache = tmp_path / "mobile" / "ios" / "ThoughtPinsCore" / ".build"
+    swift_cache.mkdir(parents=True)
+    (swift_cache / "local-build.json").write_text("jina_" + "localgeneratedvalueonly123456", encoding="utf-8")
 
     assert mod.main(tmp_path) == 0
 

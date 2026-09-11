@@ -7,6 +7,13 @@ dismissal, a chat prompt and reply, account access, sign-out, and email sign-in.
 are XCTest attachments. Run on iPhone SE, a current iPhone, and iPad in both
 appearances. Separate tests cover landscape and the largest Dynamic Type size.
 
+`AuthAndCaptureTests` adds password visibility, whitespace validation, 401/429
+sign-in recovery, phone keyboard dismissal, signup/legal controls at the largest
+text size, failed-link draft preservation, and Capture back navigation.
+`ModelTests/SubmissionTests` verifies the acceptance contract directly, including
+disk-write failure, durable offline storage, duplicate-request guards, and
+invalid input. Tests run serially against the shared fixture server.
+
 From the repository root, with frontend dependencies installed and Node 22.6+:
 
 ```sh

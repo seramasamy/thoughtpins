@@ -58,7 +58,9 @@ def test_local_transcription_auto_detects_language_and_removes_temp_file(monkeyp
     assert result.ok
     assert result.text == "Bonjour Maya"
     assert result.metadata == {"processing": "local", "language": "fr", "speech_detected": True}
-    assert "language" not in captured["options"]
+    options = captured["options"]
+    assert isinstance(options, dict)
+    assert "language" not in options
     assert not Path(str(captured["path"])).exists()
 
 

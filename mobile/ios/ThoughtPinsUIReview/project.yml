@@ -6,6 +6,8 @@ options:
 packages:
   ThoughtPinsApp:
     path: ../ThoughtPinsApp
+  ThoughtPinsCore:
+    path: ../ThoughtPinsCore
 settings:
   base:
     SWIFT_VERSION: 5.9
@@ -49,10 +51,21 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.thoughtpins.designreview.tests
         GENERATE_INFOPLIST_FILE: YES
+  ModelTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [ModelTests]
+    dependencies:
+      - package: ThoughtPinsApp
+      - package: ThoughtPinsCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.thoughtpins.designreview.modeltests
+        GENERATE_INFOPLIST_FILE: YES
 schemes:
   DesignReview:
     build:
       targets:
         DesignReview: all
     test:
-      targets: [DesignReviewTests]
+      targets: [ModelTests, DesignReviewTests]

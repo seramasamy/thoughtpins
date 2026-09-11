@@ -35,3 +35,54 @@ be assessed from the subsequent native verification, not inferred from that
 green workflow.
 
 No model-provider calls or real account data are used by these review fixtures.
+
+## iOS capture, authentication, and release verification
+
+Capture cleared notes and links before persistence completed. It now clears only
+accepted content and preserves any newer text entered during the request. Failed
+offline storage returns an explicit failure; a successful offline result requires
+a persisted draft. Journal and link submissions reject overlap, URL validation
+rejects incomplete/non-web links, and Capture uses its parent's navigation stack
+so its back button remains available.
+
+Authentication snapshots and normalizes the account identifier while preserving
+the exact password. A model-level guard prevents concurrent login/registration
+and provider completions. The form keeps its mode and inputs stable while busy,
+supports showing/hiding a password and dismissing the phone keyboard, and offers
+a support-email fallback when a password-help email cannot open. The password
+visibility icon retains its 44-point touch target at large text sizes.
+
+Four native model tests and three iPhone SE UI workflows pass on iOS 17.2. They
+cover failed disk writes, persisted offline notes, duplicate requests, invalid
+input, 401/429 recovery, failed-link retry, back navigation, password visibility,
+and registration/legal controls at accessibility5. Further device and final CI
+results are recorded in the final verification section below.
+
+The iOS CI change filter now compares the previous remote head with the entire
+pushed tree. Five regression cases cover merge promotion, a multi-commit push,
+fixture changes, a new branch, and documentation-only changes. CI runs the new
+native model/UI cases and retains their XCTest attachments. Manual validation
+no longer implies upload: App Store Connect upload requires the separate
+`upload_testflight` input, which defaults to false.
+
+Native verification exposed another export issue: SwiftPM's ignored `.build`
+cache was included by the filesystem-based public export walker. Both hygiene
+scanners now exclude that generated cache, with tests for nested Swift package
+paths. This keeps compiled modules and local build paths out of public archives;
+source scanning remains enabled. The obsolete Product-caption assertion was
+updated to verify the real fictional-account captures on both homepages. A
+current-WebKit Classic contrast failure prompted explicit theme ink on headings.
+
+The broader repository check found 27 typing errors in existing test fixtures,
+while the release gate only checked application code and scripts. The fixtures
+now narrow optional results, use explicit side-effect helpers, and preserve the
+same behavioral assertions. The full `mypy src scripts tests` command passes
+across 452 files; CI and the strict release command now enforce that scope.
+
+Local iPad Pro review also passes link recovery, landscape navigation, sign-in
+recovery, and accessibility5 signup. Its keyboard disappearance is asynchronous;
+the UI assertion now waits for the actual keyboard to close instead of sampling
+it immediately after tapping Done. The normal and largest-text screenshots were
+inspected, including the corrected password icon. The production iOS simulator
+target builds for arm64 and x86_64. The modern homepage hero was reviewed last
+and retained; the shared Product section supplies its visual improvement.

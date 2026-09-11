@@ -18,6 +18,7 @@ from __future__ import annotations
 import random
 import string
 from datetime import date
+from typing import TypedDict
 
 import pytest
 
@@ -25,6 +26,17 @@ from thoughtpins.memory.ranking import rerank_results
 from thoughtpins.memory.search_types import SearchResult
 
 AS_OF = date(2026, 8, 1)
+
+
+class CandidateSpec(TypedDict):
+    ident: str
+    text: str
+    score: float
+    entities: list[str]
+    local_date: str
+    confidence: str
+    sources: list[str]
+    memory_type: str
 
 
 def candidate(
@@ -227,7 +239,7 @@ def test_random_corpora_and_queries_hold_the_invariants(seed: int):
 
     size = rng.randint(1, 60)
     spec = [
-        dict(
+        CandidateSpec(
             ident=f"m{i}",
             text=noise(),
             score=rng.random(),

@@ -247,7 +247,7 @@ def test_setup_logging_wires_the_sentry_scrubber(monkeypatch):
 
     captured: dict = {}
     fake_sentry = types.ModuleType("sentry_sdk")
-    fake_sentry.init = lambda **kwargs: captured.update(kwargs)
+    monkeypatch.setattr(fake_sentry, "init", lambda **kwargs: captured.update(kwargs), raising=False)
     monkeypatch.setitem(sys.modules, "sentry_sdk", fake_sentry)
     monkeypatch.setattr(config, "SENTRY_DSN", "https://x@example.invalid/1")
     monkeypatch.setattr(Config, "SENTRY_DSN", "https://x@example.invalid/1")

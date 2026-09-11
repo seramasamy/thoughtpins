@@ -1,6 +1,6 @@
 # Thought Pins iOS Target
 
-This directory is the production-shaped iPhone and iPad target. XcodeGen keeps the project definition reviewable in `project.yml`; generated `.xcodeproj` files are build artifacts and should not become the source of truth.
+This directory is the production iPhone and iPad target. XcodeGen keeps the project definition reviewable in `project.yml`; regenerate the Xcode project from that specification for release builds.
 
 ## Generate And Build
 
@@ -48,11 +48,23 @@ appearances, and the local-data teardown wiring. `swift test --package-path
 mobile/ios/ThoughtPinsCore` covers the client and the draft store, and runs on
 the macOS CI job.
 
-Nothing off a Mac can compile SwiftUI. The layout claims in this target —
-Dynamic Type at accessibility sizes, VoiceOver order, iPad Slide Over at 320pt,
-Stage Manager, the launch-screen transition — are reasoned from the source and
-remain unverified until someone runs the simulator. The device matrix that *is*
-executed lives in `frontend/e2e/ios-device-matrix.spec.ts`: nine shipping iPhone
-and iPad sizes driven through WebKit, which is the same engine iOS Safari uses.
-That covers the web app on those devices. It is not a substitute for building
-this target.
+The [native review harness](../ThoughtPinsUIReview/README.md) compiles the actual
+SwiftUI package against fictional loopback fixtures. Simulator review covers
+iPhone SE through Pro Max, iPad mini and iPad Pro, dark/light appearance,
+landscape on iPad, and large Dynamic Type. The model tests exercise failed
+storage, offline persistence, overlapping requests, and retry acceptance.
+XCTest screenshots are retained as result-bundle attachments.
+
+Read the [release review log](../../../docs/release/RELEASE_POLISH_CHANGELOG.md)
+and [earlier device review](../../../docs/release/UI_ROBUSTNESS_CHANGELOG.md)
+for the evidence and its scope. GitHub's iOS job validates the shared package,
+native authentication/capture tests, simulator build, and unsigned device
+archive. It compares the entire pushed range so an earlier Swift change in a
+batch cannot skip native verification.
+
+A validation dispatch uses `run_native=true` and `upload_testflight=false`.
+Uploading requires an explicit `upload_testflight=true` selection and signing
+credentials. A local Xcode 15.2 simulator pass does not establish submission
+eligibility: uploads require the current Apple-supported SDK. Physical-device
+VoiceOver, real provider sign-in, signing/provisioning, and App Store Connect
+processing still need their own release evidence.

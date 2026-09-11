@@ -264,6 +264,7 @@ def test_account_without_an_email_cannot_set_a_password(client, magic_link_enabl
     session = get_session()
     try:
         user = get_user_by_email("willclear@example.com", session=session)
+        assert user is not None
         user.email = None
         session.commit()
     finally:

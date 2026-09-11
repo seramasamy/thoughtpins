@@ -23,7 +23,12 @@ def test_worker_recovery_relay_is_throttled(monkeypatch) -> None:
     monkeypatch.setattr(config, "WORKER_RECOVERY_INTERVAL_SECONDS", 60)
     monkeypatch.setattr(type(config), "WORKER_RECOVERY_INTERVAL_SECONDS", 60)
     monkeypatch.setattr(worker.time, "monotonic", lambda: clock[0])
-    monkeypatch.setattr(worker, "recover_pending_jobs", lambda: calls.append(clock[0]) or 2)
+
+    def recover() -> int:
+        calls.append(clock[0])
+        return 2
+
+    monkeypatch.setattr(worker, "recover_pending_jobs", recover)
     monkeypatch.setattr(worker, "recover_vault_import_sessions", lambda: 0)
     monkeypatch.setattr(worker, "_last_recovery_monotonic", 0.0)
 

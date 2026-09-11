@@ -240,7 +240,7 @@ def _quality_checks(step, skip, py: str, *, strict: bool) -> bool:
         ok &= skip("ruff lint", "ruff is not installed in the active Python environment", strict=strict)
 
     if _module_available("mypy"):
-        ok &= step("mypy type check", [py, "-m", "mypy", "src/thoughtpins", "scripts"], timeout=180)
+        ok &= step("mypy type check", [py, "-m", "mypy", "src", "scripts", "tests"], timeout=180)
     else:
         ok &= skip("mypy type check", "mypy is not installed in the active Python environment", strict=strict)
 

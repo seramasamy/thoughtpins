@@ -5,8 +5,9 @@ import { installMockApi } from '../e2e/mockApi.ts';
 let handler;
 let failures = {};
 let calls = {};
+let delays = {};
 async function reset() {
-  failures = {}; calls = {};
+  failures = {}; calls = {}; delays = {};
   await installMockApi({ route: async (pattern, cb) => { handler = cb; } }, 'local', 0, 'product', { aiConsentAccepted: true });
 }
 await reset();
@@ -16,7 +17,9 @@ http.createServer(async (req, res) => {
   // Only the disposable XCTest host uses this loopback-only fault control.
   if (req.url === '/__review' && req.method === 'POST') {
     await reset();
-    failures = JSON.parse(body || '{}').failures || {};
+    const settings = JSON.parse(body || '{}');
+    failures = settings.failures || {};
+    delays = settings.delays || {};
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end('{}'); return;
   }
@@ -28,6 +31,8 @@ http.createServer(async (req, res) => {
   const key = `${req.method} ${path}`;
   calls[key] = (calls[key] || 0) + 1;
   const failure = failures[key]?.shift();
+  const delay = Math.max(0, Math.min(5000, Number(delays[key]) || 0));
+  if (delay) await new Promise(resolve => setTimeout(resolve, delay));
   if (failure) {
     res.writeHead(failure, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: { code: 'review_failure', message: 'Please try again shortly.' } })); return;

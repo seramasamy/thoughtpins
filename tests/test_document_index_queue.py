@@ -5,17 +5,19 @@ import asyncio
 
 def test_document_index_queue_flushes_deferred_payload(monkeypatch):
     from thoughtpins import library
+    from thoughtpins.db import Memory
 
     seen: list[list[tuple[str, str, str]]] = []
 
-    class MemoryStub:
-        id = "memory_deferred_index"
-        text = "Deferred vector indexing should drain before shutdown."
-        user_id = "tenant-deferred-index"
+    memory = Memory(
+        id="memory_deferred_index",
+        text="Deferred vector indexing should drain before shutdown.",
+        user_id="tenant-deferred-index",
+    )
 
     monkeypatch.setattr(library, "_index_document_memory_payloads", lambda payload: seen.append(payload))
 
-    library.schedule_document_memory_indexing([MemoryStub()])
+    library.schedule_document_memory_indexing([memory])
 
     assert library.flush_document_indexing(timeout_seconds=2.0) is True
     assert seen == [
@@ -47,7 +49,12 @@ def test_api_lifespan_drains_document_index_queue_on_shutdown(monkeypatch):
     monkeypatch.setattr(api, "init_db", lambda: None)
     monkeypatch.setattr(api, "_recover_orphaned_entries", lambda: None)
     monkeypatch.setattr(api, "recover_pending_jobs", lambda: None)
-    monkeypatch.setattr(api, "flush_document_indexing", lambda timeout_seconds: calls.append(timeout_seconds) or True)
+
+    def flush(timeout_seconds: int) -> bool:
+        calls.append(timeout_seconds)
+        return True
+
+    monkeypatch.setattr(api, "flush_document_indexing", flush)
     monkeypatch.setattr(api.config, "RUN_STARTUP_RECOVERY", False)
     monkeypatch.setattr(config_cls, "RUN_STARTUP_RECOVERY", False)
     monkeypatch.setattr(api.config, "PROCESS_ENTRIES_ASYNC", False)

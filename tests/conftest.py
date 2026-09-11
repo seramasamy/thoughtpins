@@ -6,6 +6,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
+from sqlalchemy import Engine
 from sqlalchemy.orm import close_all_sessions
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -14,6 +15,13 @@ PYTEST_TEMP_ROOT.mkdir(parents=True, exist_ok=True)
 for _name in ("TMP", "TEMP", "TMPDIR", "PYTEST_DEBUG_TEMPROOT"):
     os.environ[_name] = str(PYTEST_TEMP_ROOT)
 tempfile.tempdir = str(PYTEST_TEMP_ROOT)
+
+
+def _dispose_test_engine(engine: Engine | None) -> None:
+    # Read the engine again after yield: tests may have initialized the store.
+    if engine is not None:
+        close_all_sessions()
+        engine.dispose()
 
 
 @pytest.fixture()
@@ -171,9 +179,7 @@ def isolated_db():
         setattr(config, key, value)
         setattr(config_cls, key, value)
 
-    if store._engine is not None:
-        close_all_sessions()
-        store._engine.dispose()
+    _dispose_test_engine(store._engine)
     store._engine = None
     store._SessionLocal = None
     if postgres_test_url:
@@ -197,9 +203,7 @@ def isolated_db():
         for key, (instance_value, class_value) in old_values.items():
             setattr(config, key, instance_value)
             setattr(config_cls, key, class_value)
-        if store._engine is not None:
-            close_all_sessions()
-            store._engine.dispose()
+        _dispose_test_engine(store._engine)
         store._engine = None
         store._SessionLocal = None
         if not postgres_test_url:

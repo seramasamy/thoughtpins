@@ -5,6 +5,11 @@ from types import SimpleNamespace
 import pytest
 
 
+def _stub_embedding_model(store) -> None:
+    store._embedding_model = "test"
+    store._dimension = 3
+
+
 def test_openai_embedding_provider_uses_configured_model(monkeypatch):
     from thoughtpins.config import config
     from thoughtpins.memory.vector_store import VectorStore
@@ -103,7 +108,7 @@ def test_remote_qdrant_uses_shared_authenticated_endpoint(monkeypatch) -> None:
     monkeypatch.setattr(
         VectorStore,
         "_init_embedding_model",
-        lambda self: (setattr(self, "_embedding_model", "test"), setattr(self, "_dimension", 3)),
+        _stub_embedding_model,
     )
 
     store = VectorStore()
@@ -213,10 +218,7 @@ def test_qdrant_accepts_short_app_memory_ids(tmp_path, monkeypatch):
     monkeypatch.setattr(
         VectorStore,
         "_init_embedding_model",
-        lambda self: (
-            setattr(self, "_embedding_model", "test"),
-            setattr(self, "_dimension", 3),
-        ),
+        _stub_embedding_model,
     )
     monkeypatch.setattr(VectorStore, "_embed", lambda self, texts: [[1.0, 0.0, 0.0] for _ in texts])
 
@@ -257,10 +259,7 @@ def test_qdrant_recreates_when_embedding_dimension_changes(tmp_path, monkeypatch
     monkeypatch.setattr(
         VectorStore,
         "_init_embedding_model",
-        lambda self: (
-            setattr(self, "_embedding_model", "test"),
-            setattr(self, "_dimension", 3),
-        ),
+        _stub_embedding_model,
     )
     monkeypatch.setattr(VectorStore, "_embed", lambda self, texts: [[1.0, 0.0, 0.0] for _ in texts])
 

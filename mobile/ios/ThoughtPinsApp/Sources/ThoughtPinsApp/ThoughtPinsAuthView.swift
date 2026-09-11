@@ -14,6 +14,9 @@ struct ThoughtPinsAuthView: View {
     @State private var password = ""
     @State private var phone = ""
     @State private var legalAccepted = false
+    @State private var showingPasswordHelp = false
+    @FocusState private var identifierFocused: Bool
+    @FocusState private var passwordFocused: Bool
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
 
@@ -72,6 +75,7 @@ struct ThoughtPinsAuthView: View {
                         Text("Create account").tag(true)
                     }
                     .pickerStyle(.segmented)
+                    .disabled(model.authBusy)
                     VStack(alignment: .leading, spacing: 20) {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
@@ -87,21 +91,21 @@ struct ThoughtPinsAuthView: View {
                             if usePhone {
                                 TextField("Phone", text: $phone)
                                     .textContentType(.telephoneNumber).keyboardType(.phonePad)
+                                    .focused($identifierFocused)
                                     .padding(15).background(ThoughtPinsTheme.canvas, in: RoundedRectangle(cornerRadius: 14))
                             } else {
                                 TextField("Email", text: $identifier)
                                     .textContentType(.emailAddress).keyboardType(.emailAddress)
                                     .textInputAutocapitalization(.never).autocorrectionDisabled()
+                                    .focused($identifierFocused).submitLabel(.next)
+                                    .onSubmit { passwordFocused = true }
                                     .padding(15).background(ThoughtPinsTheme.canvas, in: RoundedRectangle(cornerRadius: 14))
                             }
                         }
                         VStack(alignment: .leading, spacing: 10) {
                             Text("Password").font(.subheadline.weight(.medium))
-                            SecureField("Password", text: $password)
-                                .textContentType(creatingAccount ? .newPassword : .password)
-                                .submitLabel(.go)
-                                .padding(15).background(ThoughtPinsTheme.canvas, in: RoundedRectangle(cornerRadius: 14))
-                                .onSubmit(authenticate)
+                            ThoughtPinsPasswordField(text: $password, creatingAccount: creatingAccount,
+                                                     isFocused: $passwordFocused, submit: authenticate)
                         }
                         if creatingAccount {
                             Toggle("I consent to private AI processing of content I choose to send.", isOn: $legalAccepted)
@@ -116,6 +120,7 @@ struct ThoughtPinsAuthView: View {
                             }
                         }
                         .buttonStyle(ThoughtPinsPrimaryStyle())
+                        .accessibilityIdentifier("thoughtpins-auth-submit")
                         .disabled(model.authBusy || (creatingAccount ? registrationBlocker : signInBlocker) != nil)
                         if let blocker = creatingAccount ? registrationBlocker : signInBlocker, !model.authBusy {
                             Text(blocker).font(.caption).foregroundStyle(ThoughtPinsTheme.inkSoft)
@@ -128,7 +133,11 @@ struct ThoughtPinsAuthView: View {
                         }
                         if !creatingAccount {
                             Button("Forgot password?") {
-                                if let url = forgotPasswordMailURL() { openURL(url) }
+                                if let url = forgotPasswordMailURL() {
+                                    openURL(url) { accepted in showingPasswordHelp = !accepted }
+                                } else {
+                                    showingPasswordHelp = true
+                                }
                             }
                             .font(.footnote).frame(minHeight: 44)
                             .disabled(model.authBusy)
@@ -153,6 +162,7 @@ struct ThoughtPinsAuthView: View {
                             }
                         }
                     }
+                    .disabled(model.authBusy)
                     .thoughtPinsCard(padding: 20)
                     if !creatingAccount { legalLinks }
                     Label("Your memories. Your control.", systemImage: "lock.shield")
@@ -165,6 +175,19 @@ struct ThoughtPinsAuthView: View {
             .scrollDismissesKeyboard(.interactively)
             .thoughtPinsScreen()
             .toolbar(.hidden, for: .navigationBar)
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { identifierFocused = false; passwordFocused = false }
+                        .accessibilityLabel("Dismiss keyboard")
+                }
+            }
+            .alert("Password help", isPresented: $showingPasswordHelp) {
+                Button("Copy support email") { UIPasteboard.general.string = "support@thoughtpins.com" }
+                Button("Close", role: .cancel) {}
+            } message: {
+                Text("Email support@thoughtpins.com from your account address for help. Never include your password.")
+            }
             .tint(ThoughtPinsTheme.action)
         }
     }
@@ -185,13 +208,17 @@ struct ThoughtPinsAuthView: View {
 
     private func authenticate() {
         guard !model.authBusy else { return }
+        let account = (usePhone ? phone : identifier).trimmingCharacters(in: .whitespacesAndNewlines)
+        let submittedPassword = password
+        let submittedConsent = legalAccepted
+        let submittedPhone = usePhone
         if creatingAccount {
             guard registrationBlocker == nil else { return }
-            Task { await model.register(email: identifier.isEmpty ? nil : identifier, phone: phone.isEmpty ? nil : phone,
-                                        password: password, consentToAIProcessing: legalAccepted) }
+            Task { await model.register(email: submittedPhone ? nil : account, phone: submittedPhone ? account : nil,
+                                        password: submittedPassword, consentToAIProcessing: submittedConsent) }
         } else {
             guard signInBlocker == nil else { return }
-            Task { await model.login(identifier: identifier.isEmpty ? phone : identifier, password: password) }
+            Task { await model.login(identifier: account, password: submittedPassword) }
         }
     }
 
@@ -228,7 +255,7 @@ struct ThoughtPinsAuthView: View {
     /// the app. Seen on a device on 2026-09-04, on the screen every App Review
     /// begins on.
     private var signInBlocker: String? {
-        if identifier.isEmpty && phone.isEmpty {
+        if (usePhone ? phone : identifier).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return "Enter the email address or phone number for your account."
         }
         if password.isEmpty {
@@ -243,7 +270,7 @@ struct ThoughtPinsAuthView: View {
     /// Review: the reviewer cannot register, and nothing on screen says which
     /// of three rules they have not met yet.
     private var registrationBlocker: String? {
-        if identifier.isEmpty && phone.isEmpty {
+        if (usePhone ? phone : identifier).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return "Add an email address or phone number to create an account."
         }
         // Code points, matching the server's own length rule, so the client

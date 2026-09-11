@@ -249,7 +249,7 @@ def test_the_production_file_sink_is_gone(monkeypatch, tmp_path):
     monkeypatch.setattr(Config, "SENTRY_DSN", "")
     setup_logging()
     try:
-        assert len(logger._core.handlers) == 1
+        assert len(vars(logger)["_core"].handlers) == 1
     finally:
         logger.remove()
 
@@ -265,6 +265,6 @@ def test_development_keeps_the_file_sink(monkeypatch):
     monkeypatch.setattr(Config, "SENTRY_DSN", "")
     setup_logging()
     try:
-        assert len(logger._core.handlers) == 2
+        assert len(vars(logger)["_core"].handlers) == 2
     finally:
         logger.remove()

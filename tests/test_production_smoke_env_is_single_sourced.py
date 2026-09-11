@@ -31,13 +31,12 @@ def smoke_step() -> str:
     # The step ends at the next step, or at the next job when it is the last
     # step in this one. Without the second bound this runs on into the postgres
     # job and reads its service credentials as if they were the step's.
+    next_job = re.search(r"\n  [a-z][a-z0-9_-]*:", remainder[1:])
     ends = [
         offset
         for offset in (
             remainder.find("\n      - name:", 1),
-            re.search(r"\n  [a-z][a-z0-9_-]*:", remainder[1:]).start() + 1
-            if re.search(r"\n  [a-z][a-z0-9_-]*:", remainder[1:])
-            else -1,
+            next_job.start() + 1 if next_job else -1,
         )
         if offset != -1
     ]
@@ -69,6 +68,7 @@ def test_the_release_gate_uses_the_same_definition():
     from production_smoke_env import production_smoke_env
 
     spec = importlib.util.spec_from_file_location("release_check_probe", ROOT / "scripts" / "release_check.py")
+    assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     sys.modules["release_check_probe"] = module
     spec.loader.exec_module(module)

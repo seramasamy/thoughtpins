@@ -25,6 +25,7 @@ EXCLUDED_DIRS = {
     ".kotlin",
     ".android-local",
     ".tmp",
+    ".build",
     ".ms-playwright",
     ".mypy_cache",
     ".pytest_cache",
