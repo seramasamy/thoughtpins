@@ -1,125 +1,86 @@
-# App Review Notes — Thought Pins
+# App Review notes — Thought Pins
 
-**Paste the section between the markers into App Store Connect → App Review
-Information → Notes.** Everything outside the markers is for you, not Apple.
+This is a draft for the chosen release. Before pasting the marked block into
+App Store Connect, complete [Submission status](SUBMISSION_STATUS.md): validate
+the signed build, confirm the fictional review account and backend, and check
+that the described features and provider settings match that build. Historical
+production observations below are dated evidence, not current attestations.
 
-Keep it under 4,000 characters -- that is App Store Connect's hard cap. The
-block below is **3,984**. This line used to say ~2,600, which was wrong by
-about 1,400 characters and left the true margin at fifteen. Re-measure after
-every edit rather than trusting the number:
+Put the password in App Store Connect's **Sign-In Information**, never in this
+file or the notes body. Recheck the notes length after edits:
 
-```bash
-# Character count (not bytes). wc -m counts bytes under a POSIX/C locale, so
-# measure with Python, which counts Unicode characters regardless of locale.
-python3 -c "import sys,io; \
-  block=[]; keep=False
-for line in io.open('apple-submission/REVIEW_NOTES.md', encoding='utf-8'):
-    if line.startswith('## ') and 'END' in line: keep=False
-    if keep: block.append(line)
-    if line.startswith('## ') and 'BEGIN' in line: keep=True
-print(len(''.join(block)))"
+```sh
+python3 - <<'CHECK'
+from pathlib import Path
+text = Path('apple-submission/REVIEW_NOTES.md').read_text()
+block = text.split('## ✂️ BEGIN — paste into App Store Connect\n', 1)[1].split('## ✂️ END', 1)[0]
+print(len(block), 'characters')
+assert len(block) <= 4000
+CHECK
 ```
-
-If you need the extra paragraph the invite-gate scenario below calls for, cut
-something first.
-
----
 
 ## ✂️ BEGIN — paste into App Store Connect
 
-Thought Pins is a private journaling and personal-memory app. You write or
-speak notes; it organises them into people, places and sources you can ask
-about later.
+Thought Pins is a private journaling and personal-memory app. Write or speak
+notes, then revisit people, places and saved sources or ask about your record.
 
-**DEMO ACCOUNT**
-review@thoughtpins.com — password in the Sign-In Information fields above.
-Fictional demo data only, no real personal information.
+DEMO ACCOUNT
+review@thoughtpins.com — password in the Sign-In Information fields.
+The review account contains fictional material only.
 
-**WHY AN ACCOUNT IS REQUIRED (5.1.1(i))**
+ACCOUNT AND ACCESS
+An account keeps each person's saved record separate and available across their
+devices. Registration uses email or phone and a password. No contacts or social
+profile are requested. The submission deployment has open registration; no
+invite code is required. Native third-party sign-in is hidden when its required
+provider configuration is unavailable.
 
-The account is the product, not a gate on it. Everything here is recall over
-what you saved: entries are stored, indexed and answered against later from any
-device you sign in on. Without an account there is nothing to remember. We ask
-for an email or phone and a password — no profile, contacts or social graph.
+WHAT TO TRY
+1. Sign in with the demo account, or register a separate account.
+2. Chat: ask “What do you remember about Maya?” and inspect the cited material.
+3. Open Recap, People, Places and Pins. Tap a card to inspect its details and
+   sources. Capture lets you save a note or link.
+4. Tap the Chat microphone to record a voice note. Permission is requested on
+   use; ordinary transcription audio is discarded after processing. The optional
+   Personal voice archive is disabled for this release.
+5. Use Report a reply beneath an answer to submit a concern.
+6. Open Account and Export account to share an account JSON file through iOS.
 
-**NO INVITE CODE IS NEEDED**
+ACCOUNT DELETION
+Open Account from the person icon, choose Delete account, and confirm deletion.
+The app returns to sign-in when the server confirms removal. A cleanup failure
+is reported for retry. Please use a separate account when testing deletion so
+that the demo credentials remain available to other reviewers.
 
-Sign-up is open and not gated; we tested that on a clean install. A
-private-testing screen from the closed beta is switched off — if you see it,
-email me and I will clear it same day.
+AI AND PRIVACY
+Content you choose to save or discuss is processed by configured third-party AI
+services for transcription, organization and answers. Explicit AI-processing
+consent is required before saving or asking. The demo account has already
+accepted; a new account demonstrates the consent flow. Details and providers:
+https://thoughtpins.com/ai-disclosure
 
-Sign-in is email and password only. Google and Apple sign-in are built but off:
-we will not offer a third-party login without Sign in with Apple alongside it
-(4.8), and Apple sign-in is not configured yet.
+AI answers can be wrong; the source views let users inspect the underlying
+record. We do not use journal content for advertising or model training. There
+is no social feed, public profile, following or user-to-user messaging. No
+advertising or analytics SDK, IDFA, or tracking-permission prompt is included.
 
-**WHAT TO TRY**
+SAVED ARTICLES
+Article capture respects source-access rules. Restricted or paywalled sources
+retain public metadata rather than bypassing access controls.
 
-1. Sign in, or register your own account.
-2. **Chat** — ask "what do you remember about Maya?" It answers from stored
-   entries, saying "your journal shows" rather than asserting fact.
-3. **Recap** (entries by day), **People / Places** (cards built from them;
-   tap one to open it), **Pins** (saved readings; "+" adds a link or file).
-4. **Voice note** — the mic in Chat. Audio is sent for transcription and
-   discarded after. The permission string names one exception, Personal voice
-   archive: an opt-in setting in Account, off in this build.
-5. **Report a reply** — under any chat answer; filed for review by support.
-6. **Account → Export account** — your whole account as a JSON file, offered
-   to Files or any share target.
+PURCHASES, DEVICES AND OFFLINE USE
+The app is free, with no purchases, subscriptions or external purchase links.
+Microphone access is requested for recording. There are no location, contacts,
+photos, camera or notification prompts in this release.
 
-**DELETION (5.1.1(v))**
+The app supports iPhone and iPad, including iPad portrait and landscape. Sign-in
+needs a connection. Supported offline journal drafts are stored on the device
+and sent after reconnection; storage and delivery failures are shown explicitly.
 
-Three taps from any tab: the person icon at top right, **Delete account**
-under Data, then **Delete account** again to confirm. Immediate and
-irreversible — the account and all entries go and the app returns to sign-in.
-Please test it on a throwaway account you register; deleting the demo account
-stops the credentials above working.
-
-**AI AND PRIVACY**
-
-Content you save or ask about is sent to a third-party AI provider over HTTPS
-for classification, extraction and replies. An account must accept an
-AI-processing consent screen before it can save or ask anything; the same
-disclosure is at https://thoughtpins.com/ai-disclosure. Register a new account
-to see that screen — the demo account accepted already.
-
-The assistant answers only from your own saved material, is instructed never
-to claim external truth, and treats retrieved text as evidence rather than
-instructions. Nothing is used for advertising or model training by us. No
-advertising or analytics SDKs, no tracking, no IDFA, no ATT prompt.
-
-**NOTHING IS SHARED — NO SOCIAL SURFACE**
-
-Everything is visible only to its own account. No feed, profiles, following,
-comments, sharing, public links or user-to-user communication. There is no
-audience to expose anyone to, which is why UGC is answered No.
-
-**ARTICLE SAVING**
-
-Saving a link stores the article's public text. If a page is paywalled the app
-keeps only public metadata, discards the fetched text and says so.
-
-**PURCHASES, PERMISSIONS, IPAD**
-
-No purchases, subscriptions, external purchase links or advertising, and no
-link leads to a page selling anything.
-
-Microphone only, and only when record is tapped. No location, contacts, photos,
-camera or notification prompts.
-
-Universal build; iPhone is portrait only by design, iPad all four
-orientations.
-
-**OFFLINE**
-
-Signing in needs a connection. After that the app opens without one, says so,
-and saves what you write on the device to send when you reconnect.
-
-
-**SUPPORT**
-
+SUPPORT
 support@thoughtpins.com — https://thoughtpins.com/support
-Privacy and Terms are linked there. If anything blocks you, email me and I will
-respond the same day.
+Privacy: https://thoughtpins.com/privacy
+Terms: https://thoughtpins.com/terms
 
 ## ✂️ END — paste into App Store Connect
 

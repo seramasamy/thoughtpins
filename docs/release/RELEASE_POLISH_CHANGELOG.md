@@ -113,7 +113,8 @@ XCTest bundles, so their review does not require the runner's Xcode version.
 
 ## Verification and distribution boundary
 
-The strict release command passes all 50 checks: 894 Python tests pass with 16
+The strict release command passes all 48 top-level checks, including the proof
+verifier's two artifact self-checks: 894 Python tests pass with 16
 optional Telegram skips, the full 453-file type check passes, and production
 builds, dependency audits, migrations, architecture and public-export checks
 pass. GitHub's web job passes 131 browser cases, the PWA offline case, 38 website

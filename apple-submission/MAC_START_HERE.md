@@ -77,11 +77,11 @@ XcodeGen, and attempts an unsigned generic Simulator build. Add
 ## Stage 2 — The first compile
 
 **Status as of 2026-09-11:** the production simulator target builds on Ventura /
-Xcode 15.2 for arm64 and x86_64, and all 78 shared Swift tests pass. The former
+Xcode 15.2 for arm64 and x86_64, and all 87 shared Swift tests pass. The former
 GoogleSignIn build blocker described below has been removed. Native UI/model
 tests now run against fictional fixtures on both iPhone and iPad in CI; inspect
 the individual iOS job for the commit you intend to distribute. See the
-[release review](../docs/release/RELEASE_POLISH_CHANGELOG.md) for evidence and
+[App Store preparation log](../docs/release/APP_STORE_PREPARATION.md) for evidence and
 the remaining signing and device checks.
 
 ```bash
