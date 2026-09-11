@@ -127,6 +127,9 @@ if [[ "$MODE" != "preflight" ]]; then
   fi
 fi
 
+# Bash 3.2 (the macOS system shell) treats an empty array as unset under
+# nounset. Expand this optional array with the + form at each call site so an
+# email/password build passes zero Google arguments, not an empty argument.
 google_build_settings=()
 if [[ "$google_configured" == 3 ]]; then
   # These build settings only do anything if Info.plist still references them.
@@ -188,7 +191,7 @@ xcodebuild \
   CURRENT_PROJECT_VERSION="${BUILD_NUMBER:-1}" \
   INFOPLIST_FILE="$RELEASE_INFO_PLIST" \
   THOUGHTPINS_API_BASE_URL="$API_BASE_URL" \
-  "${google_build_settings[@]}" \
+  ${google_build_settings[@]+"${google_build_settings[@]}"} \
   CODE_SIGNING_ALLOWED=NO \
   clean build | tee "$EVIDENCE_DIR/unsigned-build.log"
 
@@ -208,7 +211,7 @@ xcodebuild archive \
   PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
   INFOPLIST_FILE="$RELEASE_INFO_PLIST" \
   THOUGHTPINS_API_BASE_URL="$API_BASE_URL" \
-  "${google_build_settings[@]}" \
+  ${google_build_settings[@]+"${google_build_settings[@]}"} \
   MARKETING_VERSION="$MARKETING_VERSION" \
   CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
   CODE_SIGN_STYLE=Automatic \

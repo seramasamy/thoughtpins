@@ -56,8 +56,7 @@ Seven native model tests and five iPhone SE UI workflows pass on iOS 17.2. They
 cover failed disk writes, persisted offline notes, duplicate requests, invalid
 input, 401/429 recovery, failed-link retry, back navigation, password visibility,
 complete consent-gated registration, all five tabs, and registration/legal
-controls at accessibility5. Further device and final CI
-results are recorded in the final verification section below.
+controls at accessibility5. Further device and final CI results are recorded in the final verification section below.
 
 Deeper password checks exposed two problems. Requesting automatic strong-password
 generation on the iOS 17.2 review target, which has no `webcredentials` association,
@@ -69,6 +68,10 @@ editing buffer when visibility changes. Direct tests cover exact Unicode and
 whitespace, selection, continued typing and deletion; a UI test continues typing
 with the actual keyboard after concealing the password. The auth scroll view also
 clips its content so scrolled headings do not draw over the status bar.
+An explicit scroll target keeps the native password field visible when the
+email Next action transfers focus on small iPhones; the UIKit field does not
+participate in SwiftUI's automatic focus scrolling. The complete iPhone SE
+signup flow passes with this correction.
 
 The iOS CI change filter now compares the previous remote head with the entire
 pushed tree. Five regression cases cover merge promotion, a multi-commit push,
@@ -110,8 +113,8 @@ XCTest bundles, so their review does not require the runner's Xcode version.
 
 ## Verification and distribution boundary
 
-The strict release command passes all 50 checks: 891 Python tests pass with 16
-optional Telegram skips, the full 452-file type check passes, and production
+The strict release command passes all 50 checks: 892 Python tests pass with 16
+optional Telegram skips, the full 453-file type check passes, and production
 builds, dependency audits, migrations, architecture and public-export checks
 pass. GitHub's web job passes 131 browser cases, the PWA offline case, 38 website
 cases, and 45 iOS browser cases. A further local 32-page/width website review has
@@ -130,3 +133,15 @@ still requires signing/provisioning, the live review backend, physical-device
 checks and real Apple/Google/password-manager flows where enabled. Automatic
 strong-password generation is not enabled without a web-credentials association.
 Pushing this source to GitHub is separate from deploying the hosted service.
+
+The macOS bootstrap and release scripts now carry executable Git permissions,
+matching their documented `./scripts/...` commands. Their help commands were
+run directly to check that a fresh checkout no longer returns permission denied.
+The release script also handles absent Google settings on macOS Bash 3.2 under
+`set -u`. A shell regression exercises preflight and archive orchestration with
+Google settings absent/present, using tool fixtures without real signing material.
+The native CI job runs the same check with the macOS system shell.
+Native fixture setup now has its own bounded connection deadline for freshly
+booted cloud simulators. Form-scrolling gestures stay above the software
+keyboard, while password, consent, failure recovery and app-response assertions
+remain in place.

@@ -54,145 +54,151 @@ struct ThoughtPinsAuthView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    HStack(spacing: 10) {
-                        ThoughtPinsBrandMark().frame(width: 32, height: 32)
-                        Text("Thought Pins").font(.headline)
-                    }
-                    .padding(.top, 12)
-                    VStack(alignment: .leading, spacing: 14) {
-                        ThoughtPinsOrbit(size: 72)
-                        Text(creatingAccount ? "Your life.\nA little more connected." : "Welcome back.")
-                            .font(.system(.largeTitle, design: .default).weight(.bold)).tracking(-0.8)
-                            .foregroundStyle(ThoughtPinsTheme.ink)
-                            .accessibilityAddTraits(.isHeader)
-                        Text("A private place for the people, moments, and ideas that matter to you.")
-                            .font(.subheadline).lineSpacing(3).foregroundStyle(ThoughtPinsTheme.inkSoft)
-                    }
-                    Picker("Account action", selection: $creatingAccount) {
-                        Text("Sign in").tag(false)
-                        Text("Create account").tag(true)
-                    }
-                    .pickerStyle(.segmented)
-                    .disabled(model.authBusy)
+            ScrollViewReader { reader in
+                ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text(usePhone ? "Phone" : "Email").font(.subheadline.weight(.medium))
-                                Spacer()
-                                Button(usePhone ? "Use email" : "Use phone") {
-                                    usePhone.toggle()
-                                    identifier = ""
-                                    phone = ""
-                                }
-                                .font(.caption.weight(.medium)).frame(minHeight: 44)
-                            }
-                            if usePhone {
-                                TextField("Phone", text: $phone)
-                                    .textContentType(.username).keyboardType(.phonePad)
-                                    .focused($identifierFocused)
-                                    .padding(15).background(ThoughtPinsTheme.canvas, in: RoundedRectangle(cornerRadius: 14))
-                            } else {
-                                TextField("Email", text: $identifier)
-                                    .textContentType(.username).keyboardType(.emailAddress)
-                                    .textInputAutocapitalization(.never).autocorrectionDisabled()
-                                    .focused($identifierFocused).submitLabel(.next)
-                                    .onSubmit {
-                                        identifierFocused = false
-                                        DispatchQueue.main.async { passwordFocused = true }
+                        HStack(spacing: 10) {
+                            ThoughtPinsBrandMark().frame(width: 32, height: 32)
+                            Text("Thought Pins").font(.headline)
+                        }
+                        .padding(.top, 12)
+                        VStack(alignment: .leading, spacing: 14) {
+                            ThoughtPinsOrbit(size: 72)
+                            Text(creatingAccount ? "Your life.\nA little more connected." : "Welcome back.")
+                                .font(.system(.largeTitle, design: .default).weight(.bold)).tracking(-0.8)
+                                .foregroundStyle(ThoughtPinsTheme.ink)
+                                .accessibilityAddTraits(.isHeader)
+                            Text("A private place for the people, moments, and ideas that matter to you.")
+                                .font(.subheadline).lineSpacing(3).foregroundStyle(ThoughtPinsTheme.inkSoft)
+                        }
+                        Picker("Account action", selection: $creatingAccount) {
+                            Text("Sign in").tag(false)
+                            Text("Create account").tag(true)
+                        }
+                        .pickerStyle(.segmented)
+                        .disabled(model.authBusy)
+                        VStack(alignment: .leading, spacing: 20) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Text(usePhone ? "Phone" : "Email").font(.subheadline.weight(.medium))
+                                    Spacer()
+                                    Button(usePhone ? "Use email" : "Use phone") {
+                                        usePhone.toggle()
+                                        identifier = ""
+                                        phone = ""
                                     }
-                                    .padding(15).background(ThoughtPinsTheme.canvas, in: RoundedRectangle(cornerRadius: 14))
-                            }
-                        }
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Password").font(.subheadline.weight(.medium))
-                            ThoughtPinsPasswordField(text: $password,
-                                                     isFocused: $passwordFocused, submit: authenticate)
-                        }
-                        if creatingAccount {
-                            Toggle("I consent to private AI processing of content I choose to send.", isOn: $legalAccepted)
-                                .font(.footnote).tint(ThoughtPinsTheme.action)
-                            legalLinks
-                        }
-                        Button(action: authenticate) {
-                            HStack {
-                                if model.authBusy { ProgressView().tint(.white) }
-                                Text(creatingAccount ? "Create account" : "Sign in")
-                                if !model.authBusy { Image(systemName: "arrow.right") }
-                            }
-                        }
-                        .buttonStyle(ThoughtPinsPrimaryStyle())
-                        .accessibilityIdentifier("thoughtpins-auth-submit")
-                        .disabled(model.authBusy || (creatingAccount ? registrationBlocker : signInBlocker) != nil)
-                        if let blocker = creatingAccount ? registrationBlocker : signInBlocker, !model.authBusy {
-                            Text(blocker).font(.caption).foregroundStyle(ThoughtPinsTheme.inkSoft)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        if model.authBusy {
-                            Text(creatingAccount ? "Creating account…" : "Signing in…")
-                                .font(.caption).foregroundStyle(ThoughtPinsTheme.inkSoft)
-                                .accessibilityIdentifier("thoughtpins-auth-progress")
-                        }
-                        if !creatingAccount {
-                            Button("Forgot password?") {
-                                if let url = forgotPasswordMailURL() {
-                                    openURL(url) { accepted in showingPasswordHelp = !accepted }
+                                    .font(.caption.weight(.medium)).frame(minHeight: 44)
+                                }
+                                if usePhone {
+                                    TextField("Phone", text: $phone)
+                                        .textContentType(.username).keyboardType(.phonePad)
+                                        .focused($identifierFocused)
+                                        .padding(15).background(ThoughtPinsTheme.canvas, in: RoundedRectangle(cornerRadius: 14))
                                 } else {
-                                    showingPasswordHelp = true
+                                    TextField("Email", text: $identifier)
+                                        .textContentType(.username).keyboardType(.emailAddress)
+                                        .textInputAutocapitalization(.never).autocorrectionDisabled()
+                                        .focused($identifierFocused).submitLabel(.next)
+                                        .onSubmit {
+                                            identifierFocused = false
+                                            DispatchQueue.main.async { passwordFocused = true }
+                                        }
+                                        .padding(15).background(ThoughtPinsTheme.canvas, in: RoundedRectangle(cornerRadius: 14))
                                 }
                             }
-                            .font(.footnote).frame(minHeight: 44)
-                            .disabled(model.authBusy)
-                            .accessibilityIdentifier("thoughtpins-forgot-password")
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("Password").font(.subheadline.weight(.medium))
+                                ThoughtPinsPasswordField(text: $password,
+                                                         isFocused: $passwordFocused, submit: authenticate)
+                            }
+                            .id("thoughtpins-password-entry")
+                            if creatingAccount {
+                                Toggle("I consent to private AI processing of content I choose to send.", isOn: $legalAccepted)
+                                    .font(.footnote).tint(ThoughtPinsTheme.action)
+                                legalLinks
+                            }
+                            Button(action: authenticate) {
+                                HStack {
+                                    if model.authBusy { ProgressView().tint(.white) }
+                                    Text(creatingAccount ? "Create account" : "Sign in")
+                                    if !model.authBusy { Image(systemName: "arrow.right") }
+                                }
+                            }
+                            .buttonStyle(ThoughtPinsPrimaryStyle())
+                            .accessibilityIdentifier("thoughtpins-auth-submit")
+                            .disabled(model.authBusy || (creatingAccount ? registrationBlocker : signInBlocker) != nil)
+                            if let blocker = creatingAccount ? registrationBlocker : signInBlocker, !model.authBusy {
+                                Text(blocker).font(.caption).foregroundStyle(ThoughtPinsTheme.inkSoft)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            if model.authBusy {
+                                Text(creatingAccount ? "Creating account…" : "Signing in…")
+                                    .font(.caption).foregroundStyle(ThoughtPinsTheme.inkSoft)
+                                    .accessibilityIdentifier("thoughtpins-auth-progress")
+                            }
+                            if !creatingAccount {
+                                Button("Forgot password?") {
+                                    if let url = forgotPasswordMailURL() {
+                                        openURL(url) { accepted in showingPasswordHelp = !accepted }
+                                    } else {
+                                        showingPasswordHelp = true
+                                    }
+                                }
+                                .font(.footnote).frame(minHeight: 44)
+                                .disabled(model.authBusy)
+                                .accessibilityIdentifier("thoughtpins-forgot-password")
+                            }
+                            if appleSignInAvailable || googleSignInAvailable {
+                                Divider()
+                                if appleSignInAvailable {
+                                    SignInWithAppleButton(.signIn) { request in
+                                        model.configureAppleSignInRequest(request)
+                                    } onCompletion: { result in
+                                        Task { await model.completeAppleSignIn(result) }
+                                    }
+                                    .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
+                                    .frame(height: 50).disabled(model.authBusy)
+                                }
+                                if googleSignInAvailable {
+                                    Button(ThoughtPinsOAuthProvider.google.label) {
+                                        Task { await model.oauthLogin(provider: .google) }
+                                    }
+                                    .frame(maxWidth: .infinity, minHeight: 50).disabled(model.authBusy)
+                                }
+                            }
                         }
-                        if appleSignInAvailable || googleSignInAvailable {
-                            Divider()
-                            if appleSignInAvailable {
-                                SignInWithAppleButton(.signIn) { request in
-                                    model.configureAppleSignInRequest(request)
-                                } onCompletion: { result in
-                                    Task { await model.completeAppleSignIn(result) }
-                                }
-                                .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
-                                .frame(height: 50).disabled(model.authBusy)
-                            }
-                            if googleSignInAvailable {
-                                Button(ThoughtPinsOAuthProvider.google.label) {
-                                    Task { await model.oauthLogin(provider: .google) }
-                                }
-                                .frame(maxWidth: .infinity, minHeight: 50).disabled(model.authBusy)
-                            }
-                        }
+                        .disabled(model.authBusy)
+                        .thoughtPinsCard(padding: 20)
+                        if !creatingAccount { legalLinks }
+                        Label("Your memories. Your control.", systemImage: "lock.shield")
+                            .font(.caption).foregroundStyle(ThoughtPinsTheme.inkSoft)
+                            .frame(maxWidth: .infinity)
                     }
-                    .disabled(model.authBusy)
-                    .thoughtPinsCard(padding: 20)
-                    if !creatingAccount { legalLinks }
-                    Label("Your memories. Your control.", systemImage: "lock.shield")
-                        .font(.caption).foregroundStyle(ThoughtPinsTheme.inkSoft)
-                        .frame(maxWidth: .infinity)
+                    .padding(24).padding(.bottom, 16)
+                    .frame(maxWidth: 540).frame(maxWidth: .infinity)
                 }
-                .padding(24).padding(.bottom, 16)
-                .frame(maxWidth: 540).frame(maxWidth: .infinity)
-            }
-            .scrollDismissesKeyboard(.interactively)
-            .clipped()
-            .thoughtPinsScreen()
-            .toolbar(.hidden, for: .navigationBar)
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") { identifierFocused = false; passwordFocused = false }
-                        .accessibilityLabel("Dismiss keyboard")
+                .scrollDismissesKeyboard(.interactively)
+                .clipped()
+                .thoughtPinsScreen()
+                .toolbar(.hidden, for: .navigationBar)
+                .toolbar {
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("Done") { identifierFocused = false; passwordFocused = false }
+                            .accessibilityLabel("Dismiss keyboard")
+                    }
+                }
+                .alert("Password help", isPresented: $showingPasswordHelp) {
+                    Button("Copy support email") { UIPasteboard.general.string = "support@thoughtpins.com" }
+                    Button("Close", role: .cancel) {}
+                } message: {
+                    Text("Email support@thoughtpins.com from your account address for help. Never include your password.")
+                }
+                .tint(ThoughtPinsTheme.action)
+                .onChange(of: passwordFocused) { _, focused in
+                    if focused { reader.scrollTo("thoughtpins-password-entry", anchor: .center) }
                 }
             }
-            .alert("Password help", isPresented: $showingPasswordHelp) {
-                Button("Copy support email") { UIPasteboard.general.string = "support@thoughtpins.com" }
-                Button("Close", role: .cancel) {}
-            } message: {
-                Text("Email support@thoughtpins.com from your account address for help. Never include your password.")
-            }
-            .tint(ThoughtPinsTheme.action)
         }
     }
 

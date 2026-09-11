@@ -306,6 +306,7 @@ jobs:
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           fetch-depth: 0
+
       - id: check
         env:
           THOUGHTPINS_PUSH_BASE: ${{ github.event.before }}
@@ -356,6 +357,9 @@ jobs:
         with:
           # The build number is the commit count, so the history has to be here.
           fetch-depth: 0
+
+      - name: Check release commands with the macOS system shell
+        run: python3 -m unittest discover -s tests -p test_ios_release_script.py -v
 
       # ---------------------------------------------------------------
       # Everything below runs the SAME script Xcode Cloud will run.

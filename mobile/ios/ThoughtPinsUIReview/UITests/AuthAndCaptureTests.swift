@@ -7,6 +7,7 @@ final class AuthAndCaptureTests: XCTestCase {
         let done = expectation(description: "Configure fictional API")
         var request = URLRequest(url: URL(string: "http://127.0.0.1:8877/__review")!)
         request.httpMethod = "POST"
+        request.timeoutInterval = 15
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: ["failures": failures, "delays": delays])
         URLSession.shared.dataTask(with: request) { _, response, error in
@@ -14,16 +15,24 @@ final class AuthAndCaptureTests: XCTestCase {
             XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)
             done.fulfill()
         }.resume()
-        wait(for: [done], timeout: 5)
+        // A freshly booted CI simulator can take several seconds to initialize
+        // its first URLSession connection. This is fixture setup, not app latency.
+        wait(for: [done], timeout: 20)
     }
 
     override func tearDownWithError() throws { try configure() }
 
     private func reveal(_ element: XCUIElement, in app: XCUIApplication) {
         for _ in 0..<14 where !element.isHittable {
-            let down = element.exists && element.frame.maxY < app.frame.midY
-            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? 0.4 : 0.7))
-            let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? 0.65 : 0.45))
+            // Keep the gesture inside the form when a keyboard covers the
+            // lower screen. Dragging the keyboard cannot reveal a form field.
+            let keyboard = app.keyboards.firstMatch
+            let visibleHeight = keyboard.exists
+                ? min(app.frame.height, keyboard.frame.minY - app.frame.minY) : app.frame.height
+            let fraction = visibleHeight / app.frame.height
+            let down = element.exists && element.frame.maxY < app.frame.minY + visibleHeight / 2
+            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: fraction * (down ? 0.4 : 0.7)))
+            let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: fraction * (down ? 0.65 : 0.45)))
             start.press(forDuration: 0.05, thenDragTo: end)
         }
         XCTAssertTrue(element.isHittable)
@@ -95,7 +104,7 @@ final class AuthAndCaptureTests: XCTestCase {
         let email = app.textFields["Email"]
         reveal(email, in: app); email.tap(); email.typeText("   ")
         let password = app.secureTextFields["Password"]
-        password.tap(); waitForPasswordKeyboard(in: app)
+        reveal(password, in: app); password.tap(); waitForPasswordKeyboard(in: app)
         password.typeText("fictional password only")
         let submit = app.buttons["thoughtpins-auth-submit"]
         XCTAssertFalse(submit.isEnabled)
@@ -107,7 +116,8 @@ final class AuthAndCaptureTests: XCTestCase {
         app.buttons["Show password"].tap()
         XCTAssertEqual(app.textFields["Password"].value as? String, "fictional password onlya")
         app.buttons["Hide password"].tap()
-        email.tap(); email.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 3) + "review@example.com")
+        reveal(email, in: app); email.tap()
+        email.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 3) + "review@example.com")
         dismissKeyboard(in: app)
         for _ in 0..<2 {
             reveal(submit, in: app); submit.tap()
