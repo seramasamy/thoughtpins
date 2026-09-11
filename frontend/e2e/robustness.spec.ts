@@ -114,6 +114,28 @@ test("whitespace and composing Enter never send a message", async ({ page }) => 
   await expect(composer(page)).toHaveValue("入力中");
 });
 
+test("a slow preference response cannot override an explicit privacy choice", async ({ page }) => {
+  const mock = await installMockApi(page, "local", 0, "product");
+  let release!: () => void;
+  const held = new Promise<void>(resolve => { release = resolve; });
+  await page.route("**/v1/preferences", async route => {
+    await held;
+    await route.fulfill({ json: { private_entries_in_ask: true } });
+  });
+  await page.goto("/app/");
+  const privacy = page.getByRole("checkbox", { name: "Use private memories in this reply" });
+  await privacy.check();
+  await privacy.uncheck();
+  const response = page.waitForResponse("**/v1/preferences");
+  release();
+  await response;
+  await composer(page).fill("Only use ordinary memories.");
+  await composer(page).press("Enter");
+  await expect(page.getByText(reply, { exact: true })).toBeVisible();
+  expect(mock?.getLastChatPayload()?.include_private).toBe(false);
+  await expect(privacy).not.toBeChecked();
+});
+
 for (const width of [320, 1440]) {
   test(`long text, markup and unbroken links remain safe at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });

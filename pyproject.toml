@@ -85,7 +85,9 @@ dev = [
     "pytest-cov>=5.0",
     "factory-boy>=3.3",
     "httpx>=0.27",
-    "httpx2>=2.5.0",
+    # Includes the bounded-decompression and redirect/credential fixes. The
+    # lock also resolves the patched HTTP transport used by this test client.
+    "httpx2>=2.12.0",
     "ruff>=0.8",
     "mypy>=1.11",
     "pip-audit>=2.7",

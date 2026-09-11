@@ -1,5 +1,18 @@
 from __future__ import annotations
 
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def in_memory_worker(monkeypatch) -> None:
+    """Recovery unit tests must not depend on a developer's broker settings."""
+    pytest.importorskip("celery")
+    from thoughtpins.config import config
+
+    monkeypatch.setattr(config, "CELERY_BROKER_URL", "memory://")
+    monkeypatch.setattr(config, "CELERY_RESULT_BACKEND", "cache+memory://")
+    monkeypatch.setattr(config, "REDIS_URL", "")
+
 
 def test_worker_recovery_relay_is_throttled(monkeypatch) -> None:
     import thoughtpins.worker as worker

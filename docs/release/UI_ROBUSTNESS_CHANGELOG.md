@@ -77,3 +77,28 @@ across all five tabs. Export was opened in the system share sheet and its JSON
 file checked for the expected fictional account/table payload. Cancelling
 account deletion leaves the account screen open. The initial export test
 mistook an iOS activity row for a button; the corrected test passes.
+
+## Privacy preference ordering — 11 September 2026
+
+A delayed saved-preference response could re-enable private recall after a
+person explicitly turned it off. The conversation now gives the person's
+choice precedence over that response and ignores results after the view
+unmounts. The regression test verifies the actual chat payload excludes
+private memories. It failed before the fix; all 16 chat/save edge scenarios
+pass with the fix.
+
+## Development dependency and offline test maintenance — 11 September 2026
+
+The development HTTP client is resolved to HTTPX2 2.12.0 and HTTPCore2 2.10.0,
+covering the five open default-branch advisories, including
+[bounded response decompression](https://github.com/advisories/GHSA-8xx6-hgc6-gc2m)
+and [secure WebSocket proxy transport](https://github.com/advisories/GHSA-7mj9-2mp8-4m2p).
+The HTTPX2 requirement floor prevents future resolution below the patched
+version. The production dependency export is unchanged. Production, all-extra,
+and frontend dependency audits pass on this branch; default-branch GitHub
+alerts remain until these changes reach that branch.
+
+Three worker recovery tests now use a memory broker instead of depending on a
+developer's local broker configuration. They run with the workers extra and
+skip when it is absent. Production worker startup validation is unchanged.
+The tests pass with local dotenv loading disabled and no external broker.

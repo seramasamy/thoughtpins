@@ -7,6 +7,7 @@ import type { ChatMessageResponse, ChatResponse, UploadIngestResponse } from "..
 import { formatConversationDay, formatConversationTime } from "../../components/format";
 import { ChatGlyph, IconButton, PrimaryButton, SecondaryButton } from "../../components/ui";
 import { useChatSubmission, type ThreadMessage } from "./useChatSubmission";
+import { usePrivateRecall } from "./usePrivateRecall";
 import { KeptEntryNotice } from "./KeptEntryNotice";
 import { ChatWelcome } from "./ChatWelcome";
 import { MessageEditor } from "./MessageEditor";
@@ -21,7 +22,7 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
   const [text, setText] = useState("");
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [lastResponse, setLastResponse] = useState<ChatResponse | null>(null);
-  const [includePrivate, setIncludePrivate] = useState(false);
+  const [includePrivate, setIncludePrivate] = usePrivateRecall(token, run);
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [busyLabel, setBusyLabel] = useState("Thinking with your memory");
@@ -59,12 +60,6 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
   useEffect(() => {
     void loadThread();
   }, [loadThread]);
-
-  useEffect(() => {
-    void run(() => api.preferences(token)).then((preferences) => {
-      if (preferences) setIncludePrivate(preferences.private_entries_in_ask);
-    });
-  }, [run, token]);
 
   useEffect(() => {
     if (!messages.length && !busy) return;
