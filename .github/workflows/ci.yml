@@ -262,6 +262,9 @@ jobs:
           npm run smoke:web
           npm run smoke:pwa
 
+      - name: Website product, keyboard and accessibility tests
+        run: npm run smoke:site:ui
+
       - name: iOS device matrix
         run: npm run smoke:ios
 

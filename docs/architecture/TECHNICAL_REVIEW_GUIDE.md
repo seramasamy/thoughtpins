@@ -5,6 +5,27 @@ repository contains a provider-neutral memory backend, responsive web client,
 public site, and native iOS/Android review shells. Telegram is an optional
 adapter; product behavior belongs in shared modules.
 
+## Research and systems review path
+
+The [algorithm walkthrough](RETRIEVAL_ARCHITECTURE.md) maps candidate generation,
+score equations, adaptive evidence selection and context construction to their
+owners. The [external evaluation protocol](EXTERNAL_MEMORY_BENCHMARKS.md)
+separates a controlled reranking experiment from end-to-end retrieval and answer
+quality. Review the corpus split and candidate construction before comparing
+numbers across systems.
+
+For reproducible ranking, keep the candidate pool, policy and `as_of_date`
+fixed. Clone candidates before each ablation so scores are not fused twice.
+`RankingWeights` contains 20 bounded parameters; `RankingPolicy` supplies the
+feature switches. Tenant/privacy behavior and failure recovery are tested as
+contracts alongside ranking, rather than folded into one headline quality score.
+
+Useful next experiments are larger untouched holdouts, dense and learned
+baselines, paired uncertainty estimates, live-model grounding and adversarial
+input, and latency/cost under realistic corpus growth. The current reference
+results are documented with their limited scope; no general superiority over
+other memory systems is established.
+
 ## Run The Local Review Build
 
 ```powershell
@@ -148,7 +169,7 @@ automated accessibility.
 Source checks on Windows do not replace a signed Xcode archive, simulator and
 device testing, VoiceOver review, TestFlight, or App Store Connect validation.
 Live PostgreSQL RLS proof, production infrastructure, credential rotation, and
-legal-owner review also remain release-owner gates. Apache-2.0 is declared for
-the repository, subject to the owner's final publication approval. Known
+legal-owner review also remain release-owner gates. The public repository is licensed under Apache-2.0; source availability does
+not establish deployment or App Store readiness. Known
 structural debt and exit criteria are tracked in `TECHNICAL_DEBT_REGISTER.md`
 rather than being hidden behind a claim of zero debt.

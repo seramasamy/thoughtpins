@@ -18,7 +18,8 @@
     "smoke:cross-browser": "node scripts/cross-browser-audit.mjs",
     "capture:product-assets": "node scripts/capture-product-assets.mjs",
     "design:review-capture": "node scripts/capture-design-review.mjs",
-    "install:playwright": "playwright install chromium"
+    "install:playwright": "playwright install chromium",
+    "smoke:site:ui": "playwright test --config playwright.site.config.ts"
   },
   "dependencies": {
     "@fontsource-variable/newsreader": "^5.3.0",

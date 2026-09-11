@@ -1,261 +1,199 @@
-# How Recall Works
+# How recall works
 
-Thought Pins does not do RAG in the usual sense. There is no single vector index
-that a question is matched against. A question runs through eight independent
-retrieval channels, and their disagreement is itself a signal in the ranking.
+Thought Pins combines typed personal memory with hybrid retrieval and an
+inspectable ranking policy. The engineering work is in preserving attribution,
+privacy scope, temporal metadata and recoverable source records across these
+stages. The ranker is a bounded heuristic model; it is not a trained language
+model or a calibrated estimate of answer correctness.
 
-This document describes what the code actually does. Where a claim has been
-measured, the measurement and its sample size are given; where it has not, that
-is said plainly.
+This walkthrough describes the current implementation. Historical measurements
+are identified separately from executable contracts and proposed experiments.
 
----
+## 1. Preserve the source and its interpretation
 
-## The pipeline
+[Ingestion](../../src/thoughtpins/ingestion/service.py) stores the original
+record separately from extracted structure. The [schema](../../src/thoughtpins/db.py)
+represents entities and aliases, typed relationships, events and participants,
+atomic memories and their source evidence. Source reading and lived journal
+experience retain separate provenance.
+
+A memory can carry `valid_from`, `valid_to` and `supersedes_memory_id`, along
+with creation and update metadata. These support validity and correction
+history. They do not by themselves implement a fully system-versioned temporal
+database or prove arbitrary historical queries are answered correctly. Retrieval
+and synthesis must still interpret the relevant time and claim status.
+
+For example, “Sarah told me Tom might leave” contains a speaker and uncertainty.
+Those qualifiers need to survive extraction and answer generation; retrieving
+only “Tom leaves” would change the meaning. The [social evidence module](../../src/thoughtpins/memory/social_relevance.py)
+and [evidence planner](../../src/thoughtpins/memory/evidence_plan.py) address
+this boundary, with [regression coverage](../../tests/test_retrieval_robustness.py).
+
+## 2. Generate candidates through complementary paths
+
+[search.py](../../src/thoughtpins/memory/search.py) separates candidate
+collection from ordering. It exposes eight paths; the entity-filter path runs
+only when a filter is supplied. These are distinct retrieval mechanisms, not
+statistically independent measurements.
+
+| Path | Contribution | Important limitation |
+| --- | --- | --- |
+| `entity_filter` | Memories attached to a resolved entity | Requires the correct entity scope |
+| `exact_phrase` | Literal substrings, including unusual names | Rewording can remove the match |
+| `vector` | Semantic similarity through the configured embedding backend | Quality depends on embeddings, indexing and tenant filters |
+| `keyword` | Lexical matches over extracted memories | Limited semantic reach |
+| `sql_graph` | Memories reached through SQL entity relationships | Depends on extraction and graph coverage |
+| `graph_evidence` | Relationship evidence and paths | Sparse or incorrect structure limits the evidence |
+| `document_title` | Reading sources identified by title | A title does not establish support inside a document |
+| `raw_keyword` | Original entry text, including unextracted material | Falls back to lexical evidence |
+
+A per-channel exception boundary lets other collectors continue after a channel
+fails. This improves availability while potentially reducing recall; it does
+not guarantee a useful answer during an outage. Candidate identities are stable
+across processes, and duplicate proposals accumulate retrieval sources and
+source ranks before reranking.
+
+Public request paths supply authenticated tenant scope and applicable privacy
+policy. Vector filtering and SQL authorization provide complementary checks.
+Local review modes have different authentication rules and must remain isolated
+from production.
 
 ```mermaid
 flowchart TB
-    Q["Question"] --> A["Query analysis<br/>tokens · phrases · temporal window · social intent"]
-
-    A --> C1["entity_filter<br/>resolved entity scope"]
-    A --> C2["exact_phrase<br/>literal substring"]
-    A --> C3["vector<br/>1536-d embeddings"]
-    A --> C4["keyword<br/>term match over memories"]
-    A --> C5["sql_graph<br/>entity neighbourhood"]
-    A --> C6["graph_evidence<br/>relationship paths"]
-    A --> C7["document_title"]
-    A --> C8["raw_keyword<br/>unextracted entry text"]
-
-    C1 --> M["Candidate merge<br/>one row per memory, sources accumulated"]
-    C2 --> M
-    C3 --> M
-    C4 --> M
-    C5 --> M
-    C6 --> M
-    C7 --> M
-    C8 --> M
-
-    M --> R["Score fusion<br/>RankingWeights · 20 bounded coefficients"]
-    R --> D["Diversification<br/>drop near-duplicate evidence"]
-    D --> P["Context package<br/>token-bounded, provenance preserved"]
-    P --> L["Model"]
-
-    style Q fill:#e8612b,color:#fff
-    style L fill:#e8612b,color:#fff
-    style R fill:#fbe9dd,color:#26211b
-    style M fill:#fbe9dd,color:#26211b
+    Query["Query + user scope + privacy policy"] --> Collect["Eight available candidate paths"]
+    Collect --> Merge["Merge identity, provenance and per-channel ranks"]
+    Merge --> Rank["Bounded score fusion"]
+    Rank --> Select["Adaptive diversity + requested-facet coverage"]
+    Select --> Plan["Evidence plan + token budget"]
+    Plan --> Model["Response model receives labelled evidence"]
 ```
 
-Each channel is wrapped so that one failing — an unreachable vector service, a
-graph query that times out — degrades recall instead of failing the request. A
-question still answers when the vector store is down; it just answers from
-lexical and graph evidence.
+## 3. Fuse ranks and evidence explicitly
 
----
+[RankingWeights](../../src/thoughtpins/memory/ranking.py) is an immutable
+configuration with 20 finite, bounded parameters. Some are coefficients; others
+are caps, neutral points and gating floors. Validation rejects an unbounded new
+parameter. [RankingPolicy](../../src/thoughtpins/memory/ranking.py) independently
+switches lexical evidence, rank fusion, structural priors, salience, social
+evidence and coverage/diversity behavior for ablation.
 
-## Why eight channels instead of one embedding index
+For candidate $d$, reciprocal rank fusion is:
 
-Because they fail differently, and the failures are not correlated.
+$$RRF(d) = \sum_{c \in C_d} \frac{1}{60 + \max(1,\operatorname{rank}_c(d))}$$
 
-| Channel | Finds what the others miss | Its blind spot |
-|---|---|---|
-| `vector` | Paraphrase — "felt low" for "was depressed" | Rare proper nouns it never saw in training |
-| `exact_phrase` | Literal strings vectors reliably miss on rare names | Any rewording at all |
-| `keyword` | Term overlap when the phrasing is close but not exact | Synonyms |
-| `entity_filter` | Everything scoped to a person once they are resolved | Needs the resolution to succeed first |
-| `sql_graph` | Facts about a person you did not name | Needs the entity to be resolved first |
-| `graph_evidence` | Multi-hop — "who introduced me to Maya" | Sparse early in a journal's life |
-| `document_title` | Sources by what they are called | Nothing inside the document |
-| `raw_keyword` | Entry text not yet extracted into memory | No semantic reach |
+The collector scores are heterogeneous; RRF supplies an ordering signal without
+requiring their raw scores to share units. The code also retains a bounded base
+score and explicit lexical features. It is not a pure RRF ranker.
 
-Embeddings alone reliably miss rare proper nouns; that is the single most
-common failure in personal memory, because a journal is mostly proper nouns.
+The defaults first compute a blended retrieval value:
 
----
-
-## Score fusion
-
-Every coefficient the scorer multiplies by lives in one frozen dataclass,
-`RankingWeights` in `src/thoughtpins/memory/ranking.py`, with a validated upper
-bound on each. That is deliberate: a hyperparameter scattered as a literal
-inside the scoring function is one an ablation cannot see.
-
-```mermaid
-flowchart LR
-    subgraph EV["Retrieval evidence — dominant"]
-        B["base 0.68"]
-        RL["relevance 0.93"]
-        RR["reciprocal rank 1.25"]
-        LX["lexical 0.18"]
-    end
-    subgraph ST["Structure — tie-breaking only"]
-        PH["phrase 0.05"]
-        PX["proximity 0.04"]
-        TQ["temporal 0.06"]
-        SU["social 0.15"]
-    end
-    subgraph PR["Priors — bounded small"]
-        CS["consensus ≤ 0.045"]
-        SA["salience 0.02"]
-        GP["graph prior 0.015"]
-        DK["document prior 0.015"]
-    end
-    EV --> S["fused score"]
-    ST --> S
-    PR --> S
-    S --> FP["factualization penalty 0.035"]
-
-    style EV fill:#fbe9dd,color:#26211b
-    style ST fill:#f8f8f6,color:#26211b
-    style PR fill:#f8f8f6,color:#26211b
-    style S fill:#e8612b,color:#fff
+```text
+b = clip(channel_base, 0, 1)
+f = 0.68 b + 0.18 lexical + 0.05 phrase + 0.04 proximity + 1.25 RRF
+consensus = min(0.045, 0.018 log(1 + number_of_retrieval_sources))
+r = clip(max(b, f) + consensus + recency + document_prior + graph_prior, 0, 1)
 ```
 
-The structure is the point: **retrieval evidence stays dominant.** Personal
-importance and social structure are bounded so they can break a close tie but
-cannot manufacture relevance that candidate generation never found. A ranker
-whose priors can outvote its evidence is a ranker that confidently returns the
-wrong memory.
+The document and graph priors are each 0.015 when applicable. A separate stage
+adds query-conditioned and preference signals:
 
-### Consensus is saturating, not linear
-
-```
-consensus = min(consensus_cap, log1p(number_of_sources) × consensus_scale)
-          = min(0.045,        log1p(n) × 0.018)
-```
-
-The second channel to independently find a candidate is strong evidence. The
-fifth adds almost nothing. A linear bonus would let a bland result that every
-channel weakly matches beat a precise result that one channel found decisively
-— which is the classic hybrid-search failure.
-
----
-
-## Reciprocal Rank Fusion
-
-Channels return incomparable scores: BM25 is unbounded, cosine similarity is
-[-1, 1], graph hops are integers. Normalising them against each other requires
-assumptions none of them justify. RRF uses only the **rank** each channel
-assigns, which is the one thing they all agree on the meaning of.
-
-```
-RRF(d) = Σ  1 / (k + rank_c(d))
-        c∈C
+```text
+score = clip(
+    0.93 r
+    + 0.06 temporal_window_match
+    + gated_user_importance
+    + 0.02 (entry_salience - 0.5)
+    + 0.02 (memory_type_salience - 0.70)
+    + 0.15 social_focus × social_utility
+    - 0.035 max(0.6, social_focus) × factualization_risk,
+    0, 1
+)
 ```
 
-Weighted at 1.25 — the largest coefficient in the model, because agreement on
-ordering is the strongest available evidence.
+These equations describe the default enabled feature families;
+`_calibrated_score` is the executable specification, including missing-value
+handling and ablation switches. The function's historical name does not mean
+its output is probability-calibrated. Comparing coefficient magnitudes alone
+also does not establish feature importance: the inputs have different ranges.
 
----
+The user-importance contribution is damped for socially specific questions when
+the candidate misses the requested identity or intent. Stars express a person's
+preference, not the truth of a statement. An unattributed uncertain claim gets
+a penalty even when the query is phrased as a factual question. These are
+explicit design constraints, with [social ranking tests](../../tests/test_social_benchmark.py)
+and [salience tests](../../tests/test_salience.py), rather than a general proof
+that priors can never change a ranking incorrectly.
 
-## Temporal and social relevance
+## 4. Select evidence that covers the question
 
-Two dedicated modules, because a personal journal asks questions that generic
-retrieval has no notion of.
+`rerank_results` receives candidates, a policy, a result limit and an optional
+`as_of_date`. Pin the date for reproducible experiments: temporal features
+otherwise use the current date. Clone candidates with `clone_candidates_for_rerank`
+before comparing policies; that restores their pre-fusion scores instead of
+ranking an already-ranked pool again.
 
-**Temporal** (`temporal_relevance.py`) — "last week", "before the move", "that
-summer" parse into a window, and candidates are matched against it. Without
-this, "what did I do last Tuesday" retrieves every Tuesday.
+The default policy can use maximal marginal relevance with a diversity
+coefficient of 0.82. It skips that work for simple pools when the adaptive check
+finds no need for diversification. Requested-aspect and narrative-coverage
+repairs retain useful complementary evidence. This is a listwise selection
+stage after pointwise scoring, not merely sorting the nearest vectors.
 
-**Social** (`social_relevance.py`) — the query is analysed for social intent,
-candidates are decomposed into facets, and evidence is scored against them.
-"Who was at the harbour dinner" is an event-participant query, not a text-match
-query.
+[Ranking-context tests](../../tests/test_ranking_context.py) exercise reuse of
+query interpretation and facet profiles. [Query-cost tests](../../tests/test_context_query_cost.py)
+check bounded SQL growth as corpus dimensions increase. They are performance
+regressions, not production latency measurements.
 
----
+## 5. Build a bounded, labelled context
 
-## The memory model underneath
+[context_package.py](../../src/thoughtpins/memory/context_package.py),
+[context_sections.py](../../src/thoughtpins/memory/context_sections.py) and the
+[evidence plan](../../src/thoughtpins/memory/evidence_plan.py) assemble sources,
+conversation history and navigational context within a budget. Attribution,
+uncertainty and privacy projection remain relevant after ranking.
 
-Retrieval reads a bitemporal entity–relationship store, not a document pile.
+[context_safety.py](../../src/thoughtpins/memory/context_safety.py) labels
+retrieved text as untrusted evidence and identifies instruction-shaped content.
+The [fixture tests](../../tests/test_context_safety.py) exercise that boundary.
+A live model may still hallucinate or follow adversarial text; model-based
+red-teaming and answer-grounding evaluation are separate requirements.
 
-```mermaid
-erDiagram
-    Entity ||--o{ EntityMention : "appears as"
-    Entity ||--o{ Memory : "subject of"
-    Entity ||--o{ Relationship : "participates in"
-    Entity ||--o{ EventParticipant : "attended as"
-    Event  ||--o{ EventParticipant : "has"
-    RawEntry ||--o{ EntityMention : "yields"
-    Memory ||--o| Memory : "supersedes"
+## 6. Interpret the evaluation at the right level
 
-    Entity {
-        string type
-        string canonical_name
-        json aliases_json
-        json attributes_json
-    }
-    Memory {
-        string subject
-        string predicate
-        string object
-        datetime valid_from
-        datetime valid_to
-        string supersedes_memory_id
-    }
-    Relationship {
-        float weight
-        datetime first_seen_at
-        datetime last_seen_at
-        int evidence_count
-    }
-```
+The [external evaluation protocol](EXTERNAL_MEMORY_BENCHMARKS.md) records a
+July 21, 2026 replay. Its LongMemEval adapter compares policies over the same
+candidate sessions; it does not run the entire live ingestion/retrieval/answer
+stack.
 
-`Memory` carries `valid_to` and `supersedes_memory_id`, so a fact that stops
-being true is superseded rather than overwritten. "Where does Maya work" can be
-answered for today and for last year, and the change itself is visible. That is
-what makes this a memory system rather than a search index.
+| Documented experiment | Sample | Result | What it supports |
+| --- | ---: | --- | --- |
+| LongMemEval session reranking | 46 cases | Recall@1: BM25 0.8478, Thought Pins 0.8696 | One additional correct top-ranked session on this sample |
+| LongMemEval coverage | Same 46 | Both reach 1.0 Recall@5/10 | Coverage of the supplied candidates on this sample |
+| LitBank attribution ranking | 25 cases, including 16 minor-speaker cases | Recall@1/MRR 1.0 in the documented replay | A small controlled attribution regression |
+| Generated literary questions | 300 books | Saturated documented metrics | Broad regression coverage; labels share their source passages |
 
----
+The holdout was later revisited, so the recorded run is confirmatory rather
+than a new untouched estimate. The full 500-question LongMemEval run and a
+comparison against modern dense or learned rerankers are outstanding. Perfect
+Recall@10 on 46 supplied candidate sets does not establish that retrieval is
+solved, and none of these values measures live-model answer accuracy.
 
-## What has been measured
+The protocol records dataset pins, licenses, partition rules, calibration
+choices and reproduction commands. Benchmark corpora and generated reports stay
+in ignored local paths; they are never copied into product accounts.
 
-**LongMemEval**, n = 46, `memory/longmemeval_benchmark.py`:
+## A useful research review
 
-| System | Recall@1 | Recall@10 |
-|---|---|---|
-| BM25 baseline | 0.847826 | — |
-| Thought Pins | 0.869565 | 1.000 |
+A reviewer can evaluate this as a persistent-memory systems implementation:
 
-Read that honestly: the Recall@1 gap is **one question** at n = 46. It is not a
-significant result and is not claimed as one. `Recall@10 = 1.000` says the
-correct memory is always in the candidate pool — the ranking, not the retrieval,
-is what remains to improve. Multi-session recall sits at 0.70 and is the weakest
-measured area.
+1. Trace one attributed or corrected statement from source to context.
+2. Replay a fixed candidate pool with a pinned date under policy ablations.
+3. Inspect failures by question type, uncertainty, temporal span and named entity.
+4. Compare candidate-generation recall separately from reranking and final answers.
+5. Repeat on untouched larger data with dense/learned baselines, paired
+   uncertainty estimates, latency and cost measurements.
+6. Test live-model prompt injection, tenant isolation, interrupted ingestion and
+   deletion recovery independently of retrieval quality.
 
-A 500-question run is outstanding, and is listed under
-[What's unproven](../../README.md#whats-unproven) in the README rather than
-quietly omitted.
-
-**Query cost.** `tests/test_context_query_cost.py` grows one dimension at a time
-and asserts the query count does not follow. Context assembly went from 622
-queries to 133 through eager loading and batched entity lookup, with the output
-hash unchanged (`85f85507c2f74513`) — proof it was a cost change and not a
-behaviour change.
-
----
-
-## Embeddings
-
-Provider-agnostic by configuration (`EMBEDDING_PROVIDER` ∈ `llm | local |
-openai`), 1536 dimensions by default. The vector index is treated as **derived
-state**: SQL decides what a tenant may see, and vector hits are re-checked
-against it before they are merged. A vector store that returns another tenant's
-neighbour cannot leak, because the row it points at is authorised separately.
-
----
-
-## Reading the code
-
-| Module | Responsibility |
-|---|---|
-| `memory/search.py` | Candidate generation, channel isolation |
-| `memory/ranking.py` | Pure score fusion — no I/O, replayable under ablation |
-| `memory/temporal_relevance.py` | Date-window parsing and matching |
-| `memory/social_relevance.py` | Social intent, facets, evidence scoring |
-| `memory/context_sections.py` | Token-bounded context assembly |
-| `memory/graph_store.py` | Entity/relationship traversal |
-| `memory/evaluation_metrics.py` | Recall@k, MRR, nDCG |
-
-Ranking is deliberately pure. An evaluation replays the same candidate pool
-under controlled ablations without querying a provider again or changing
-tenant-scoped retrieval — which is the only way to know whether a weight change
-helped.
+The existing work supplies the modular boundaries, deterministic fixtures and
+replay tools for that review. Larger quality claims need the corresponding
+experiments and shareable evidence.

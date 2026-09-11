@@ -1,6 +1,6 @@
 """Hybrid search orchestration across SQL, vectors, documents, and graph evidence.
 
-Candidate generation only. Seven independent channels propose memories, their
+Candidate generation only. Eight available channels propose memories, their
 proposals are merged by identity, and :mod:`thoughtpins.memory.ranking` decides
 the order. Keeping generation and ordering apart is what lets an evaluation
 replay one candidate pool under several ranking policies.

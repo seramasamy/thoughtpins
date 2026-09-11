@@ -15,20 +15,21 @@ The useful Hermes concepts are architectural, not dependency-level:
 
 Thought Pins now applies the first concept through `memory/context_safety.py`; the remaining concepts already exist through response profiles, durable chat records, hybrid search, journal/chat routing, correction, undo, and explicit save controls.
 
-## Current Grade
+## Evidence and open questions
 
-Overall engineering grade: **9.5/10** for a production-candidate memory layer,
-not a claim of production proof.
+The implementation should be assessed through its contracts and experiments.
+Earlier numerical self-grades have been removed: they were subjective and did
+not quantify either reliability or retrieval quality. The measurements below
+are historical notes from July 2026, not a certification of the current release.
 
-| Dimension | Grade | Evidence |
-| --- | ---: | --- |
-| Durable capture and portability | 9.2 | Journal/chat/source records, corrections, export/delete, Obsidian import/export |
-| Retrieval quality | 9.7 | Exact and BM25-style lexical signals, embeddings, RRF, graph expansion, social-scene constraints, temporal/diversity priors, bounded contextual salience, and independently labeled LongMemEval/LitBank evaluation |
-| Structure and provenance | 9.4 | Typed ontology, attributed claims, claim lifecycle, constrained relationships, source/lived-experience separation, evidence text, versioned prominence signals |
-| Context assembly | 9.4 | Smart/full modes, recent conversation, privacy-aligned source counts, navigational map, bounded retrieval, query-conditioned evidence plan, untrusted-evidence envelope |
-| Evaluation and repair | 9.7 | Fixed fixtures, public-domain books, 5,000 adversarial scenes, pinned LongMemEval/LitBank adapters, source-separated calibration, audits, reindexing, and correction paths |
-| Tenant and lifecycle safety | 8.9 | User-scoped queries, RLS migrations/scripts, encrypted private content, deletion and rating refresh across derived indexes |
-| Proven scale and operations | 8.8 | Exact local Compose proof covers non-owner PostgreSQL RLS, Redis/Celery delivery, shared Qdrant snapshot recovery, PostgreSQL/vault restore, bounded readiness, scoped dependency recovery, a ten-tenant authenticated flow, and 100-VU health load; managed staging remains an external gate |
+| Area | Implemented evidence | Further validation |
+| --- | --- | --- |
+| Capture and portability | Source records, corrections, account export/delete and vault interoperability | Real-device and operational lifecycle rehearsals |
+| Retrieval and provenance | Hybrid candidate generation, bounded ranking, attributed claims and temporal metadata | Larger untouched evaluations and modern baselines |
+| Context assembly | Privacy projection, evidence planning, token bounds and untrusted-input labels | Live-model grounding and prompt-injection evaluation |
+| Evaluation | Deterministic fixtures, pinned external adapters and policy replay | Confidence intervals, genuinely new holdouts and artifact publication |
+| Tenant isolation | Scoped queries, RLS tests and coordinated derived-index deletion | Deployment-specific role, failure and restore verification |
+| Operations | Recorded local Compose, recovery and load rehearsals | Managed-infrastructure load, failover and quota evidence |
 
 The latest exact-topology local rehearsal restored PostgreSQL, the vault volume,
 and an authenticated Qdrant collection, then sustained 100 concurrent health

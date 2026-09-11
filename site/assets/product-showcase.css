@@ -1,0 +1,88 @@
+/* Shared product story. Static app captures remain usable without JavaScript;
+   site.js adds the same keyboard-operated device tabs to both homepages. */
+.product-showcase {
+  --showcase-bg: var(--tp-canvas, #f4f5f9);
+  --showcase-card: var(--tp-surface, #fff);
+  --showcase-ink: var(--tp-ink, #192132);
+  --showcase-soft: var(--tp-ink-soft, #616b7f);
+  --showcase-line: var(--tp-line, #e0e4ee);
+  --showcase-accent: var(--tp-link, #554da8);
+  padding: clamp(64px, 8vw, 120px) max(24px, calc((100% - 1240px) / 2));
+  scroll-margin-top: 80px;
+  color: var(--showcase-ink);
+  background: var(--showcase-bg);
+  border-block: 1px solid var(--showcase-line);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+.lab-product.product-showcase {
+  --showcase-bg: #0f1728;
+  --showcase-card: #151f32;
+  --showcase-ink: #f1f4ff;
+  --showcase-soft: #aab7d0;
+  --showcase-line: #ffffff20;
+  --showcase-accent: #b7b1ff;
+  background: radial-gradient(ellipse at 80% 15%, #6960b91c, transparent 55%), var(--showcase-bg);
+}
+.showcase-heading { display: grid; grid-template-columns: 1.6fr 1fr; align-items: end; gap: 40px; margin-bottom: 44px; }
+.showcase-eyebrow { margin: 0 0 18px; color: var(--showcase-accent); font-size: 11px; letter-spacing: .16em; font-weight: 650; text-transform: uppercase; }
+.showcase-heading h2 { margin: 0; font: 600 clamp(30px, 3.2vw, 46px)/1.14 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: -.045em; text-wrap: balance; }
+.showcase-heading h2 em { font-style: normal; color: var(--showcase-accent); }
+.showcase-heading > p { max-width: 32ch; margin: 0 0 2px auto; color: var(--showcase-soft); font-size: 15px; line-height: 1.75; }
+.showcase-layout { display: grid; grid-template-columns: minmax(0, 2.6fr) minmax(260px, 1fr); gap: 32px; align-items: start; }
+.showcase-workspace { min-width: 0; }
+.showcase-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.showcase-workspace-label { display: inline-flex; align-items: center; gap: 9px; color: var(--showcase-soft); font-size: 12px; }
+.showcase-workspace-label > span { width: 6px; height: 6px; border-radius: 50%; background: #80baa5; box-shadow: 0 0 0 4px #80baa515; }
+.product-showcase .preview-tabs { display: inline-flex; gap: 3px; margin: 0; padding: 4px; border: 1px solid var(--showcase-line); border-radius: 999px; background: var(--showcase-card); }
+.product-showcase .preview-tab { min-width: 84px; min-height: 44px; padding: 8px 16px; border: 0; border-radius: 999px; font-family: inherit; font-size: 12px; font-weight: 600; line-height: 1.4; color: var(--showcase-soft); background: transparent; cursor: pointer; }
+.product-showcase .preview-tab:hover { color: var(--showcase-ink); }
+.product-showcase .preview-tab.is-active { color: #fff; background: #554ba3; }
+.product-showcase :is(.preview-tab, [role="tabpanel"], .showcase-open):focus-visible { outline: 2px solid var(--showcase-accent); outline-offset: 5px; }
+.showcase-stage { display: grid; place-items: center; min-width: 0; padding: 20px; border: 1px solid var(--showcase-line); border-radius: 28px; background: linear-gradient(135deg, #a49fe014, #dcaa8108); }
+.showcase-panel { display: flex; justify-content: center; width: 100%; min-width: 0; }
+.showcase-panel[hidden] { display: none !important; }
+.product-showcase .browser-frame { width: 100%; overflow: hidden; border: 1px solid #48546a; border-radius: 13px; background: #192336; box-shadow: 0 18px 40px #0002; }
+.product-showcase .browser-frame-bar { display: flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border: 0; background: #192336; }
+.product-showcase .browser-frame-bar i { flex: 0 0 6px; height: 6px; background: #8994aa; border-radius: 50%; }
+.product-showcase .browser-frame-bar > .browser-frame-address { display: block; overflow: hidden; margin: 0 auto; padding: 0 20px 0 0; color: #b8c3d9; background: transparent; border: 0; border-radius: 0; font-size: 10px; line-height: 1.5; white-space: nowrap; text-overflow: ellipsis; }
+.product-showcase .product-app-capture { display: block; width: 100%; height: auto; min-height: 0; aspect-ratio: auto; object-fit: contain; }
+.product-showcase .phone-shell { width: min(100%, 300px); padding: 9px; border: 1px solid #59647a; border-radius: 38px; background: #222d41; box-shadow: 0 18px 45px #0003; }
+.product-showcase .phone-speaker { width: 58px; height: 4px; margin: 0 auto 8px; border-radius: 10px; background: #8b94a6; }
+.product-showcase .phone-screen { display: block; overflow: hidden; min-height: 0; aspect-ratio: auto; border-radius: 27px; background: #f4f5f9; }
+.showcase-caption { margin: 16px 0 0; color: var(--showcase-soft); font-size: 11px; line-height: 1.6; text-align: center; }
+.showcase-story { padding-top: 16px; }
+.showcase-story-label { margin: 0 0 26px; font-size: 12px; font-weight: 550; color: var(--showcase-soft); }
+.showcase-story ol { display: grid; gap: 28px; padding: 0; margin: 0; list-style: none; }
+.showcase-story li { display: grid; grid-template-columns: 25px minmax(0, 1fr); gap: 12px; }
+.showcase-number { padding-top: 2px; color: var(--showcase-accent); font: 11px/1.7 ui-monospace, SFMono-Regular, monospace; }
+.showcase-story h3 { margin: 0 0 12px; color: var(--showcase-ink); font: 600 15px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: -.02em; }
+.showcase-story li p { margin: 0; color: var(--showcase-soft); font-size: 13px; line-height: 1.8; }
+.showcase-story .showcase-note { padding: 15px 16px; color: var(--showcase-ink); background: var(--showcase-card); border: 1px solid var(--showcase-line); border-radius: 14px; font-size: 13px; }
+.showcase-meta { display: block; margin-top: 8px; color: var(--showcase-soft); font-size: 10px; }
+.showcase-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+.showcase-chips span { border: 1px solid var(--showcase-line); border-radius: 999px; padding: 5px 10px; color: var(--showcase-accent); background: var(--showcase-card); font-size: 11px; }
+.showcase-story .showcase-question { margin-bottom: 6px; color: var(--showcase-ink); }
+.showcase-open { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; margin-top: 24px; padding: 14px 0; border-top: 1px solid var(--showcase-line); color: var(--showcase-accent); font-size: 12px; text-decoration: none; }
+.showcase-open:hover { text-decoration: underline; text-underline-offset: 4px; }
+.showcase-footnote { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-top: 36px; padding-top: 24px; border-top: 1px solid var(--showcase-line); color: var(--showcase-soft); font-size: 11px; line-height: 1.7; }
+@media (max-width: 1000px) {
+  .showcase-layout { grid-template-columns: minmax(0, 1fr); }
+  .showcase-heading { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .showcase-heading > p { max-width: 55ch; margin-left: 0; }
+  .showcase-story { padding-top: 0; }
+  .showcase-story ol { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+  .showcase-story li { display: block; }
+  .showcase-number { display: block; margin-bottom: 10px; }
+  .showcase-story-label { margin-bottom: 20px; }
+}
+@media (max-width: 600px) {
+  .product-showcase { padding-inline: 20px; }
+  .showcase-heading { margin-bottom: 28px; }
+  .showcase-heading h2 { font-size: clamp(29px, 7.5vw, 38px); }
+  .showcase-toolbar { justify-content: center; }
+  .showcase-workspace-label { flex-basis: 100%; justify-content: center; }
+  .showcase-stage { padding: 12px; border-radius: 22px; }
+  .showcase-story ol { grid-template-columns: minmax(0, 1fr); }
+  .showcase-story li { display: grid; grid-template-columns: 25px minmax(0, 1fr); }
+  .showcase-footnote { justify-content: center; text-align: center; }
+}

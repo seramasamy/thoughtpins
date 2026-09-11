@@ -1,274 +1,175 @@
 <div align="center">
 
-<!-- A single <img>, deliberately. GitHub rewrites relative URLs in src but not
-     inside <source srcset>, so a <picture> with relative paths renders nothing:
-     the sources take priority and both fail to resolve. The dark banner is
-     self-contained and reads as an intentional band on either GitHub theme. -->
-<img alt="Thought Pins — your memory, connected." src=".github/assets/banner-dark.png" width="720">
+<img src=".github/assets/repository-banner.svg" alt="Thought Pins — your memory, connected. Open-source personal memory with structured recall and human control." width="100%">
 
-<br>
+[![CI](https://github.com/seramasamy/thoughtpins/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/seramasamy/thoughtpins/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-b6afff)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.13-3776ab)](.python-version)
+[![SwiftUI](https://img.shields.io/badge/iOS-SwiftUI-e8612b)](mobile/ios/ThoughtPinsNative/README.md)
 
-<!-- The live Actions badge 404s while this repository is private, which renders
-     as a broken image. Restore it on the day it is published:
-     [![CI](https://github.com/seramasamy/thoughtpins/actions/workflows/ci.yml/badge.svg)](https://github.com/seramasamy/thoughtpins/actions/workflows/ci.yml) -->
-[![Gates](https://img.shields.io/badge/CI-47%20gates-587465)](.github/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-Apache--2.0-e8612b)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.13-3776ab)](.python-version)
-[![Tests](https://img.shields.io/badge/tests-840-587465)](tests/)
-[![Code of Conduct](https://img.shields.io/badge/contributor-covenant-6b6459)](CODE_OF_CONDUCT.md)
+**A private home for your thoughts, and a way to find the connections.**
 
-**A memory layer for real life.** Write naturally, bring in what you read,<br>
-and find the right detail months later — without handing your journal to an ad network.
-
-[Website](https://thoughtpins.com) · [Documentation](docs/README.md) · [Architecture](ARCHITECTURE_MODULES.md) · [Security](SECURITY.md)
+[Explore the product](https://thoughtpins.com/#product) · [Get started](#run-locally) · [Technical overview](docs/architecture/TECHNICAL_REVIEW_GUIDE.md) · [Documentation](docs/README.md)
 
 </div>
 
----
+## A personal record you can return to
 
-> **The model is [David Rockefeller's card file](https://www.forbes.com/sites/carminegallo/2017/12/07/david-rockefellers-rolodex-offers-a-master-class-in-making-friends-and-influencing-people/):** roughly 200,000 index cards covering 100,000 people, each
-> noting when they last met and what mattered to them — a child's recital, a parent's illness.
-> He kept it by hand for fifty years, because the value was never the writing. It was walking
-> into a room already knowing.
->
-> This is that, for people who don't have a staff. The schema follows from it: entities with
-> aliases and attributes, typed edges carrying `first_seen_at` / `last_seen_at` / `evidence_count`,
-> events with participants and roles, and claims that can be superseded without being erased.
+Thought Pins turns journal notes, conversations, voice notes, and saved reading
+into a connected record of people, places, events, and ideas. Ask about a past
+moment, inspect its source, or export your own record as plain files.
 
----
+The product includes a responsive React web app, a native SwiftUI iPhone/iPad
+app, a FastAPI backend, and an Obsidian-compatible vault. Five destinations —
+**Recap, People, Chat, Places, and Pins** — keep the experience consistent across
+screens. Android has a separate client and build checks.
 
-## Why not just use ChatGPT or Claude memory?
+<img src="site/assets/product-chat-desktop.png" alt="The Thought Pins desktop web app, with a conversation workspace and the five primary destinations." width="100%">
 
-They solve a different problem. Their memory makes *the assistant* better across sessions.
-Thought Pins makes *your record of your own life* searchable. Four differences follow.
+*Product capture uses a fictional account. [Mobile and desktop previews](https://thoughtpins.com/#product).*
 
-**A record, not a summary.** Assistant memory is lossy by design — a compact profile of
-what's useful to know about you. Thought Pins keeps what you wrote, verbatim, alongside the
-structure extracted from it. You can always get back to the sentence.
+The project is in active development. Source, automated checks, and review
+instructions are public; hosted availability and store distribution are
+separate release decisions. See [validation and limits](#validation-and-limits)
+for what the evidence supports.
 
-**Attribution survives.** A journal is full of things you did not witness: what someone told
-you, what you assumed, what you later corrected. Flatten that into a profile and you get
-"Tom is leaving." Thought Pins carries epistemic status end to end and answers "Sarah told
-you Tom was leaving" — the difference between a memory you can act on and one you have to
-re-check. It is what this codebase spends the most effort on, and it is
-[measured](tests/test_retrieval_robustness.py), not asserted.
+## The engineering behind recall
 
-**Retrieval is inspectable and reproducible.** Eight independent channels propose candidates;
-a pure ranking function with twenty bounded coefficients orders them. Same corpus, same
-query, same result. You can ablate a signal and measure what it was worth — fine to skip for
-a chat assistant, not for a system of record.
+The central problem is preserving a useful personal record while extraction,
+retrieval, model responses, and network delivery can all be imperfect. Thought
+Pins keeps durable source records separate from derived memory and gives each
+stage an inspectable contract.
 
-**Yours to leave.** Everything exports as a plain Obsidian vault: Markdown, YAML properties,
-wikilinks, a JSON Canvas map. A folder you open in any text editor, forever. Minor next to
-the others, but it makes them credible — a promise you can walk away from is one you can
-check.
-
-**Claude with an Obsidian vault?** Genuinely good, and if you live in a terminal it may be
-all you need. But a CLI is not reachable from a taxi, and the record is written walking out
-of the meeting. Nor can Markdown with lexical search answer *"who have I not spoken to since
-March"* — that is a scan over `last_seen_at` on a typed edge, a schema decision you make on
-day one or never.
-
-**A memory layer like Mem0 or Zep?** Infrastructure — SDKs for giving *your* application a
-memory. Different layer; if you are building an app, use one. Thought Pins is the
-application: an account, a phone, a voice note, an export you can walk away with.
-
-An agent framework like Hermes, or a general assistant, wins on breadth of tools and doing
-things on your behalf. Thought Pins does one thing. If you want an assistant that remembers
-you a bit, use theirs. If you want a searchable record of your own life that you own, this.
-
-## What it is
-
-Thought Pins turns ordinary writing into a navigable personal record. You talk to it the way
-you'd talk to a friend who remembers things. It notices the people, places, events, and ideas
-that recur in your life, connects them, and can answer questions about your own past with the
-sources attached.
-
-It is a FastAPI backend, a React web client, and an Obsidian-compatible vault format. You can
-run the whole thing on your own machine.
-
-> [!NOTE]
-> **Status: private beta.** thoughtpins.com is invite-only while the hosted service is
-> tested with a small group. The code here is complete enough to self-host and use, but it
-> has not been run at scale. See [What's unproven](#whats-unproven) — that section is honest,
-> not decorative.
-
-## Why you'd trust it with a journal
-
-A journal is the most sensitive thing most people own. These are the design decisions that
-follow from taking that seriously — each one is a link to the code that implements it, not a
-marketing claim.
-
-| Promise | How it's actually enforced |
+| Mechanism | Implementation and purpose |
 | --- | --- |
-| **Your data leaves whenever you want** | Full export to a plain Obsidian vault — Markdown, YAML properties, wikilinks. No proprietary format, no lock-in. [`export_vault.py`](scripts/export_vault.py) · [contract](docs/architecture/OBSIDIAN_INTEROPERABILITY.md) |
-| **An edit never destroys what you wrote** | Editing a chat turn rewinds the conversation like any chat app — but a rewound turn may have saved a journal entry, so entries are kept and reported rather than silently deleted or orphaned. [`store.py`](src/thoughtpins/chat/store.py) · [tests](tests/test_chat_edit_and_resend.py) |
-| **Delete means delete** | `DELETE /v1/me` removes entries, memories, entities, vectors, jobs, and audit rows in dependency order. [`data_lifecycle.py`](src/thoughtpins/data_lifecycle.py) |
-| **One user cannot read another** | PostgreSQL `FORCE ROW LEVEL SECURITY` on every tenant table — enforced by the database, not by hoping every query has a `WHERE`. Proven against a non-owner role. [`verify_postgres_rls.py`](scripts/verify_postgres_rls.py) |
-| **Private entries stay private** | Encrypted at rest with a Fernet key you hold. Private memories are excluded from model context by default and require an explicit per-request opt-in. [`crypto.py`](src/thoughtpins/crypto.py) |
-| **Your notes can't hijack the model** | Retrieved journals, documents, OCR, and web text enter the prompt as *evidence*, never instructions. Instruction-shaped content is detected and labelled first. [`context_safety.py`](src/thoughtpins/memory/context_safety.py) · [tests](tests/test_context_safety.py) |
-| **It won't answer with things it doesn't know** | Retrieval builds a provenance-aware evidence plan, so hearsay, disputed claims, and retractions stay labelled instead of quietly becoming facts. [review](docs/architecture/MEMORY_ARCHITECTURE_REVIEW.md) |
-| **No ads, no tracking, no resale** | There is no advertising profile, no public feed, and no analytics SDK. The release contract is machine-checked. [`commerce-policy.json`](deploy/store/commerce-policy.json) · [`check_free_launch.py`](scripts/check_free_launch.py) |
-| **It doesn't steal articles** | Link capture reads public text with a normal request. It never impersonates a crawler, strips auth, or defeats access controls. Gated publishers stay metadata-only. [`article_parsing.py`](src/thoughtpins/article_parsing.py) |
-
-Backed by **788 tests** and **26 quality gates that run on every push** — architecture
-and complexity ratchets, tenant-isolation checks, supply-chain and secret scans, web
-accessibility and responsive contracts, and store-readiness packets — across Python,
-PostgreSQL, web, Android, and iOS.
-
-## How it works
+| **Typed extraction and provenance** | Bounded ontology, entity resolution, attributed claims, temporal validity and supersession preserve the relationship between a memory and its source. [Ingestion](src/thoughtpins/ingestion/service.py) · [Schema](src/thoughtpins/db.py) |
+| **Hybrid candidate generation** | Eight retrieval paths combine exact phrases, lexical matches, embeddings, entity/graph evidence and source titles. An unavailable channel can degrade recall without aborting all search. [Search](src/thoughtpins/memory/search.py) |
+| **Replayable ranking** | Reciprocal rank fusion, bounded relevance/salience signals, social attribution penalties, and adaptive diversity/coverage selection. The ranking policy exposes 20 validated parameters and explicit ablation switches. [Ranker](src/thoughtpins/memory/ranking.py) |
+| **Evidence-aware context** | Query-specific evidence planning, source labels and token budgeting retain attribution and mark retrieved text as untrusted input. [Evidence plan](src/thoughtpins/memory/evidence_plan.py) · [Context](src/thoughtpins/memory/context_package.py) |
+| **Durable asynchronous work** | Relational job claims, broker handoff recovery and deduplicated persistence address interrupted and repeated delivery. [Technical walkthrough](docs/architecture/TECHNICAL_REVIEW_GUIDE.md#privacy-semantics) |
+| **Tenant and lifecycle boundaries** | User-scoped storage, PostgreSQL RLS, private-recall controls, token rotation, export and coordinated deletion across derived indexes. [RLS verification](scripts/verify_postgres_rls.py) · [Lifecycle](src/thoughtpins/data_lifecycle.py) |
 
 ```mermaid
 flowchart LR
-    IN["Chat · voice · link · document"] --> R{Router}
-
-    R -->|"something you lived"| J[Journal entry]
-    R -->|"a question"| Q[Retrieval]
-    R -->|"something you read"| S[Source capture]
-
-    J --> X["LLM extraction<br/><i>bounded, typed ontology</i>"]
-    S --> X
-    X --> DB[("PostgreSQL<br/><i>row-level security</i>")]
-    X --> V[("Vector index<br/><i>tenant-filtered</i>")]
-
-    Q --> DB
-    Q --> V
-    Q --> E["Evidence plan<br/><i>provenance + trust boundary</i>"]
-    E --> A["Answer with sources"]
+    Capture["Writing · voice · sources"] --> Source["Durable source record"]
+    Source --> Extract["Typed extraction"]
+    Extract --> Memory[("SQL memory + provenance")]
+    Memory --> Derived["Derived vector / graph indexes"]
+    Query["Question + tenant + privacy scope"] --> Search["Hybrid candidates"]
+    Memory --> Search
+    Derived --> Search
+    Search --> Rank["Rank + diversify + cover"]
+    Rank --> Evidence["Bounded evidence context"]
+    Evidence --> Answer["Model response"]
 ```
 
-SQL is the source of truth. Vectors and the graph are derived indexes that can be rebuilt at
-any time — so a bad embedding model or a corrupted index is an inconvenience, not data loss.
+SQL holds the authoritative records; supported derived indexes can be rebuilt.
+The ranking score is a retrieval heuristic, not a probability that an answer is
+true. Model behavior and index availability are evaluated separately from
+replaying a fixed candidate set.
 
-Retrieval is not a single vector lookup. A question runs through eight independent
-channels — dense vectors, SQL lexical, graph expansion, graph evidence, document
-title, raw keyword — and their *disagreement* is a ranking signal, saturating so
-that the second channel to find a candidate counts and the fifth barely does.
-Twenty bounded coefficients fuse the result, deliberately structured so personal
-importance and social structure can break a tie but never outvote the retrieval
-evidence itself.
+**For a research or AI systems review:** start with the [algorithm walkthrough](docs/architecture/RETRIEVAL_ARCHITECTURE.md),
+then the [evaluation protocol](docs/architecture/EXTERNAL_MEMORY_BENCHMARKS.md)
+and [reviewer's verification path](docs/architecture/TECHNICAL_REVIEW_GUIDE.md).
+They connect the equations to code, isolate what each experiment measures, and
+identify the next experiments needed. This is a systems implementation with
+reproducible evaluation infrastructure; no state-of-the-art retrieval result
+is claimed.
 
-**[How recall works →](docs/architecture/RETRIEVAL_ARCHITECTURE.md)** — the
-channels and why each one exists, the score-fusion model, reciprocal rank
-fusion, the bitemporal memory schema, and the measured numbers with their sample
-sizes.
+## User control is part of the design
 
-## Quick start
+- **Keep the source.** Extracted memories retain provenance. Editing a chat
+  turn does not silently delete journal entries it previously created.
+- **Choose private recall.** Already-private memories are excluded by default;
+  including them requires the applicable account/request choice and server
+  policy. Private text encryption uses the deployment's configured key.
+- **Take your record with you.** Account JSON and an Obsidian-compatible vault
+  provide portable exports. Third-party source text follows the export policy.
+- **Delete through the product.** Account deletion coordinates relational,
+  vector and retained-audio cleanup; it reports failure when required cleanup
+  cannot be confirmed.
+- **Keep external content in its place.** Journals and documents enter model
+  context as evidence. These defenses reduce exposure to instruction injection;
+  they do not guarantee a model will never follow malicious content.
 
-Requires Python 3.13. Runs on SQLite with no external services.
+[Security policy](SECURITY.md) · [Privacy](https://thoughtpins.com/privacy) · [Vault contract](docs/architecture/OBSIDIAN_INTEROPERABILITY.md)
+
+## Run locally
+
+Use the pinned Python 3.13 environment and Node.js 22 for the web build.
+Python compatibility is declared in [pyproject.toml](pyproject.toml); release
+installs resolve through [uv.lock](uv.lock).
 
 ```bash
 git clone https://github.com/seramasamy/thoughtpins.git
 cd thoughtpins
-python -m venv .venv && . .venv/bin/activate   # Windows: .\.venv\Scripts\Activate.ps1
+python -m venv .venv
+. .venv/bin/activate
 pip install -e ".[dev]"
-cp .env.example .env                            # Windows: copy .env.example .env
+cp .env.example .env
+cd frontend
+npm ci
+npm run build
+cd ..
 python -m thoughtpins.server --api-only
 ```
 
-Then open **http://127.0.0.1:8420/app**.
+Open **http://127.0.0.1:8420/app/**. Default local mode uses SQLite; model-backed
+extraction and answers require a configured provider. Do not expose local
+no-auth mode to the public internet. Configure the provider using the template's
+`LLM_PROVIDER`, `LLM_BASE_URL`, `LLM_MODEL`, and `LLM_API_KEY` settings.
 
-Local mode uses SQLite and skips auth, so you can try it before configuring anything. To make
-it actually think, point it at any OpenAI-compatible endpoint:
+[Windows and full setup](docs/operations/RUNNING.md) · [macOS/iOS setup](apple-submission/MAC_START_HERE.md) · [Production operations](docs/operations/PRODUCTION_RUNBOOK.md)
 
-```env
-LLM_PROVIDER=openai_compatible
-LLM_API_KEY=<your-key>
-LLM_BASE_URL=<openai-compatible-base-url>
-LLM_MODEL=<chat-model>
-```
+<a id="whats-unproven"></a>
 
-Want a populated account to explore? `python scripts/seed_local_demo_corpus.py --json` writes
-a small fictional corpus — seven dated entries, three reading sources, connected
-people/places/concepts.
+## Validation and limits
 
-Everything else — PostgreSQL, Redis, Celery, Qdrant, Docker, production configuration,
-migrations, and the full release gate — is in **[docs/operations/RUNNING.md](docs/operations/RUNNING.md)**.
-
-## Project layout
-
-```
-src/thoughtpins/      FastAPI backend, memory engine, ingestion, retrieval
-├── api_routes/       versioned /v1 surface
-├── memory/           extraction, ranking, retrieval, trust boundaries
-└── llm/              provider-neutral OpenAI-compatible runtime
-frontend/             React web client (served at /app)
-mobile/               iOS and Android shells
-alembic/versions/     26 migrations, RLS policies included
-scripts/              32 check_*.py gates, operational tooling
-tests/                840 tests across 122 files
-docs/                 architecture, operations, product, release
-site/                 the marketing site at thoughtpins.com
-apple-submission/     App Store review notes, runbook, working log
-play-submission/      Play Console readiness and the closed-test plan
-```
-
-Before adding a feature, read **[ARCHITECTURE_MODULES.md](ARCHITECTURE_MODULES.md)** — it names
-the owning module for each concern so new code doesn't accumulate in the adapter files.
-
-## Documentation
-
-| | |
-| --- | --- |
-| [Docs index](docs/README.md) | Everything, organised |
-| [Architecture modules](ARCHITECTURE_MODULES.md) | Where code belongs |
-| [How recall works](docs/architecture/RETRIEVAL_ARCHITECTURE.md) | Eight retrieval channels, score fusion, the bitemporal schema |
-| [Technical review guide](docs/architecture/TECHNICAL_REVIEW_GUIDE.md) | A reviewer's tour with a verification path |
-| [Memory architecture review](docs/architecture/MEMORY_ARCHITECTURE_REVIEW.md) | The design, graded honestly |
-| [Obsidian interoperability](docs/architecture/OBSIDIAN_INTEROPERABILITY.md) | The vault contract |
-| [Running it](docs/operations/RUNNING.md) | Local, staging, production |
-| [Production runbook](docs/operations/PRODUCTION_RUNBOOK.md) | Deploy, rollback, backup, restore |
-| [Design system](DESIGN_SYSTEM.md) | Type, colour, motion |
-
-## What's unproven
-
-Claims the evidence does not yet support. A line leaves this list when a measurement
-replaces an assumption — not when the code changes.
-
-- **The retrieval advantage.** Against 46 held-out LongMemEval questions the system reaches
-  0.870 Recall@1 where BM25 reaches 0.848. On 46 questions that margin is **one question**,
-  which is noise, not a result. BM25 is a strong classical baseline rather than a strawman,
-  so being level with it is not embarrassing — but it is not the claim this project wants to
-  make either, and no comparison against a modern dense retriever or a commercial memory
-  layer has been run. `Recall@10` is 1.000 across the set: the right answer is always in the
-  candidate pool, so retrieval is solved and **ranking is the entire remaining problem** —
-  which is the good kind of gap to have. Multi-session recall, the category a journal depends
-  on most, is 0.70. The full 500-question set has not been run.
-- **Scale.** Private beta, a handful of accounts. Local containers have passed RLS, Celery
-  dispatch, restore drills, and a 100-VU health load. That proves the code, not cloud
-  networking, failover, or provider quotas under a real load.
-- **Prompt injection against a live model.** Retrieved text enters the prompt inside an
-  untrusted-evidence envelope and instruction-shaped content is labelled first, which is
-  [tested](tests/test_context_safety.py) against fixtures. It has never been red-teamed
-  against the configured production model, and ingested articles are attacker-controlled text.
-- **The external graph backend.** `internal_sql` is the default and the only supported source
-  of truth. Deletion and recall contracts are pinned by tests — account deletion fails closed
-  rather than report a removal a backend cannot confirm, and a shadow backend is measured but
-  never answered from. Those hold against fakes. No driver has been exercised against a real
-  graph server, so Graphiti stays behind its flag.
-
-Two constraints that are decided rather than unproven: voice retention refuses to enable on a
-deployment whose archive path is not durable, and iOS native CI runs on tags because macOS
-minutes bill at 10x on a private repository. Both are
-[in the register](docs/architecture/TECHNICAL_DEBT_REGISTER.md) with the reasoning.
-
-## Contributing
-
-Issues and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) covers the workflow;
-the short version is that CI runs the same gates locally:
+CI runs Python, PostgreSQL, web, Android and container checks. Changes affecting
+iOS on `main` also trigger native compilation/archive checks; the workflow and
+its individual job results are the source of truth for each commit. The local
+strict release command is:
 
 ```bash
-python scripts/release_check.py
+python scripts/release_check.py --strict-quality
 ```
 
-Found a security issue? **Please don't open a public issue** — see [SECURITY.md](SECURITY.md).
+[Browser tests](frontend/e2e/) cover authentication, navigation, recovery,
+privacy, offline behavior and device layouts. [Website tests](frontend/site-e2e/)
+cover previews, keyboard control, appearance and accessibility. [Native UI tests](mobile/ios/ThoughtPinsUIReview/README.md)
+exercise the production SwiftUI package against fictional fixtures. Passing
+these checks does not replace a signed distribution build or real-device review.
 
-## License
+The [documented July 2026 evaluation](docs/architecture/EXTERNAL_MEMORY_BENCHMARKS.md#results)
+uses 46 LongMemEval cases: Recall@1 is **0.8696 versus 0.8478** for BM25 on the
+same candidate sessions — one additional correct top result. This is a small,
+confirmatory reranking experiment, not a full benchmark or an end-to-end answer
+accuracy result. Both systems reach 1.0 Recall@5/10 on that sample. The full
+500-question run, modern dense/learned baselines, untouched larger holdouts,
+and live-model adversarial evaluation remain outstanding.
 
-[Apache-2.0](LICENSE). See [NOTICE](NOTICE). Product names and marks are not granted by the
-software license.
+The repository also includes deterministic regression suites and public-domain
+literary evaluations. Generated questions from the same passages test
+regressions; they are not independent evidence of generalization. Production
+scale, live provider quality, physical-device behavior and signed TestFlight
+readiness require their own recorded evidence.
 
-<div align="center">
-<br>
-<sub>Built for people who want to remember their own lives, and keep them.</sub>
-</div>
+## Navigate the repository
+
+| Area | Start here |
+| --- | --- |
+| Ownership and architecture | [Module map](ARCHITECTURE_MODULES.md) |
+| Backend and memory engine | [src/thoughtpins/](src/thoughtpins/) |
+| Web app and public site | [frontend/](frontend/README.md) · [site/](site/README.md) |
+| Native apps | [mobile/](mobile/README.md) |
+| Algorithms and evaluation | [Retrieval architecture](docs/architecture/RETRIEVAL_ARCHITECTURE.md) · [Evaluation protocol](docs/architecture/EXTERNAL_MEMORY_BENCHMARKS.md) |
+| Releases and operations | [Documentation index](docs/README.md) · [Production runbook](docs/operations/PRODUCTION_RUNBOOK.md) |
+
+## Contribute
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [engineering guide](AGENTS.md)
+before changing behavior. Use an issue for reproducible bugs or proposed
+improvements. Report security issues through [SECURITY.md](SECURITY.md).
+
+Licensed under [Apache-2.0](LICENSE); see [NOTICE](NOTICE). The software license
+does not grant rights to the Thought Pins product names or marks.
