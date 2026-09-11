@@ -1,7 +1,9 @@
 import XCTest
 final class CaptureTests: XCTestCase {
     func shot(_ name: String, _ app: XCUIApplication) {
-        let attachment = XCTAttachment(screenshot: app.screenshot())
+        // App-window crops are offset after rotation on the iOS 17 simulator.
+        // Capture the full screen so landscape evidence includes every edge.
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)
