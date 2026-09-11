@@ -113,7 +113,7 @@ XCTest bundles, so their review does not require the runner's Xcode version.
 
 ## Verification and distribution boundary
 
-The strict release command passes all 50 checks: 892 Python tests pass with 16
+The strict release command passes all 50 checks: 894 Python tests pass with 16
 optional Telegram skips, the full 453-file type check passes, and production
 builds, dependency audits, migrations, architecture and public-export checks
 pass. GitHub's web job passes 131 browser cases, the PWA offline case, 38 website
@@ -165,3 +165,20 @@ family and explicit simulator boot readiness. Each family retains all seven
 model tests and five UI workflows. Both reviews must pass before the production
 archive/signing job runs; a failure does not cancel the other device's evidence.
 Regression checks cover that dependency and changes to the reusable workflow.
+
+## Final GitHub verification
+
+Commit `c391f87` passes all nine jobs in
+[run 34648674019](https://github.com/seramasamy/thoughtpins/actions/runs/34648674019).
+The iPhone 17 Pro and iPad Pro 13-inch (M5), both on iOS 26.5, each pass seven
+model tests and five UI workflows with no failures or skips. The shared Swift
+package passes 78 tests. The production simulator build and unsigned arm64
+archive pass, including the built Info.plist checks and build number 269.
+The web job passes all 215 app, website, PWA and iOS-browser cases.
+
+Portable screenshots, XCTest results and the unsigned archive are retained in
+that run's artifacts and in the local recovery packet. The final screenshot
+gallery includes iOS 17.2 light/dark review and current-SDK phone/tablet review.
+No paid model-provider calls were made. Signing, the live review backend,
+physical-device/provider checks and hosted-site deployment remain separate
+distribution steps; this verification did not upload to TestFlight.
