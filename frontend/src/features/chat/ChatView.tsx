@@ -6,20 +6,11 @@ import type { ScreenProps } from "../../app/types";
 import type { ChatMessageResponse, ChatResponse, UploadIngestResponse } from "../../types";
 import { formatConversationDay, formatConversationTime } from "../../components/format";
 import { ChatGlyph, IconButton, PrimaryButton, SecondaryButton } from "../../components/ui";
-import { confirmationIntent } from "./confirmation";
+import { useChatSubmission, type ThreadMessage } from "./useChatSubmission";
 import { KeptEntryNotice } from "./KeptEntryNotice";
 import { ChatWelcome } from "./ChatWelcome";
 import { MessageEditor } from "./MessageEditor";
 import { submitFormOnEnter } from "../../components/keyboard";
-
-type ThreadMessage = {
-  id: string;
-  role: "user" | "assistant" | string;
-  text: string;
-  routeType?: string | null;
-  status?: string | null;
-  createdAt?: string | null;
-};
 
 const CONVERSATION_ID = "main";
 const VOICE_DISCLOSURE_KEY = "thoughtpins.voice-disclosure.2026-07-13";
@@ -50,7 +41,6 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const wasBusyRef = useRef(false);
-  const abortRef = useRef<AbortController | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recordingStreamRef = useRef<MediaStream | null>(null);
   const recordingChunksRef = useRef<Blob[]>([]);
@@ -103,106 +93,11 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
     return compactComposer ? "Message..." : "Message Thought Pins...";
   }, [compactComposer, pendingActionId]);
 
-  const sendMessage = useCallback(async (rawText: string, forceConfirm = false, supersedesId: string | null = null) => {
-    const body = rawText.trim();
-    if (!body || busy) return;
-    // Drop the rewound turn and everything after it before the replacement
-    // lands, so the thread never shows both versions at once.
-    if (supersedesId) {
-      setMessages((current) => {
-        const cut = current.findIndex((item) => item.id === supersedesId);
-        return cut === -1 ? current : current.slice(0, cut);
-      });
-    }
-    setMessages((current) => [...current, {
-      id: `local-${crypto.randomUUID()}`,
-      role: "user",
-      text: body,
-      createdAt: new Date().toISOString(),
-    }]);
-    setText("");
-
-    if (maintenanceMessage) {
-      setMessages((current) => [...current, {
-        id: `maintenance-${crypto.randomUUID()}`,
-        role: "assistant",
-        text: maintenanceMessage,
-        routeType: "maintenance",
-        status: "paused",
-        createdAt: new Date().toISOString(),
-      }]);
-      return;
-    }
-
-    const intent = pendingActionId ? confirmationIntent(body) : null;
-    setBusyLabel("Thinking with your memory");
-    setBusy(true);
-    // A reply can take a while when the model is reasoning over a lot of
-    // memory. Without a way out, a slow or stalled turn leaves the person
-    // watching a spinner with no recourse.
-    const controller = new AbortController();
-    abortRef.current = controller;
-    try {
-      const result = await run(() => api.chat(token, {
-        text: body,
-        conversation_id: CONVERSATION_ID,
-        include_private: includePrivate,
-        confirm_action: Boolean(forceConfirm || (pendingActionId && intent === "confirm")),
-        pending_action_id: pendingActionId,
-        supersedes_message_id: supersedesId,
-      }, controller.signal));
-      if (!result) return;
-      setLastResponse(result);
-      // Adopt the stored id so this turn can itself be edited without a reload.
-      if (result.user_message_id) {
-        setMessages((current) => {
-          const index = [...current].reverse().findIndex((item) => item.role === "user");
-          if (index === -1) return current;
-          const at = current.length - 1 - index;
-          return current.map((item, i) => (i === at ? { ...item, id: result.user_message_id as string } : item));
-        });
-      }
-      setKeptEntryCount(result.orphaned_entry_ids?.length ?? 0);
-      setPendingActionId(extractPendingActionId(result));
-      setMessages((current) => [...current, {
-        id: `assistant-${crypto.randomUUID()}`,
-        role: "assistant",
-        text: result.reply || result.confirmation_prompt || "Done.",
-        routeType: result.route_type,
-        status: result.status,
-        createdAt: new Date().toISOString(),
-      }]);
-      setSendPulse(true);
-      window.setTimeout(() => setSendPulse(false), 240);
-    } catch (error) {
-      // Stopping is a deliberate choice, not a failure, so it is acknowledged
-      // in the thread rather than reported as an error.
-      //
-      // The composer is deliberately left empty. Restoring the stopped message
-      // into it re-entered the submit path and sent the same question a second
-      // time, which is worse than retyping.
-      if (error instanceof DOMException && error.name === "AbortError") {
-        setMessages((current) => [...current, {
-          id: `stopped-${crypto.randomUUID()}`,
-          role: "assistant",
-          text: "Stopped before a reply came back. Ask again whenever you are ready.",
-          routeType: "stopped",
-          status: "paused",
-          createdAt: new Date().toISOString(),
-        }]);
-        return;
-      }
-      throw error;
-    } finally {
-      abortRef.current = null;
-      setBusy(false);
-    }
-  }, [busy, includePrivate, maintenanceMessage, pendingActionId, run, token]);
-
-  const stopReply = useCallback(() => {
-    abortRef.current?.abort();
-    abortRef.current = null;
-  }, []);
+  const { sendMessage, stopReply } = useChatSubmission({
+    token, run, busy, includePrivate, maintenanceMessage, pendingActionId, messages,
+    setMessages, setText, setBusy, setBusyLabel, setLastResponse, setPendingActionId,
+    setKeptEntryCount, setEditingId, setEditDraft, setSendPulse,
+  });
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -358,7 +253,7 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
             <span className="private-memory-label-long">Use private memories</span>
             <span className="private-memory-label-short" aria-hidden="true">{includePrivate ? "Private on" : "Private off"}</span>
           </label>
-          <IconButton onClick={loadThread} aria-label="Restore conversation" title="Restore conversation"><RefreshCw size={17} /></IconButton>
+          <IconButton onClick={loadThread} disabled={busy} aria-label="Restore conversation" title="Restore conversation"><RefreshCw size={17} /></IconButton>
         </div>
       </header>
 
@@ -393,6 +288,7 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
                 )}
                 <footer>
                   <span>{message.role === "user" ? "You" : "Thought Pins"}</span>
+                  {message.status === "failed" && <span>Reply unavailable</span>}
                   {message.routeType && !["chat", "conversation"].includes(message.routeType) && <span className="classification-label">{friendlyRoute(message.routeType)}</span>}
                   {message.createdAt && <time dateTime={message.createdAt}>{formatConversationTime(message.createdAt)}</time>}
                   {message.role === "user" && editingId !== message.id && !message.id.startsWith("local-") && (
@@ -502,12 +398,6 @@ function mapServerMessage(message: ChatMessageResponse): ThreadMessage {
     status: message.status,
     createdAt: message.created_at_utc,
   };
-}
-
-function extractPendingActionId(response: ChatResponse): string | null {
-  if (!response.requires_confirmation) return null;
-  const value = response.metadata?.pending_action_id;
-  return typeof value === "string" && value ? value : null;
 }
 
 function friendlyRoute(route: string) {

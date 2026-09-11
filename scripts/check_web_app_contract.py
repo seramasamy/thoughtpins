@@ -212,22 +212,19 @@ def main() -> int:
             _req("chat history restore", "api.chatConversations", "api.chatMessages", all_required=True),
             _req(
                 "private recall toggle",
-                "include_private",
+                "includePrivate",
                 "Use private memories",
                 "Private memories stay out of replies",
                 all_required=True,
             ),
-            _req("pending confirmation", "pending_action_id"),
+            _req("submission lifecycle hook", "useChatSubmission"),
             _req(
                 "pending confirm/cancel buttons",
-                "forceConfirm",
                 "needs your confirmation",
                 "Cancel",
                 "Confirm",
                 all_required=True,
             ),
-            _req("confirmation prompt", "requires_confirmation"),
-            _req("maintenance local response", 'routeType: "maintenance"'),
             _req("familiar chat placeholder", "Message Thought Pins..."),
             _req("chat Enter submit", "submitFormOnEnter", 'aria-label="Message Thought Pins"', all_required=True),
             _req("thinking state", "Thinking with your memory"),
@@ -235,6 +232,20 @@ def main() -> int:
             _req("file attachment", "api.uploadFile", "Attach a file", all_required=True),
             _req("voice note capture", "MediaRecorder", "Record a voice note", all_required=True),
             _req("50k chat max", "maxLength={50000}"),
+        ],
+    )
+    # Submission and rollback are owned by the hook, while controls remain in
+    # ChatView. Check both owners so extracting the lifecycle preserves the gate.
+    _check_file_markers(
+        FRONTEND / "src" / "features" / "chat" / "useChatSubmission.ts",
+        failures,
+        cache,
+        [
+            _req("private recall payload", "include_private"),
+            _req("pending confirmation", "pending_action_id", "forceConfirm", all_required=True),
+            _req("confirmation prompt", "requires_confirmation"),
+            _req("maintenance local response", 'routeType: "maintenance"'),
+            _req("failed submission recovery", "recoverDraft", "setEditDraft", all_required=True),
         ],
     )
     _check_file_markers(
@@ -612,6 +623,7 @@ def main() -> int:
 
     for path in (
         FRONTEND / "src" / "features" / "chat" / "ChatView.tsx",
+        FRONTEND / "src" / "features" / "chat" / "useChatSubmission.ts",
         FRONTEND / "static" / "app.js",
         *built_js,
     ):

@@ -8,6 +8,7 @@
  * worse than leaving it.
  */
 import { useEffect, useRef } from "react";
+import { submitFormOnEnter } from "../../components/keyboard";
 
 const MIN_ROWS = 2;
 const MAX_ROWS = 8;
@@ -50,6 +51,7 @@ export function MessageEditor({ messageId, draft, onDraftChange, onSubmit, onCan
         ref={fieldRef}
         value={draft}
         rows={rows}
+        maxLength={50000}
         onChange={(event) => onDraftChange(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === "Escape") {
@@ -58,10 +60,7 @@ export function MessageEditor({ messageId, draft, onDraftChange, onSubmit, onCan
           }
           /* Enter sends, Shift+Enter breaks the line — the same contract as the
              main composer, so the muscle memory carries over. */
-          if (event.key === "Enter" && !event.shiftKey) {
-            event.preventDefault();
-            event.currentTarget.form?.requestSubmit();
-          }
+          submitFormOnEnter(event);
         }}
       />
       <div className="message-edit-actions">

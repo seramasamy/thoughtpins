@@ -31,7 +31,7 @@ def test_web_app_contract_check_guards_deploy_bundle() -> None:
 
 def test_chat_confirmation_parser_is_exact(built_frontend) -> None:
     react_helper = (ROOT / "frontend/src/features/chat/confirmation.ts").read_text(encoding="utf-8-sig")
-    react_chat = (ROOT / "frontend/src/features/chat/ChatView.tsx").read_text(encoding="utf-8-sig")
+    react_chat = (ROOT / "frontend/src/features/chat/useChatSubmission.ts").read_text(encoding="utf-8-sig")
     static_app = (ROOT / "frontend/static/app.js").read_text(encoding="utf-8-sig")
     dist_paths = sorted((ROOT / "frontend/dist/assets").glob("*.js"))
     if not dist_paths and (ROOT / "frontend/dist/app.js").is_file():
@@ -49,9 +49,10 @@ def test_chat_confirmation_parser_is_exact(built_frontend) -> None:
         assert "^confirm|yes|do it$" not in source
 
     assert "forceConfirm" in react_chat
-    assert "Pending confirmation" in react_chat
-    assert "Cancel" in react_chat
-    assert "Confirm" in react_chat
+    react_view = (ROOT / "frontend/src/features/chat/ChatView.tsx").read_text(encoding="utf-8-sig")
+    assert "Pending confirmation" in react_view
+    assert "Cancel" in react_view
+    assert "Confirm" in react_view
 
 
 def test_react_shell_keeps_cross_view_composer() -> None:
