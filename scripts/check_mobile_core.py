@@ -21,6 +21,7 @@ REQUIRED_FILES = [
     "mobile/ios/ThoughtPinsCore/Sources/ThoughtPinsCore/DraftStore.swift",
     "mobile/ios/ThoughtPinsCore/Sources/ThoughtPinsCore/Models.swift",
     "mobile/ios/ThoughtPinsCore/Sources/ThoughtPinsCore/SessionStore.swift",
+    "mobile/ios/ThoughtPinsCore/Sources/ThoughtPinsCore/SessionRenewal.swift",
     "mobile/ios/ThoughtPinsCore/Sources/ThoughtPinsCore/VersionPolicy.swift",
     "mobile/android/thoughtpins-core/build.gradle.kts",
     "mobile/android/thoughtpins-core/src/main/kotlin/com/thoughtpins/core/DraftQueue.kt",
@@ -89,10 +90,15 @@ REQUIRED_MODEL_MARKERS = [
     "DraftSyncSummary",
 ]
 
-PLATFORM_API_FILES = [
-    "mobile/ios/ThoughtPinsCore/Sources/ThoughtPinsCore/APIClient.swift",
-    "mobile/android/thoughtpins-core/src/main/kotlin/com/thoughtpins/core/ThoughtPinsApiClient.kt",
-]
+# Require the same endpoint contract across each platform's owning modules.
+# Session renewal is extracted from the large Swift client, not removed.
+PLATFORM_API_MODULES = {
+    "iOS": [
+        "mobile/ios/ThoughtPinsCore/Sources/ThoughtPinsCore/APIClient.swift",
+        "mobile/ios/ThoughtPinsCore/Sources/ThoughtPinsCore/SessionRenewal.swift",
+    ],
+    "Android": ["mobile/android/thoughtpins-core/src/main/kotlin/com/thoughtpins/core/ThoughtPinsApiClient.kt"],
+}
 
 PLATFORM_MODEL_FILES = [
     "mobile/ios/ThoughtPinsCore/Sources/ThoughtPinsCore/Models.swift",
@@ -142,11 +148,11 @@ def main() -> int:
         if marker not in combined:
             problems.append(f"mobile core missing API marker {marker}")
 
-    for rel in PLATFORM_API_FILES:
-        text = (ROOT / rel).read_text(encoding="utf-8") if (ROOT / rel).exists() else ""
+    for platform, modules in PLATFORM_API_MODULES.items():
+        text = "\n".join((ROOT / rel).read_text(encoding="utf-8") for rel in modules if (ROOT / rel).exists())
         for marker in REQUIRED_API_MARKERS:
             if marker not in text:
-                problems.append(f"{rel} missing release API marker {marker}")
+                problems.append(f"{platform} core missing release API marker {marker}")
 
     for rel in PLATFORM_MODEL_FILES:
         text = (ROOT / rel).read_text(encoding="utf-8") if (ROOT / rel).exists() else ""

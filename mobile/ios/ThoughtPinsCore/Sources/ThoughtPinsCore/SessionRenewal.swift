@@ -41,7 +41,9 @@ struct SessionRenewalState {
 }
 
 func requestSessionRenewal(baseURL: URL, urlSession: URLSession, session: ApiSession) async throws -> ApiSession {
-    var request = URLRequest(url: baseURL.appendingPathComponent("v1/auth/refresh"))
+    let path = "/v1/auth/refresh"
+    let resource = path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    var request = URLRequest(url: baseURL.appendingPathComponent(resource))
     request.httpMethod = "POST"
     request.cachePolicy = .reloadIgnoringLocalCacheData
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
