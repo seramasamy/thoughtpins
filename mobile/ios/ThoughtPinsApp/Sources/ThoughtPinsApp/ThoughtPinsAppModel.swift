@@ -12,12 +12,12 @@ public final class ThoughtPinsAppModel: ObservableObject {
     @Published public private(set) var config: ClientConfig?
     @Published public private(set) var me: MeResponse?
     @Published public private(set) var maintenanceMessage: String?
-    @Published public private(set) var chatReply: String = ""
-    @Published public private(set) var routeLabel: String = "chat"
-    @Published public private(set) var isThinking: Bool = false
+    @Published public internal(set) var chatReply: String = ""
+    @Published public internal(set) var routeLabel: String = "chat"
+    @Published public internal(set) var isThinking: Bool = false
     @Published public private(set) var responseStyle: String = "friendly"
     @Published public private(set) var importancePromptsEnabled: Bool = false
-    @Published public private(set) var usePrivateMemories: Bool = false
+    @Published public internal(set) var usePrivateMemories: Bool = false
     @Published public private(set) var aiProcessingConsentAccepted: Bool = false
     // Nil until the gate has been asked about. Distinguishing "not yet known"
     // from "admitted" keeps the shell from flashing the gate at an admitted
@@ -459,51 +459,6 @@ public final class ThoughtPinsAppModel: ObservableObject {
             showSuccess("Reported. Thank you — we review these.")
         } catch {
             showProblem("Could not send that report. Email support@thoughtpins.com and we will act on it.")
-        }
-    }
-
-    public func sendChat(_ text: String) async {
-        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        guard aiProcessingConsentAccepted else {
-            showProblem("Allow AI processing before sending personal content.")
-            return
-        }
-        if let maintenanceMessage {
-            showProblem(maintenanceMessage)
-            return
-        }
-        isThinking = true
-        defer { isThinking = false }
-        do {
-            let response = try await api.chat(
-                text: text,
-                surface: "ios",
-                includePrivate: usePrivateMemories
-            )
-            chatReply = response.reply
-            routeLabel = response.routeType
-            await refreshReadModels()
-        } catch APIClientError.httpStatus(403, let message) where usePrivateMemories {
-            // The deployment can refuse to put private entries in front of the
-            // model at all (PRIVATE_ALLOW_LLM). The toggle cannot know that
-            // ahead of time -- client-config does not report it -- so the first
-            // send is where it surfaces. Turning the switch back off is the
-            // honest thing to show: leaving it on advertises a setting the
-            // server will refuse every time, and "Chat failed" made a policy
-            // decision look like a broken build.
-            usePrivateMemories = false
-            _ = message  // deliberately not shown; see the constant's note
-            showProblem(thoughtPinsPrivateMemoryRefusal)
-        } catch {
-            // 20 requests a minute is a limit a real person can reach, and
-            // "Chat failed" tells them nothing to do about it. The mapping
-            // that already turns a 429 into a sentence is three lines away.
-            showProblem(
-                thoughtPinsPlainMessage(
-                    for: error,
-                    fallback: "Chat failed. Your account and drafts are still safe."
-                )
-            )
         }
     }
 

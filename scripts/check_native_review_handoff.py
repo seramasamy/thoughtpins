@@ -46,6 +46,7 @@ REQUIRED_NATIVE_SHELL_FILES = {
         "mobile/ios/ThoughtPinsApp/Sources/ThoughtPinsApp/ThoughtPinsMainShell.swift",
         "mobile/ios/ThoughtPinsApp/Sources/ThoughtPinsApp/ThoughtPinsChatScreen.swift",
         "mobile/ios/ThoughtPinsApp/Sources/ThoughtPinsApp/ThoughtPinsChatComposer.swift",
+        "mobile/ios/ThoughtPinsApp/Sources/ThoughtPinsApp/ThoughtPinsChatSubmission.swift",
         "mobile/ios/ThoughtPinsApp/Sources/ThoughtPinsApp/ThoughtPinsChatWelcome.swift",
         "mobile/ios/ThoughtPinsApp/Sources/ThoughtPinsApp/ThoughtPinsRecapScreen.swift",
         "mobile/ios/ThoughtPinsApp/Sources/ThoughtPinsApp/ThoughtPinsCollectionScreens.swift",

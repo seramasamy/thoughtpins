@@ -3,15 +3,48 @@
 import http from 'node:http';
 import { installMockApi } from '../e2e/mockApi.ts';
 let handler;
-await installMockApi({ route: async (pattern, cb) => { handler = cb; } }, 'local', 0, 'product', { aiConsentAccepted: true });
+let failures = {};
+let calls = {};
+async function reset() {
+  failures = {}; calls = {};
+  await installMockApi({ route: async (pattern, cb) => { handler = cb; } }, 'local', 0, 'product', { aiConsentAccepted: true });
+}
+await reset();
 http.createServer(async (req, res) => {
+  try {
   let body = ''; for await (const chunk of req) body += chunk;
+  // Only the disposable XCTest host uses this loopback-only fault control.
+  if (req.url === '/__review' && req.method === 'POST') {
+    await reset();
+    failures = JSON.parse(body || '{}').failures || {};
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end('{}'); return;
+  }
+  if (req.url === '/__review' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ calls })); return;
+  }
+  const path = new URL(req.url, 'http://127.0.0.1:8877').pathname;
+  const key = `${req.method} ${path}`;
+  calls[key] = (calls[key] || 0) + 1;
+  const failure = failures[key]?.shift();
+  if (failure) {
+    res.writeHead(failure, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: { code: 'review_failure', message: 'Please try again shortly.' } })); return;
+  }
   await handler({
     request: () => ({ url: () => 'http://127.0.0.1:8877' + req.url, method: () => req.method, postDataJSON: () => body ? JSON.parse(body) : {}, postDataBuffer: () => Buffer.from(body) }),
     fulfill: async ({ status = 200, body = '{}', contentType = 'application/json' }) => {
       // Keep fictional journal fixtures inside the selected day on every run.
-      body = body.replaceAll('2026-07-01', new Date().toISOString().slice(0, 10)).replaceAll('2026-07-10', new Date().toISOString().slice(0, 10)).replaceAll('TP_DEMO_CORPUS: ', '');
+      const date = new Date();
+      const today = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      if (typeof body === 'string') body = body.replaceAll('2026-07-01', today).replaceAll('2026-07-10', today).replaceAll('TP_DEMO_CORPUS: ', '');
       res.writeHead(status, { 'Content-Type': contentType }); res.end(body);
     },
   });
+  } catch {
+    // Do not log request bodies, even in this fictional harness.
+    if (!res.headersSent) res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end('{"error":{"message":"Invalid review fixture request."}}');
+  }
 }).listen(8877, '127.0.0.1', () => process.stdout.write('Fictional UI fixture server on 8877\n'));

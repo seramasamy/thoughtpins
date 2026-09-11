@@ -140,7 +140,14 @@ struct ThoughtPinsChatScreen: View {
             } message: {
                 Text("The reply is sent to Thought Pins so a person can review it.")
             }
-            .toolbar { ThoughtPinsAccountToolbar(model: model) }
+            .toolbar {
+                ThoughtPinsAccountToolbar(model: model)
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { composerFocused = false }
+                        .accessibilityLabel("Dismiss keyboard")
+                }
+            }
             .alert("Record a voice note", isPresented: $showingVoiceDisclosure) {
                 Button("Cancel", role: .cancel) {}
                 Button("Continue") {
@@ -224,6 +231,7 @@ struct ThoughtPinsChatScreen: View {
     private func submit() {
         let payload = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !payload.isEmpty, !model.isThinking else { return }
+        let previousQuestion = lastQuestion
         lastQuestion = payload
         text = ""
         // Put the keyboard away. It covers roughly half the screen, which is
@@ -232,8 +240,10 @@ struct ThoughtPinsChatScreen: View {
         // reply they just asked for.
         composerFocused = false
         Task {
-            await model.sendChat(payload)
-            if model.bannerIsProblem { lastQuestion = "" }
+            if !(await model.sendChat(payload)) {
+                lastQuestion = previousQuestion
+                if text.isEmpty { text = payload }
+            }
         }
     }
 }

@@ -27,6 +27,13 @@ Choose a fresh result path for each run. The server changes only fixture dates
 so the Recap remains populated. It uses the same mock API as browser tests;
 no model-provider call, credentials, or user data is involved.
 
+`RecoveryTests` also exercises 503/429 chat recovery, an explicit successful
+retry, whitespace validation, keyboard dismissal, no-result search recovery,
+the export share sheet, cancelling account deletion, and cancelling the voice
+disclosure before recording. It resets the fictional API between cases using
+the loopback-only `/__review` endpoint. Tests must run serially because that
+fixture state is shared. The server never logs request bodies.
+
 For dark mode, boot the selected simulator and set its appearance before testing:
 
 ```sh

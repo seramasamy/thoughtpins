@@ -60,3 +60,20 @@ The release gate found two cache versions in use across the redesigned site.
 All versioned references now use `20260911-robustness-1`, and the recorded
 digest covers all 26 referenced assets. Returning visitors can receive the
 updated styles, fonts, previews, and manifest together. The cache gate passes.
+
+## iOS chat recovery and keyboard access — 11 September 2026
+
+Chat submission now returns its own success result instead of having the view
+infer it from the current banner. Failed sends restore the submitted text and
+the preceding question/reply pairing; successful retries retain the new
+question and clear the earlier error. The model rejects overlapping chat
+requests. This behavior lives in a focused submission module. A Done control
+lets people dismiss the keyboard while keeping an unsent draft.
+
+Validation includes all 78 native core tests, plus simulator cases for 503 and
+429 recovery followed by success, whitespace, keyboard dismissal, empty-search
+recovery, cancelling the voice disclosure, and the largest Dynamic Type size
+across all five tabs. Export was opened in the system share sheet and its JSON
+file checked for the expected fictional account/table payload. Cancelling
+account deletion leaves the account screen open. The initial export test
+mistook an iOS activity row for a button; the corrected test passes.
