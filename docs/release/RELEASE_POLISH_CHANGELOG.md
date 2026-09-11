@@ -155,3 +155,13 @@ a 44-pixel minimum height. The browser suite directly checks separation of the
 brand and header actions at all eight widths. All 19 Chromium and 19 WebKit
 scenarios pass again. Cache key `20260911-product-3` covers the updated styling.
 This separate correction preserves the modern homepage hero.
+
+## Native runner isolation
+
+Serial device reviews on one cloud Mac passed the iPhone cases but exposed
+iPad fixture-connection and simulator background-assertion timeouts. Native
+reviews now use a focused reusable workflow with a fresh runner per device
+family and explicit simulator boot readiness. Each family retains all seven
+model tests and five UI workflows. Both reviews must pass before the production
+archive/signing job runs; a failure does not cancel the other device's evidence.
+Regression checks cover that dependency and changes to the reusable workflow.

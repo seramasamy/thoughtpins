@@ -1,0 +1,96 @@
+name: Native iOS review
+
+on:
+  workflow_call:
+    inputs:
+      device_family:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    env:
+      DEVICE_FAMILY: ${{ inputs.device_family }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Prepare the native project and pinned XcodeGen
+        env:
+          CI_BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          case "$DEVICE_FAMILY" in iPhone|iPad) ;; *) exit 1 ;; esac
+          ./mobile/ios/ThoughtPinsNative/ci_scripts/ci_post_clone.sh | tee "$RUNNER_TEMP/native-post-clone.log"
+          dirname "$(grep '^XCODEGEN_BIN=' "$RUNNER_TEMP/native-post-clone.log" | cut -d= -f2-)" >> "$GITHUB_PATH"
+
+      - name: Set up Node.js for fictional native fixtures
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+
+      - name: Test native authentication and capture recovery
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types frontend/scripts/native-review-server.mjs > "$RUNNER_TEMP/native-fixtures.log" 2>&1 &
+          FIXTURE_PID=$!
+          trap 'kill "$FIXTURE_PID" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8877/__review > /dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:8877/__review > /dev/null
+          xcodegen generate --spec mobile/ios/ThoughtPinsUIReview/project.yml
+          TEST_DEVICE=$(xcrun simctl list devices available --json | python3 -c '
+          import json, sys
+          runtimes = json.load(sys.stdin)["devices"]
+          for runtime, devices in sorted(runtimes.items(), reverse=True):
+              if "iOS-" not in runtime:
+                  continue
+              for device in devices:
+                  if device["name"].startswith(sys.argv[1]):
+                      print(device["udid"])
+                      sys.exit(0)
+          sys.exit("No available simulator for " + sys.argv[1])' "$DEVICE_FAMILY")
+          xcrun simctl boot "$TEST_DEVICE" || true
+          xcrun simctl bootstatus "$TEST_DEVICE" -b
+          xcodebuild -project mobile/ios/ThoughtPinsUIReview/DesignReview.xcodeproj \
+            -scheme DesignReview -destination "platform=iOS Simulator,id=$TEST_DEVICE" \
+            -parallel-testing-enabled NO -derivedDataPath "$RUNNER_TEMP/NativeReviewBuild" \
+            -resultBundlePath "$RUNNER_TEMP/native-review-$DEVICE_FAMILY.xcresult" \
+            -only-testing:ModelTests -only-testing:DesignReviewTests/AuthAndCaptureTests test
+
+      - name: Export native screenshots for review without Xcode
+        if: always()
+        run: |
+          for result in "$RUNNER_TEMP"/native-review-*.xcresult; do
+            if [ -f "$result/Info.plist" ]; then
+              xcrun xcresulttool export attachments --path "$result" --output-path "${result%.xcresult}-images"
+              xcrun xcresulttool get test-results summary --path "$result" > "${result%.xcresult}-summary.json"
+            fi
+          done
+
+      - name: Keep native test results and screenshots
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: native-auth-capture-review-${{ inputs.device_family }}
+          path: |
+            ${{ runner.temp }}/native-review-*.xcresult
+            ${{ runner.temp }}/native-review-*-summary.json
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Keep portable native screenshots
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: native-review-screenshots-${{ inputs.device_family }}
+          path: ${{ runner.temp }}/native-review-*-images
+          retention-days: 30
+          if-no-files-found: warn

@@ -57,6 +57,14 @@ disclosure before recording. It resets the fictional API between cases using
 the loopback-only `/__review` endpoint. Tests must run serially because that
 fixture state is shared. The server never logs request bodies.
 
+GitHub runs iPhone and iPad reviews on separate macOS runners through
+`.github/workflows/ios-native-review.yml`. Each waits for simulator boot
+readiness and runs its cases serially against its own fixture server. This
+avoids carrying CoreSimulator state between device families. Both matrix
+reviews must pass before the production archive/signing job is eligible.
+Artifact names include the device family so both XCTest results and portable
+screenshots remain available without collisions.
+
 For dark mode, boot the selected simulator and set its appearance before testing:
 
 ```sh

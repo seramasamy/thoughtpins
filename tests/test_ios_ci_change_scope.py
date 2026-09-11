@@ -47,7 +47,14 @@ def touched(repo: Path, base: str, tmp_path: Path) -> bool:
     return output.read_text().strip() == "touched=true"
 
 
-@pytest.mark.parametrize("path", ["mobile/ios/Feature.swift", "frontend/scripts/native-review-server.mjs"])
+@pytest.mark.parametrize(
+    "path",
+    [
+        "mobile/ios/Feature.swift",
+        "frontend/scripts/native-review-server.mjs",
+        ".github/workflows/ios-native-review.yml",
+    ],
+)
 def test_whole_push_includes_changes_before_last_commit(repo: Path, tmp_path: Path, path: str) -> None:
     base = git(repo, "rev-parse", "HEAD")
     commit(repo, path)
@@ -71,6 +78,17 @@ def test_docs_only_push_does_not_schedule_native(repo: Path, tmp_path: Path) -> 
     base = git(repo, "rev-parse", "HEAD")
     commit(repo, "docs/note.md")
     assert not touched(repo, base, tmp_path)
+
+
+def test_archive_requires_both_isolated_device_reviews() -> None:
+    workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+    native = workflow["jobs"]["ios-native"]
+    assert native["strategy"]["matrix"]["device_family"] == ["iPhone", "iPad"]
+    assert native["strategy"]["fail-fast"] is False
+    assert native["uses"] == "./.github/workflows/ios-native-review.yml"
+    archive = workflow["jobs"]["ios"]
+    assert archive["needs"] == ["ios-native"]
+    assert archive["if"] == "always() && needs.ios-native.result == 'success'"
 
 
 def test_new_branch_without_previous_commit_requires_native(repo: Path, tmp_path: Path) -> None:
