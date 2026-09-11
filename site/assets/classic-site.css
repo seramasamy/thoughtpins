@@ -26,6 +26,7 @@
 .classic-site .principles-inner { gap: 0; }
 .classic-site .principles p { padding-block: 30px; }
 .classic-site .principles strong { margin-bottom: 7px; font-size: 14px; }
+.classic-site :is(.principles strong, .feature-card h3, .section-heading h2, .workflow-intro h2, .workflow-list strong) { color: var(--tp-ink); }
 .classic-site .principles span { font-size: 12px; line-height: 1.8; }
 .classic-site :is(.section-heading, .workflow-intro, .privacy-layout, .closing-cta) h2 { font-size: clamp(34px, 3.7vw, 50px); line-height: 1.1; letter-spacing: -.025em; }
 .classic-site .section-heading > p:last-child { max-width: 50ch; font-size: 16px; line-height: 1.8; }

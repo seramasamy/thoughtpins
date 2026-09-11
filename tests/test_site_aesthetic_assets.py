@@ -3,19 +3,26 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
+
 from scripts.web_assets import read_stylesheet_bundle
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_homepage_declares_social_touch_and_product_visual_assets():
-    html = (ROOT / "site" / "index.html").read_text(encoding="utf-8")
+@pytest.mark.parametrize("homepage", ["index.html", "classic/index.html"])
+def test_homepage_declares_social_touch_and_product_visual_assets(homepage: str):
+    html = (ROOT / "site" / homepage).read_text(encoding="utf-8")
     assets = ROOT / "site" / "assets"
 
     assert "data-product-demo" in html
     assert 'data-preview-tab="desktop"' in html
     assert 'data-preview-tab="mobile"' in html
-    assert "Illustrative preview." in html
+    # The redesigned section uses actual app captures. Keep the disclosure
+    # truthful and verify both device assets rather than freezing old copy.
+    assert "Actual web app captures, using fictional memories." in html
+    assert re.search(r'<img[^>]+src="/assets/product-chat-desktop\.png\?v=', html)
+    assert re.search(r'<img[^>]+src="/assets/product-chat-mobile\.png\?v=', html)
     assert 'property="og:image" content="https://thoughtpins.com/assets/product-chat-desktop.png"' in html
     assert 'name="twitter:card" content="summary_large_image"' in html
     # Assert the icon is cache-busted, not which version it is pinned to.

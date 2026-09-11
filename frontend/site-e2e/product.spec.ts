@@ -62,6 +62,7 @@ test("Classic appearance selection survives reload", async ({ page }) => {
   expect(["light", "dark"]).toContain(chosen);
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", chosen!);
+  await page.evaluate(() => document.fonts.ready);
   const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
-  expect(accessibility.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) }))).toEqual([]);
+  expect(accessibility.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, reason: n.failureSummary })) }))).toEqual([]);
 });
