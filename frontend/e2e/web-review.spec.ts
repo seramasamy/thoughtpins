@@ -693,10 +693,10 @@ test.describe("Thought Pins web review smoke", () => {
   });
 
   test("captures the canonical homepage product preview", async ({ page }) => {
-    const siteAsset = path.resolve(process.cwd(), "..", "site", "assets", "product-chat-desktop.png");
-    const siteMobileAsset = path.resolve(process.cwd(), "..", "site", "assets", "product-chat-mobile.png");
-    const storeAsset = path.resolve(process.cwd(), "..", "deploy", "store", "assets", "web-chat-desktop.png");
-    const storeMobileAsset = path.resolve(process.cwd(), "..", "deploy", "store", "assets", "web-chat-mobile.png");
+    // Test runs produce review evidence. Publishing reviewed product assets is
+    // an explicit capture step, with its own cache-key update.
+    const siteAsset = path.join(screenshotDir, "product-chat-desktop.png");
+    const siteMobileAsset = path.join(screenshotDir, "product-chat-mobile.png");
     await page.setViewportSize({ width: 1440, height: 1000 });
     await installMockApi(page, "local", 120, "product");
     await page.goto("/app/");
@@ -711,12 +711,10 @@ test.describe("Thought Pins web review smoke", () => {
     await page.waitForTimeout(120);
 
     await page.screenshot({ path: siteAsset, fullPage: false });
-    fs.copyFileSync(siteAsset, storeAsset);
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.getByRole("navigation", { name: /Mobile primary navigation/i })).toBeVisible();
     await expectNoHorizontalOverflow(page);
     await page.screenshot({ path: siteMobileAsset, fullPage: false });
-    fs.copyFileSync(siteMobileAsset, storeMobileAsset);
   });
 
   test("review surface has no serious automated accessibility violations", async ({ page }) => {
