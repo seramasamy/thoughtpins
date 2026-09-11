@@ -2,6 +2,8 @@
 
 <img src=".github/assets/repository-banner.svg" alt="Thought Pins — your memory, connected. Open-source personal memory with structured recall and human control." width="100%">
 
+Inspired by [David Rockefeller's card file](https://www.wsj.com/articles/david-rockefellers-famous-rolodex-is-astonishing-heres-a-first-peek-1512494592): remember the people you meet and the moments you share. Thought Pins brings that habit into a searchable personal record, with memories linked to their sources and exports you can keep.
+
 [![CI](https://github.com/seramasamy/thoughtpins/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/seramasamy/thoughtpins/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-b6afff)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.13-3776ab)](.python-version)
@@ -32,6 +34,27 @@ The project is in active development. Source, automated checks, and review
 instructions are public; hosted availability and store distribution are
 separate release decisions. See [validation and limits](#validation-and-limits)
 for what the evidence supports.
+
+## Alternatives, briefly
+
+**Choose Thought Pins for a connected record of your life:** write or speak
+naturally, revisit people and places, trace a memory to its source, and export
+the record. Here is where other tools fit alongside it.
+
+| Alternative and focus | When Thought Pins helps |
+| --- | --- |
+| [ChatGPT](https://learn.chatgpt.com/docs/customization/memories) / [Claude](https://support.claude.com/en/articles/11817273-use-claude-s-chat-search-and-memory-to-build-on-previous-context): general assistants with memory | A dedicated journal, people/place views, and an inspectable memory pipeline. |
+| [Claudian](https://github.com/YishenTu/claudian) / [Copilot for Obsidian](https://www.obsidiancopilot.com/en): agents and search inside your vault | Capture into a structured personal record; keep Obsidian as a portable export. |
+| [Gemini Notebook, formerly NotebookLM](https://workspace.google.com/products/gemini-notebook/): research grounded in sources | Connect saved reading with your own experiences and relationships. |
+| [Mem](https://help.mem.ai/features/search), [Reflect](https://reflect.app/), [Tana Outliner](https://outliner.tana.inc/): connected notes and AI workflows | A predefined journal-to-memory workflow, with self-hostable source code. |
+| [Khoj](https://docs.khoj.dev/): open-source personal AI over files and the web | An experience organized around Recap, People, Chat, Places, and Pins. |
+| [Mem0](https://github.com/mem0ai/mem0) / [Zep](https://help.getzep.com/concepts): memory infrastructure for developers | A user-facing app with capture, consent, export, and deletion already wired together. |
+| [Hermes Agent](https://hermes-agent.nousresearch.com/docs/user-guide/features/memory/) / [OpenClaw](https://docs.openclaw.ai/concepts/memory): agents with persistent memory and tools | A focused personal archive with explicit source and account lifecycle controls. |
+
+These tools overlap: memory, graphs, citations, privacy controls, and exports
+are not unique to Thought Pins. This is a workflow comparison, not a quality
+ranking. [Research notes and selection limits](docs/architecture/ALTERNATIVES.md)
+were checked against first-party documentation on 11 September 2026.
 
 ## The engineering behind recall
 
