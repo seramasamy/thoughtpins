@@ -89,7 +89,7 @@ pass with the fix.
 
 ## Development dependency and offline test maintenance — 11 September 2026
 
-The development HTTP client is resolved to HTTPX2 2.12.0 and HTTPCore2 2.10.0,
+The development HTTP client is resolved to HTTPX2 2.12.0 and HTTPCore2 2.12.0,
 covering the five open default-branch advisories, including
 [bounded response decompression](https://github.com/advisories/GHSA-8xx6-hgc6-gc2m)
 and [secure WebSocket proxy transport](https://github.com/advisories/GHSA-7mj9-2mp8-4m2p).
@@ -102,3 +102,42 @@ Three worker recovery tests now use a memory broker instead of depending on a
 developer's local broker configuration. They run with the workers extra and
 skip when it is absent. Production worker startup validation is unchanged.
 The tests pass with local dotenv loading disabled and no external broker.
+
+## Attachment progress — 11 September 2026
+
+Uploads shared the chat busy state and displayed a Stop reply button although
+only chat requests support cancellation. The composer now shows a disabled
+Processing attachment indicator during uploads, alongside the existing reading
+or transcription status. A real chat request retains its stop control.
+
+The new regression failed before the fix. It now verifies that a held upload
+cannot send a second request, preserves a question typed during processing,
+and restores Send after completion. All 17 chat/save edge scenarios pass in
+Chrome; attachment, cancellation and newer-draft checks also pass in WebKit.
+The production build, architecture check, web contract and its four parser
+tests pass after this final change.
+
+## Verification checkpoint — 11 September 2026
+
+| Surface | Recorded evidence |
+| --- | --- |
+| Release and backend | Strict release gate: all 50 steps passed; Python: 885 passed, 16 optional Telegram tests skipped |
+| Responsive web | Complete Chromium run: 112 passed; final 17-case edge run adds attachment coverage, for 113 distinct scenarios |
+| WebKit | 58 device/workflow cases, five subsequent privacy/offline checks, and three final attachment/cancellation checks passed; 62 distinct scenarios |
+| PWA | Offline shell available; private API data excluded from the cache |
+| Website | Eight pages at four widths: 32 checks, no axe or horizontal-overflow findings |
+| iOS | 78 core tests; 13 UI device/scenario combinations across SE, Pro, Pro Max, iPad mini and large iPad Pro; production simulator build passed |
+| GitHub | Python, web, PostgreSQL, Android and container jobs passed at `5d7cb74`; final checkpoint results remain in the branch's Actions history |
+| Visual review | 128 screenshots assembled into the local review gallery; every image and both selectors verified |
+
+The full release gate and complete Chromium run preceded the final attachment
+control change; the final build, contracts and targeted browser runs cover that
+change. Screenshots, full logs and device details remain in the ignored
+`reports/ui-robustness/` review package. Root Playwright output is now ignored
+alongside frontend test output.
+
+All verification used fictional local fixtures and disabled paid model calls.
+Live provider quality, live Apple/Google authentication, microphone hardware,
+physical devices and a current-SDK App Store archive require separate evidence.
+The native simulator evidence uses iOS 17.2. This checkpoint does not deploy the
+product, merge the branch or submit an App Store build.

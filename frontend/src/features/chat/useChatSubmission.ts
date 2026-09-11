@@ -125,5 +125,5 @@ export function useChatSubmission(options: Options) {
     }
   }
 
-  return { sendMessage, stopReply: () => abortRef.current?.abort() };
+  return { sendMessage, canStop: abortRef.current !== null, stopReply: () => abortRef.current?.abort() };
 }

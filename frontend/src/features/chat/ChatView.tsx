@@ -1,4 +1,4 @@
-import { ArrowUp, CheckCircle2, Lock, Mic, Paperclip, RefreshCw, ShieldCheck, Square, XCircle } from "lucide-react";
+import { ArrowUp, CheckCircle2, LoaderCircle, Lock, Mic, Paperclip, RefreshCw, ShieldCheck, Square, XCircle } from "lucide-react";
 import type { ChangeEvent, FormEvent } from "react";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../../api";
@@ -88,7 +88,7 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
     return compactComposer ? "Message..." : "Message Thought Pins...";
   }, [compactComposer, pendingActionId]);
 
-  const { sendMessage, stopReply } = useChatSubmission({
+  const { sendMessage, canStop, stopReply } = useChatSubmission({
     token, run, busy, includePrivate, maintenanceMessage, pendingActionId, messages,
     setMessages, setText, setBusy, setBusyLabel, setLastResponse, setPendingActionId,
     setKeptEntryCount, setEditingId, setEditDraft, setSendPulse,
@@ -351,9 +351,9 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
             )}
           </div>
           {busy ? (
-            // Same position as send, so stopping is where the hand already is.
-            <PrimaryButton type="button" onClick={stopReply} aria-label="Stop reply" title="Stop reply">
-              <Square size={16} fill="currentColor" />
+            // Only an active chat request supports cancellation.
+            <PrimaryButton type="button" disabled={!canStop} onClick={stopReply} aria-label={canStop ? "Stop reply" : "Processing attachment"} title={canStop ? "Stop reply" : "Processing attachment"}>
+              {canStop ? <Square size={16} fill="currentColor" /> : <LoaderCircle size={18} />}
             </PrimaryButton>
           ) : (
             <PrimaryButton className={sendPulse ? "send-pulse" : ""} disabled={!text.trim()} aria-label="Send message"><ArrowUp size={19} /></PrimaryButton>

@@ -67,6 +67,34 @@ test("stopping a slow reply never resends it and another question still works", 
   expect(mock?.getChatPostCount()).toBe(1);
 });
 
+test("a pending attachment shows its progress without offering a reply cancellation", async ({ page }) => {
+  const mock = await boot(page);
+  let release!: () => void;
+  const held = new Promise<void>(resolve => { release = resolve; });
+  await page.route("**/v1/uploads", async route => {
+    await held;
+    await route.fallback();
+  });
+  await page.getByLabel("Choose a file to attach").setInputFiles({
+    name: "fictional-note.txt", mimeType: "text/plain",
+    buffer: Buffer.from("I visited the fictional Atlas Cafe and noticed its copper lantern."),
+  });
+  try {
+    await expect(page.getByRole("status", { name: "Reading fictional-note.txt", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Processing attachment", exact: true })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Stop reply", exact: true })).toHaveCount(0);
+    await composer(page).fill("A question to send after the upload");
+    await composer(page).press("Enter");
+    expect(mock?.getChatPostCount()).toBe(0);
+  } finally {
+    release();
+  }
+  await expect(page.getByText("I read fictional-note.txt and pinned it to your source memory. You can ask me about it whenever it is relevant.", { exact: true })).toBeVisible();
+  await expect(composer(page)).toHaveValue("A question to send after the upload");
+  await expect(page.getByRole("button", { name: "Send message", exact: true })).toBeEnabled();
+  expect(mock?.getUploadPostCount()).toBe(1);
+});
+
 test("editing a message respects IME composition and Shift+Enter", async ({ page }) => {
   const mock = await boot(page);
   await composer(page).fill("Original question");
