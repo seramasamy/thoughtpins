@@ -26,70 +26,68 @@ struct ThoughtPinsUpdateRequiredView: View {
     private var decision: ClientVersionDecision? { model.versionDecision }
 
     var body: some View {
-        VStack(spacing: 18) {
-            Spacer(minLength: 0)
+        ScrollView {
+            VStack(spacing: 18) {
+                Spacer(minLength: 0)
 
-            Image(systemName: "arrow.down.circle")
-                .font(.system(size: 44))
-                .foregroundStyle(ThoughtPinsTheme.brand)
-                .accessibilityHidden(true)
+                Image(systemName: "arrow.down.circle")
+                    .font(.system(size: 44))
+                    .foregroundStyle(ThoughtPinsTheme.brand)
+                    .accessibilityHidden(true)
 
-            Text("Update Thought Pins to continue")
-                .font(.system(.title2, design: .serif).weight(.semibold))
-                .multilineTextAlignment(.center)
+                Text("Update Thought Pins to continue")
+                    .font(.system(.title2, design: .default).weight(.semibold))
+                    .multilineTextAlignment(.center)
 
-            Text("This version can no longer talk to Thought Pins safely. "
-                + "Updating takes a moment and everything you have saved is waiting.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
-            if let decision {
-                Text("You have \(thoughtPinsRunningVersion). The oldest supported version is \(decision.minimum).")
-                    .font(.footnote)
+                Text("This version can no longer talk to Thought Pins safely. "
+                    + "Updating takes a moment and everything you have saved is waiting.")
+                    .font(.callout)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                    .accessibilityIdentifier("thoughtpins-update-versions")
-            }
 
-            if let raw = decision?.storeURL, let url = URL(string: raw) {
-                Link(destination: url) {
-                    Text("Open the App Store")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(ThoughtPinsTheme.brand)
-                        .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                if let decision {
+                    Text("You have \(thoughtPinsRunningVersion). The oldest supported version is \(decision.minimum).")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .accessibilityIdentifier("thoughtpins-update-versions")
                 }
-                .accessibilityIdentifier("thoughtpins-update-store-link")
-            } else {
-                // A button that cannot work is worse than a sentence that can.
-                Text("Search for Thought Pins in the App Store to update.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .accessibilityIdentifier("thoughtpins-update-no-link")
-            }
 
-            if model.draftCount > 0 {
-                Text("^[\(model.draftCount) note](inflect: true) saved on this device will send after you update.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
+                if let raw = decision?.storeURL, let url = URL(string: raw) {
+                    Link(destination: url) {
+                        Text("Open the App Store")
+                    }
+                    .buttonStyle(ThoughtPinsPrimaryStyle())
+                    .accessibilityIdentifier("thoughtpins-update-store-link")
+                } else {
+                    // A button that cannot work is worse than a sentence that can.
+                    Text("Search for Thought Pins in the App Store to update.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("thoughtpins-update-no-link")
+                }
 
-            Spacer(minLength: 0)
+                if model.draftCount > 0 {
+                    Text("^[\(model.draftCount) note](inflect: true) saved on this device will send after you update.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
 
-            if model.isAuthenticated {
-                Button("Sign out") { Task { await model.logout() } }
-                    .font(.footnote)
-                    .accessibilityIdentifier("thoughtpins-update-sign-out")
+                Spacer(minLength: 0)
+
+                if model.isAuthenticated {
+                    Button("Sign out") { Task { await model.logout() } }
+                        .font(.footnote)
+                        .frame(minHeight: 44)
+                        .accessibilityIdentifier("thoughtpins-update-sign-out")
+                }
             }
+            .padding(.horizontal, 28)
+            .padding(.vertical, 32)
         }
-        .padding(.horizontal, 28)
-        .padding(.vertical, 32)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemGroupedBackground))
+        .thoughtPinsScreen()
         .thoughtPinsReadableColumn()
         .accessibilityIdentifier("thoughtpins-update-required")
     }

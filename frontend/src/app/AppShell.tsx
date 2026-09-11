@@ -74,6 +74,7 @@ export function AppShell({
           </IconButton>
         </div>
 
+        <div className="rail-section-label">Your space</div>
         <nav className="primary-nav" aria-label="Primary">
           {PRIMARY_NAV_ITEMS.map((item) => (
             <NavButton
@@ -102,7 +103,7 @@ export function AppShell({
         <div className="sidebar-footer">
           <button className="profile-button" type="button" onClick={() => setUtilityOpen((open) => !open)} aria-expanded={utilityOpen}>
             <span className="profile-avatar">{initials(userLabel)}</span>
-            <span className="identity"><strong>{userLabel}</strong><small>{localMode ? "Private local space" : "Memory synced"}</small></span>
+            <span className="identity"><strong>{userLabel}</strong><small>{localMode ? "Private local space" : "Your personal space"}</small></span>
             <Settings2 size={17} />
           </button>
         </div>
@@ -111,10 +112,12 @@ export function AppShell({
       <main className="main">
         <header className="topbar">
           <div>
+            <span className="workspace-eyebrow">THOUGHT PINS <span aria-hidden="true">/</span> YOUR SPACE</span>
             <h1>{viewTitle(view)}</h1>
             <span className="subtle">{viewSubtitle(view)}</span>
           </div>
           <div className="topbar-actions">
+            <IconButton onClick={() => toggleTheme()} aria-label={theme === "dark" ? "Switch to light appearance" : "Switch to dark appearance"} title="Appearance">{theme === "dark" ? <Moon size={18} /> : <Sun size={18} />}</IconButton>
             <IconButton className="mobile-settings" onClick={() => setUtilityOpen((open) => !open)} aria-label="Open settings menu" title="Settings"><Settings2 size={18} /></IconButton>
           </div>
         </header>
@@ -171,7 +174,7 @@ export function AppShell({
 
 function NavButton({ active, featured, onClick, icon, label }: { active: boolean; featured: boolean; onClick: () => void; icon: ReactNode; label: string }) {
   return (
-    <button className={`${active ? "active" : ""}${featured ? " featured" : ""}`} onClick={onClick} type="button" aria-label={label}>
+    <button className={`${active ? "active" : ""}${featured ? " featured" : ""}`} onClick={onClick} type="button" aria-label={label} aria-current={active ? "page" : undefined}>
       <span className="nav-icon">{icon}</span>
       <span>{label}</span>
     </button>

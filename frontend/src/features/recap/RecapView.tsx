@@ -49,9 +49,9 @@ export function RecapView({ token, run }: ScreenProps) {
           <p>{periodRange(period)}</p>
         </div>
         <div className="recap-actions">
-          <div className="segmented period-switcher" role="tablist" aria-label="Recap period">
+          <div className="segmented period-switcher" role="group" aria-label="Recap period">
             {PERIODS.map((item) => (
-              <button key={item.id} type="button" className={period === item.id ? "active" : ""} onClick={() => setPeriod(item.id)}>
+              <button key={item.id} type="button" aria-pressed={period === item.id} className={period === item.id ? "active" : ""} onClick={() => setPeriod(item.id)}>
                 {item.label}
               </button>
             ))}

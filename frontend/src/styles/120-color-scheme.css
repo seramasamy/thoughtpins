@@ -6,16 +6,21 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    --tp-brand-soft: #38271f;
+    --tp-sage-soft: #19372f;
+    --tp-blue-soft: #282849;
+    --tp-blue: #aca8ff;
+    --tp-action-text: #ffb291;
     color-scheme: dark;
     /* Warm dark neutrals */
-    --tp-canvas: #1a1714;
-    --tp-surface: #221d18;
-    --tp-surface-warm: #2a241e;
-    --tp-ink: #f4efe8;
-    --tp-ink-soft: #b7ad9f;
-    --tp-ink-faint: #8f8578;
-    --tp-line: #38312a;
-    --tp-line-strong: #4a4239;
+    --tp-canvas: #0c1220;
+    --tp-surface: #151e30;
+    --tp-surface-warm: #1b263a;
+    --tp-ink: #edf2ff;
+    --tp-ink-soft: #a9b5cb;
+    --tp-ink-faint: #96a2ba;
+    --tp-line: #2a354b;
+    --tp-line-strong: #414f69;
 
     /* The rail is charcoal so it reads as a solid edge against warm paper: a
        15:1 separation in light, and the strongest structural line in the app.
@@ -24,8 +29,8 @@
        into a single field with a hairline through it. Lifting the rail above
        the canvas, rather than leaving it fixed beneath one, keeps the shape of
        the app the same in both appearances. */
-    --tp-charcoal: #2e2822;
-    --tp-charcoal-soft: #3a332b;
+    --tp-charcoal: #182339;
+    --tp-charcoal-soft: #26334b;
     --tp-charcoal-line: rgba(245, 241, 234, 0.16);
 
     /* Accent text that reads on dark (fills keep --tp-brand/--tp-action) */
@@ -46,14 +51,14 @@
   }
 
   :root:not([data-theme="light"]) .global-composer {
-    background: rgba(34, 29, 22, 0.94);
+    background: rgba(21, 30, 48, 0.94);
   }
 
   :root:not([data-theme="light"]) .mobile-tabbar {
     /* Matched to the light bar's translucency so the blur reads the same in
        both themes rather than going flat and heavy in dark. */
     border-color: rgba(245, 241, 234, 0.1);
-    background: rgba(26, 23, 20, 0.72);
+    background: rgba(21, 30, 48, 0.84);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.24);
   }
 
@@ -78,17 +83,22 @@
    media-query block above: same tokens, same surface fixes, same values. */
 
 :root[data-theme="dark"] {
+    --tp-brand-soft: #38271f;
+    --tp-sage-soft: #19372f;
+    --tp-blue-soft: #282849;
+    --tp-blue: #aca8ff;
+    --tp-action-text: #ffb291;
   color-scheme: dark;
 
   /* Warm dark neutrals */
-  --tp-canvas: #1a1714;
-  --tp-surface: #221d18;
-  --tp-surface-warm: #2a241e;
-  --tp-ink: #f4efe8;
-  --tp-ink-soft: #b7ad9f;
-  --tp-ink-faint: #8f8578;
-  --tp-line: #38312a;
-  --tp-line-strong: #4a4239;
+  --tp-canvas: #0c1220;
+  --tp-surface: #151e30;
+  --tp-surface-warm: #1b263a;
+  --tp-ink: #edf2ff;
+  --tp-ink-soft: #a9b5cb;
+  --tp-ink-faint: #96a2ba;
+  --tp-line: #2a354b;
+  --tp-line-strong: #414f69;
 
   /* Accent text that reads on dark (fills keep --tp-brand/--tp-action) */
   --tp-brand-deep: #ef9a72;
@@ -107,11 +117,11 @@
 }
 
 :root[data-theme="dark"] .global-composer {
-  background: rgba(34, 29, 22, 0.94);
+  background: rgba(21, 30, 48, 0.94);
 }
 
 :root[data-theme="dark"] .mobile-tabbar {
-  background: rgba(26, 23, 20, 0.94);
+  background: rgba(21, 30, 48, 0.94);
 }
 
 :root[data-theme="dark"] a {

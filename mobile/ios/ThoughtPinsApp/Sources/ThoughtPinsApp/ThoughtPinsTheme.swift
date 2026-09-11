@@ -1,26 +1,25 @@
 import SwiftUI
 import UIKit
 
-/// Warm-paper design tokens for the iOS shell, mirroring DESIGN.md.
-/// Colors are dynamic: exact brand values in light, softened in dark,
-/// matching the Android Compose palette.
+/// Mineral surfaces and ember accents, shared with the web visual system.
+/// The established brand tint is retained; surfaces have explicit light and
+/// dark values. Filled actions use a separate color for readable white labels.
 enum ThoughtPinsTheme {
     /// #E8612B in light, #E8895F in dark.
     static let brand = dynamic(light: (0.9098, 0.3804, 0.1686), dark: (0.9098, 0.5373, 0.3725))
     /// #B33E16 in light, #E8895F in dark.
     static let action = dynamic(light: (0.7020, 0.2431, 0.0863), dark: (0.9098, 0.5373, 0.3725))
-    /// #FBE9DD in light, #402518 in dark.
-    static let brandSoft = dynamic(light: (0.9843, 0.9137, 0.8667), dark: (0.2510, 0.1451, 0.0941))
-    /// #F8F8F6 in light, #1A1714 in dark.
-    static let canvas = dynamic(light: (0.9725, 0.9725, 0.9647), dark: (0.1020, 0.0902, 0.0784))
-    /// #FFFFFF in light, #221D18 in dark.
-    static let surface = dynamic(light: (1.0, 1.0, 1.0), dark: (0.1333, 0.1137, 0.0941))
-    /// #E6E2DD in light, #383128 in dark.
-    static let line = dynamic(light: (0.9020, 0.8863, 0.8667), dark: (0.2196, 0.1922, 0.1569))
-    /// #6B6459 in light, #B5AC9F in dark.
-    static let inkSoft = dynamic(light: (0.4196, 0.3922, 0.3490), dark: (0.7098, 0.6745, 0.6235))
-    /// #26211B — constant charcoal band.
-    static let charcoal = Color(red: 0.1490, green: 0.1294, blue: 0.1059)
+    static let brandSoft = dynamic(light: (1.0, 0.9412, 0.9098), dark: (0.2196, 0.1529, 0.1216))
+    static let canvas = dynamic(light: (0.9569, 0.9608, 0.9765), dark: (0.0471, 0.0706, 0.1255))
+    static let surface = dynamic(light: (1.0, 1.0, 1.0), dark: (0.0824, 0.1176, 0.1882))
+    static let line = dynamic(light: (0.8784, 0.8941, 0.9333), dark: (0.1647, 0.2078, 0.2941))
+    static let ink = dynamic(light: (0.0980, 0.1294, 0.1961), dark: (0.9294, 0.9490, 1.0))
+    static let inkSoft = dynamic(light: (0.3804, 0.4196, 0.4980), dark: (0.6627, 0.7098, 0.7961))
+    static let accent = dynamic(light: (0.3294, 0.3294, 0.7216), dark: (0.6745, 0.6588, 1.0))
+    static let accentSoft = dynamic(light: (0.9333, 0.9294, 0.9843), dark: (0.1569, 0.1569, 0.2863))
+    static let charcoal = Color(red: 0.0745, green: 0.1059, blue: 0.1686)
+    /// White labels retain contrast in both appearances.
+    static let buttonFill = Color(red: 0.7020, green: 0.2431, blue: 0.0863)
 
     static func dynamic(light: (Double, Double, Double), dark: (Double, Double, Double)) -> Color {
         Color(UIColor { traits in
@@ -58,7 +57,7 @@ struct ThoughtPinsThinkingDots: View {
     }
 }
 
-/// Branded empty state: quiet mark, serif line, one supporting sentence.
+/// Branded empty state: quiet mark, clear heading, one supporting sentence.
 struct ThoughtPinsEmptyState: View {
     let title: String
     var detail: String?
@@ -81,11 +80,9 @@ struct ThoughtPinsEmptyState: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            ThoughtPinsBrandMark()
-                .frame(width: 44, height: 44)
-                .opacity(0.3)
+            ThoughtPinsOrbit(size: 92)
             Text(title)
-                .font(.system(.headline, design: .serif))
+                .font(.system(.title3, design: .default).weight(.semibold))
                 .accessibilityAddTraits(.isHeader)
             if let detail {
                 Text(detail)
@@ -97,8 +94,7 @@ struct ThoughtPinsEmptyState: View {
                 NavigationLink { action.destination } label: {
                     Text(action.title)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(ThoughtPinsTheme.brand)
+                .buttonStyle(ThoughtPinsPrimaryStyle())
                 .padding(.top, 4)
                 .accessibilityIdentifier("thoughtpins-empty-action")
             }

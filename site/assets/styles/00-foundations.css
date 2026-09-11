@@ -139,14 +139,14 @@
   color-scheme: light dark;
 
   /* Warm paper palette */
-  --tp-canvas: #f8f8f6;
+  --tp-canvas: #f4f5f9;
   --tp-surface: #ffffff;
-  --tp-surface-warm: #fcfbf9;
-  --tp-ink: #221d16;
-  --tp-ink-soft: #6b6459;
-  --tp-ink-faint: #948c7f;
-  --tp-line: #e6e2dd;
-  --tp-line-strong: #d5cfc7;
+  --tp-surface-warm: #f8f9fc;
+  --tp-ink: #192132;
+  --tp-ink-soft: #616b7f;
+  --tp-ink-faint: #6b7487;
+  --tp-line: #e0e4ee;
+  --tp-line-strong: #cad1df;
   --tp-brand: #e8612b;
   --tp-brand-deep: #bd451b;
   --tp-action: #b33e16;
@@ -156,8 +156,8 @@
   --tp-sage-soft: #e6ede7;
   --tp-blue: #44708a;
   --tp-blue-soft: #e4edf2;
-  --tp-charcoal: #26211b;
-  --tp-charcoal-soft: #332c24;
+  --tp-charcoal: #131b2b;
+  --tp-charcoal-soft: #222c40;
   --tp-on-dark: #f5f1ea;
   --tp-on-dark-soft: #b5ac9f;
 
@@ -184,8 +184,8 @@
   --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
 
   --content: 1160px;
-  --font-display: "Newsreader Variable", "Iowan Old Style", Georgia, serif;
-  --font-body: "Source Sans 3 Variable", "Source Sans 3", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
   font-family: var(--font-body);
   font-optical-sizing: auto;

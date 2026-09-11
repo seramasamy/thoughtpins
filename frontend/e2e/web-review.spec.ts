@@ -307,7 +307,7 @@ test.describe("Thought Pins web review smoke", () => {
       await expectNoHorizontalOverflow(page);
       await page.screenshot({ path: path.join(screenshotDir, `${viewport.name}-auth-login.png`), fullPage: true });
 
-      await page.getByRole("tablist", { name: "Auth mode" }).getByRole("button", { name: "Register" }).click();
+      await page.getByRole("group", { name: "Auth mode" }).getByRole("button", { name: "Register" }).click();
       await expect(page.getByText("or sign up with email or phone")).toBeVisible();
       await expect(page.getByRole("checkbox")).toBeVisible();
       await expectNoHorizontalOverflow(page);
@@ -319,7 +319,7 @@ test.describe("Thought Pins web review smoke", () => {
     await installMockApi(page, "auth");
     await page.goto("/app/");
 
-    const authModes = page.getByRole("tablist", { name: "Auth mode" });
+    const authModes = page.getByRole("group", { name: "Auth mode" });
     await expect(authModes.getByRole("button", { name: "Login", exact: true })).toBeVisible();
     await expect(authModes.getByRole("button", { name: "Register", exact: true })).toBeEnabled();
     await expect(page.getByRole("button", { name: "Continue with Google" })).toBeVisible();
@@ -345,7 +345,7 @@ test.describe("Thought Pins web review smoke", () => {
     await installMockApi(page, "auth");
     await page.goto("/app/?auth=register");
 
-    const authModes = page.getByRole("tablist", { name: "Auth mode" });
+    const authModes = page.getByRole("group", { name: "Auth mode" });
     await expect(authModes.getByRole("button", { name: "Register", exact: true })).toHaveClass(/active/);
     await expect(page.getByRole("link", { name: "Terms", exact: true })).toHaveAttribute("href", "/terms");
     await expect(page.getByRole("link", { name: "Privacy Policy", exact: true })).toHaveAttribute("href", "/privacy");
@@ -377,7 +377,7 @@ test.describe("Thought Pins web review smoke", () => {
     await expect(page.getByText("Review Article").first()).toBeVisible();
     expect(api?.getLibraryPostCount()).toBe(1);
 
-    await page.getByRole("tablist", { name: "Source format" }).getByRole("button", { name: "File", exact: true }).click();
+    await page.getByRole("group", { name: "Source format" }).getByRole("button", { name: "File", exact: true }).click();
     await page.getByLabel("Title").fill("Review Upload");
     await page.getByLabel("Destination").selectOption("library");
     await page.getByLabel("File Upload").setInputFiles({
@@ -401,6 +401,9 @@ test.describe("Thought Pins web review smoke", () => {
     await expect(page.getByRole("heading", { level: 1, name: "People", exact: true })).toBeVisible();
     await page.getByRole("button", { name: /Maya/i }).click();
 
+    // Profile content leads; metadata is still reachable through disclosure.
+    await expect(page.getByText("Archive reference")).not.toBeVisible();
+    await page.getByText("About this memory", { exact: true }).click();
     await expect(page.getByText("Archive reference")).toBeVisible();
     await expect(page.getByText("Prominence")).toBeVisible();
     await expect(page.getByText("Central", { exact: true })).toBeVisible();
@@ -570,6 +573,8 @@ test.describe("Thought Pins web review smoke", () => {
     await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "People" }).click();
     await page.getByLabel("Search memory").fill("Maya");
     await page.getByLabel("Search memory").press("Enter");
+    await expect(page.locator(".memory-detail").getByText("Recent memories", { exact: true })).toBeVisible();
+    await page.getByText("About this memory", { exact: true }).click();
     await expect(page.getByText("Archive reference")).toBeVisible();
     await expect(page.getByText("People/Maya.md")).toHaveCount(0);
     await expectNoHorizontalOverflow(page);
@@ -658,7 +663,7 @@ test.describe("Thought Pins web review smoke", () => {
     await expectNoHorizontalOverflow(page);
     await captureProofScreenshot(page, flowProofs.account);
     await page.getByRole("button", { name: /^Delete$/ }).click();
-    await expect(page.getByRole("tablist", { name: "Auth mode" }).getByRole("button", { name: "Login", exact: true })).toBeVisible();
+    await expect(page.getByRole("group", { name: "Auth mode" }).getByRole("button", { name: "Login", exact: true })).toBeVisible();
     expect(api?.getDeleteAccountCount()).toBe(1);
     await expectNoHorizontalOverflow(page);
   });

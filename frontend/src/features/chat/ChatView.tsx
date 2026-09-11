@@ -1,4 +1,4 @@
-import { ArrowUp, CheckCircle2, Lightbulb, Lock, Mic, Paperclip, RefreshCw, ShieldCheck, Sparkles, Square, UsersRound, XCircle } from "lucide-react";
+import { ArrowUp, CheckCircle2, Lock, Mic, Paperclip, RefreshCw, ShieldCheck, Square, XCircle } from "lucide-react";
 import type { ChangeEvent, FormEvent } from "react";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../../api";
@@ -8,6 +8,7 @@ import { formatConversationDay, formatConversationTime } from "../../components/
 import { ChatGlyph, IconButton, PrimaryButton, SecondaryButton } from "../../components/ui";
 import { confirmationIntent } from "./confirmation";
 import { KeptEntryNotice } from "./KeptEntryNotice";
+import { ChatWelcome } from "./ChatWelcome";
 import { MessageEditor } from "./MessageEditor";
 import { submitFormOnEnter } from "../../components/keyboard";
 
@@ -23,11 +24,7 @@ type ThreadMessage = {
 const CONVERSATION_ID = "main";
 const VOICE_DISCLOSURE_KEY = "thoughtpins.voice-disclosure.2026-07-13";
 const MAX_RECORDING_MS = 10 * 60 * 1000;
-const STARTERS = [
-  { text: "What has been on my mind?", icon: Lightbulb },
-  { text: "Help me reflect on this week", icon: Sparkles },
-  { text: "Who have I mentioned lately?", icon: UsersRound },
-];
+
 
 export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEnabled = false }: ScreenProps & { maintenanceMessage?: string | null; voiceArchiveEnabled?: boolean }) {
   const [text, setText] = useState("");
@@ -367,19 +364,7 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
 
       <div className="chat-stream" role="log" aria-label="Conversation history" aria-live="polite" tabIndex={0}>
         {!messages.length && (
-          <div className="chat-welcome">
-            <img className="welcome-mark" src={`${import.meta.env.BASE_URL}assets/thought-pins-mark.svg?v=20260712-memory-pin-v4`} alt="" width="56" height="56" />
-            <h2>What is on your mind?</h2>
-            <p>I am here with everything you have chosen to remember.</p>
-            <div className="starter-list">
-              {STARTERS.map(({ text: starter, icon: StarterIcon }) => (
-                <button key={starter} type="button" onClick={() => void sendMessage(starter)}>
-                  <StarterIcon size={18} aria-hidden="true" />
-                  <span>{starter}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+          <ChatWelcome onChoose={(starter) => void sendMessage(starter)} />
         )}
 
         {messages.map((message, index) => (

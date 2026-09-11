@@ -594,12 +594,17 @@ def main() -> int:
         ],
     )
 
-    _check_regex(
+    # The September redesign replaces the old <=8px paper-card rule with
+    # deliberate, shared surface tokens. Pill navigation and orbital artwork
+    # have their own geometry, so a global ban on numeric radii is incorrect.
+    _check_file_markers(
         FRONTEND / "src" / "styles.css",
         failures,
         cache,
-        "no oversized card radius",
-        r"border-radius:\s*(?:9|[1-9][0-9])px",
+        [
+            _req("shared modern surface radii", "--radius-card: 22px", "--radius-button: 13px", all_required=True),
+            _req("responsive modern composition", ".memory-orbit", ".profile-provenance", all_required=True),
+        ],
     )
     built_js = tuple(sorted((FRONTEND / "dist" / "assets").glob("*.js")))
     if not built_js and (FRONTEND / "dist" / "app.js").is_file():

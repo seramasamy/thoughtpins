@@ -27,14 +27,13 @@ platform mask.
 
 ## Type
 
-- Newsreader Variable: display headings, recap titles, memory names, and the
-  wordmark.
-- Source Sans 3 Variable: interface controls, body copy, metadata, forms, and
-  long responses.
-- Native shells retain platform typography and scalable text metrics; iOS
-  applies the system serif (New York) via `.fontDesign(.serif)` for display
-  text, Android uses its serif display family.
-- Fonts are bundled locally. Letter spacing is zero.
+- iOS and the web app use platform sans fonts and explicit hierarchy.
+- Headings have compact tracking; body copy and controls have normal tracking.
+- Native text scales with Dynamic Type. The chat composer stacks at accessibility
+  sizes, and collections become a single flexible column. Decorative icons stay
+  inside their hit regions; privacy explanations join the scrolling content so
+  large text does not consume the entire conversation viewport.
+- Existing self-hosted fonts remain available for compatibility pages.
 
 ## Surfaces
 
@@ -45,38 +44,39 @@ platform mask.
 - The homepage product preview is a self-playing chat vignette
   (`23-demo-live.css`, driven from `site.js`); the static screenshots remain
   the no-JS / reduced-motion / print representation.
-- `site/labs/` holds experimental concepts (currently the "night journal"
-  kinetic homepage) with their own stylesheets; they are noindexed, share
-  only fonts and product assets, and are not product surfaces.
+- The homepage uses `labs.css` for its scroll narrative and
+  `modern-site.css` for the current presentation. Reduced-motion mode keeps
+  the headline and every narrative item visible.
 - iOS theming lives in `ThoughtPinsTheme.swift` (dynamic light/dark token
-  colors, `ThoughtPinsThinkingDots`, `ThoughtPinsEmptyState`); chat replies
-  are bordered bubbles, lists use branded empty states.
+  colors, `ThoughtPinsThinkingDots`, `ThoughtPinsEmptyState`). Shared surfaces
+  and orbital artwork live in `ThoughtPinsDesignComponents.swift`; the chat,
+  recap, auth, and collection screens each have a focused module.
 - The static fallback (`frontend/static/`) is rethemed to the warm-paper
   tokens so a failed Vite build never ships the retired green design.
 
 ## Core Tokens
 
 ```css
---tp-canvas: #f8f8f6;
+--tp-canvas: #f4f5f9;
 --tp-surface: #ffffff;
---tp-surface-warm: #fcfbf9;
---tp-ink: #221d16;
---tp-ink-soft: #6b6459;
---tp-line: #e6e2dd;
---tp-line-strong: #d5cfc7;
+--tp-surface-warm: #f8f9fc;
+--tp-ink: #192132;
+--tp-ink-soft: #616b7f;
+--tp-line: #e0e4ee;
+--tp-line-strong: #cad1df;
 --tp-brand: #e8612b;
 --tp-brand-deep: #bd451b;
 --tp-action: #b33e16;
---tp-brand-soft: #fbe9dd;
---tp-sage: #587465;
---tp-sage-soft: #e6ede7;
---tp-blue: #44708a;
---tp-blue-soft: #e4edf2;
+--tp-brand-soft: #fff0e8;
+--tp-sage: #326f60;
+--tp-sage-soft: #e7f3ee;
+--tp-blue: #5454b8;
+--tp-blue-soft: #eeedfb;
 --tp-danger: #a83232;
---tp-charcoal: #26211b;
---radius-card: 8px;
---radius-button: 7px;
---radius-chip: 6px;
+--tp-charcoal: #131b2b;
+--radius-card: 22px;
+--radius-button: 13px;
+--radius-chip: 8px;
 --motion-quick: 140ms;
 --motion-standard: 220ms;
 --motion-entrance: 380ms;
@@ -92,15 +92,15 @@ platform mask.
   break.
 - Thinking dots communicate model or indexing work; they are a state motif,
   not part of the logo.
-- Selected memory cards receive a quiet tinted surface and a small brand dot.
+- Selected memory cards receive a secondary accent outline and selection dot.
 - Source links always open the canonical publisher page in a new context.
 - User-facing reading views describe availability, not provider internals.
 - The site and web app share one theme controller: a light / dark / auto
   choice persisted as `tp-theme`, applied via `data-theme` on the root
   element. Auto removes the attribute so the system decides. A one-line
   inline script in each page head applies the stored choice before first
-  paint. The header icon cycles auto → light → dark; the app also exposes a
-  segmented Appearance control in Account.
+  paint. The app header switches between light and dark; the Appearance control
+  in Account also offers the system setting. The homepage stays dark.
 
 ## Motion Language
 
@@ -123,6 +123,10 @@ platform mask.
 - Mobile: five-item bottom navigation, elevated center Chat action, safe-area
   insets, and a global composer that never overlaps the tab bar.
 - Critical features are adapted, never removed, on small screens.
+- Native iPhone keeps its portrait orientation policy; iPad supports rotation
+  and bounded reading columns. The disposable native review target mirrors
+  those settings and uses fictional fixtures only. See
+  `mobile/ios/ThoughtPinsUIReview/README.md` for the screenshot and interaction tests.
 - The public product preview is an actual responsive sample: its accessible
   Desktop/Mobile tabs switch between a wide workspace and a phone layout, and
   the default follows the viewport width. It is illustrative copy, never user

@@ -43,7 +43,7 @@ struct ThoughtPinsMemoryCardScreen: View {
             Section {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(detail?.name ?? card.name)
-                        .font(.system(.title2, design: .serif).weight(.semibold))
+                        .font(.system(.title2, design: .default).weight(.semibold))
                     if let subtitle = detail?.subtitle ?? card.subtitle, !subtitle.isEmpty {
                         Text(subtitle).font(.subheadline).foregroundStyle(.secondary)
                     }
@@ -136,7 +136,7 @@ struct ThoughtPinsMemoryCardScreen: View {
         // hard edge either side.
         .scrollContentBackground(.hidden)
         .thoughtPinsReadableColumn()
-        .background(Color(.systemGroupedBackground))
+        .thoughtPinsScreen()
         .navigationTitle(card.name)
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
@@ -201,7 +201,7 @@ struct ThoughtPinsLibrarySourceScreen: View {
         Form {
             Section {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(shown.title).font(.system(.title3, design: .serif).weight(.semibold))
+                    Text(shown.title).font(.system(.title3, design: .default).weight(.semibold))
                     if let byline = [shown.author, shown.publisher ?? shown.sourceDomain, shown.publishedAt]
                         .compactMap({ $0 }).filter({ !$0.isEmpty }).first {
                         Text(byline).font(.subheadline).foregroundStyle(.secondary)
@@ -255,7 +255,7 @@ struct ThoughtPinsLibrarySourceScreen: View {
         }
         .scrollContentBackground(.hidden)
         .thoughtPinsReadableColumn()
-        .background(Color(.systemGroupedBackground))
+        .thoughtPinsScreen()
         .navigationTitle("Reading")
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }

@@ -63,9 +63,9 @@ export function MemoryView({
         </div>
         <div className="memory-controls">
           {!lockedSection && (
-            <div className="segmented compact-segments" role="tablist" aria-label="Memory section">
+            <div className="segmented compact-segments" role="group" aria-label="Memory section">
               {SECTIONS.map((item) => (
-                <button key={item} className={section === item ? "active" : ""} onClick={() => setSection(item)} type="button">{item}</button>
+                <button key={item} aria-pressed={section === item} className={section === item ? "active" : ""} onClick={() => setSection(item)} type="button">{item}</button>
               ))}
             </div>
           )}
@@ -105,14 +105,12 @@ export function MemoryView({
               <div><span className="eyebrow">{humanizeIdentifier(selected.type)}</span><h3>{displayEntityName(selected.name)}</h3></div>
             </div>
             {selected.subtitle && <p className="memory-detail-summary">{cleanDisplayText(selected.subtitle)}</p>}
-            <KeyValue label="Type" value={humanizeIdentifier(selected.type)} />
-            <KeyValue label="Memories" value={selected.memory_count} />
-            <KeyValue label="Mentions" value={selected.mention_count} />
-            <KeyValue label="Relationships" value={selected.relationship_count} />
-            {selected.salience_model_version && <KeyValue label="Prominence" value={humanizeIdentifier(selected.salience_tier)} />}
-            <KeyValue label="Last seen" value={formatShortDate(selected.last_seen)} />
-            <KeyValue label="Confidence" value={humanizeIdentifier(String(selected.provenance?.confidence || "unknown"))} />
-            <KeyValue label="Archive reference" value={displayReferenceTitle(selected.obsidian_path, displayEntityName(selected.name))} />
+            <div className="profile-metrics" aria-label="Memory summary">
+              <div><strong>{selected.memory_count}</strong><span>Memories</span></div>
+              <div><strong>{selected.mention_count}</strong><span>Mentions</span></div>
+              <div><strong>{selected.relationship_count}</strong><span>Connections</span></div>
+            </div>
+            <p className="profile-last-seen">Last mentioned {formatShortDate(selected.last_seen)}</p>
             {section === "places" && (
               <a className="source-link" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selected.name)}`} target="_blank" rel="noreferrer">
                 Open in Maps <ArrowUpRight size={15} />
@@ -149,6 +147,17 @@ export function MemoryView({
               ))}
               {!selected.source_documents?.length && <p className="detail-empty">No sources connected yet.</p>}
             </div>
+            <details className="profile-provenance">
+              <summary>About this memory</summary>
+              <KeyValue label="Type" value={humanizeIdentifier(selected.type)} />
+              <KeyValue label="Memories" value={selected.memory_count} />
+              <KeyValue label="Mentions" value={selected.mention_count} />
+              <KeyValue label="Relationships" value={selected.relationship_count} />
+              {selected.salience_model_version && <KeyValue label="Prominence" value={humanizeIdentifier(selected.salience_tier)} />}
+              <KeyValue label="Last seen" value={formatShortDate(selected.last_seen)} />
+              <KeyValue label="Confidence" value={humanizeIdentifier(String(selected.provenance?.confidence || "unknown"))} />
+              <KeyValue label="Archive reference" value={displayReferenceTitle(selected.obsidian_path, displayEntityName(selected.name))} />
+            </details>
           </div>
         ) : (
           <EmptyState title="Select a card" detail="Choose a card to revisit the memories and moments connected to it." />

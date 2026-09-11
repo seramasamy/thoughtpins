@@ -75,6 +75,7 @@ public struct ThoughtPinsRootView: View {
                 .accessibilityIdentifier("thoughtpins-offline-notice")
             }
         }
+        .tint(ThoughtPinsTheme.action)
         .task { await model.bootstrap() }
         // The onCancellation handler is load-bearing: the base fileImporter
         // overload never calls onCompletion when the person cancels (or swipes
@@ -210,246 +211,6 @@ public struct ThoughtPinsRootView: View {
     }
 }
 
-struct ThoughtPinsAuthView: View {
-    @ObservedObject var model: ThoughtPinsAppModel
-    @State private var identifier = ""
-    @State private var password = ""
-    @State private var phone = ""
-    @State private var legalAccepted = false
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.openURL) private var openURL
-
-    /// Whether a provider can actually produce a button.
-    ///
-    /// These gate the section header as well as the rows inside it. The header
-    /// used to be gated on the server flags alone while the Google row also
-    /// required `supportsOAuth`, so a build without a Google client ID drew an
-    /// "Other ways to sign in" header over an empty section. That is the
-    /// current production shape: client-config reports google enabled and apple
-    /// disabled, and GIDClientID is empty in any build that has not had the
-    /// client IDs injected.
-    private var appleSignInAvailable: Bool {
-        model.config?.oauthAppleEnabled == true
-    }
-
-    /// Google is only offered when Sign in with Apple is offered alongside it.
-    ///
-    /// Guideline 4.8 requires that an app using a third-party login service
-    /// also offer an equivalent option that limits collection to name and
-    /// email **and lets the person keep their email address private**. Our
-    /// email-and-password sign-up does not meet the second half of that: it
-    /// needs a real, working address. Sign in with Apple is the option that
-    /// does, so Google without Apple is a 4.8 rejection waiting to happen.
-    ///
-    /// Deciding it here rather than in server config means no flag flipped
-    /// during the review window can put the binary out of compliance. To offer
-    /// Google, configure Apple sign-in and turn `oauth_apple_enabled` on; the
-    /// two then appear together. Email and password are unaffected either way.
-    private var googleSignInAvailable: Bool {
-        model.config?.oauthGoogleEnabled == true
-            && model.supportsOAuth(.google)
-            && appleSignInAvailable
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    VStack(spacing: 10) {
-                        ThoughtPinsBrandMark()
-                            .frame(width: 72, height: 72)
-                        Text("Thought Pins")
-                            .font(.system(.title, design: .serif).weight(.medium))
-                        Text("A private place to keep what matters.")
-                            .font(.system(.subheadline, design: .serif)).italic()
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                }
-                Section("Account") {
-                    TextField("Email", text: $identifier)
-                        .textContentType(.emailAddress)
-                        .keyboardType(.emailAddress)
-                        .textInputAutocapitalization(.never)
-                        // Capitalisation was already off; autocorrect was not.
-                        // iOS happily "corrects" an unfamiliar address as you
-                        // leave the field, and the sign-in that follows fails
-                        // for a reason nothing on screen explains.
-                        .autocorrectionDisabled()
-                    TextField("Phone", text: $phone)
-                        .textContentType(.telephoneNumber)
-                        .keyboardType(.phonePad)
-                    SecureField("Password", text: $password)
-                        .textContentType(.password)
-                }
-
-                if appleSignInAvailable || googleSignInAvailable {
-                    Section("Other ways to sign in") {
-                        if appleSignInAvailable {
-                            SignInWithAppleButton(.signIn) { request in
-                                model.configureAppleSignInRequest(request)
-                            } onCompletion: { result in
-                                Task { await model.completeAppleSignIn(result) }
-                            }
-                            // Apple's guidance is a button that contrasts with
-                            // the sheet behind it; a black button on the dark
-                            // form background reads as a blank row.
-                            .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
-                            .frame(height: 44)
-                        }
-                        if googleSignInAvailable {
-                            Button(ThoughtPinsOAuthProvider.google.label) {
-                                Task { await model.oauthLogin(provider: .google) }
-                            }
-                        }
-                    }
-                }
-
-                // The consent toggle used to live in this section's footer,
-                // where SwiftUI renders it as secondary grey text. It gates
-                // Create account, so the one control that unlocks registration
-                // looked like a caption under a disabled button.
-                Section("Before you create an account") {
-                    Toggle("I consent to private AI processing of content I choose to send.", isOn: $legalAccepted)
-                    HStack(spacing: 12) {
-                        Link("Privacy", destination: model.legalURL(configured: model.config?.privacyPolicyUrl, fallbackPath: "/privacy"))
-                        Link("Terms", destination: model.legalURL(configured: model.config?.termsUrl, fallbackPath: "/terms"))
-                        Link("AI Disclosure", destination: model.legalURL(configured: model.config?.aiDisclosureUrl, fallbackPath: "/ai-disclosure"))
-                    }
-                    .font(.footnote)
-                }
-
-                Section {
-                    // Sign in is the primary action and used to look identical
-                    // to Create account: two grey rows of the same weight, in a
-                    // grouped list, which reads as Settings rather than as the
-                    // front door of a product. Filled and full width, so the
-                    // screen has one obvious thing to do.
-                    Button {
-                        Task { await model.login(identifier: identifier.isEmpty ? phone : identifier, password: password) }
-                    } label: {
-                        Text("Sign in").frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                    .disabled(model.authBusy || signInBlocker != nil)
-                    if let signInBlocker, !model.authBusy {
-                        Text(signInBlocker)
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                    Button("Create account") {
-                        Task {
-                            await model.register(
-                                email: identifier.isEmpty ? nil : identifier,
-                                phone: phone.isEmpty ? nil : phone,
-                                password: password,
-                                consentToAIProcessing: legalAccepted
-                            )
-                        }
-                    }
-                    .disabled(model.authBusy || registrationBlocker != nil)
-                    if model.authBusy {
-                        HStack(spacing: 8) {
-                            ProgressView()
-                            Text("Signing in…")
-                        }
-                        .accessibilityElement(children: .combine)
-                        .accessibilityLabel("Signing in")
-                        .accessibilityIdentifier("thoughtpins-auth-progress")
-                    }
-                    // Recovery is support-mediated for v1 (a self-service reset
-                    // and magic-link sign-in are 1.1). Without this, a forgotten
-                    // password is a permanent lockout that cannot even reach
-                    // account deletion. Opens a pre-filled mail to support with
-                    // the account identifier — never the password.
-                    Button("Forgot password?") {
-                        if let url = forgotPasswordMailURL() {
-                            openURL(url)
-                        }
-                    }
-                    .font(.footnote)
-                    .disabled(model.authBusy)
-                    .accessibilityIdentifier("thoughtpins-forgot-password")
-                } footer: {
-                    if let registrationBlocker {
-                        Text(registrationBlocker)
-                    }
-                }
-            }
-            .navigationTitle("Thought Pins")
-        }
-    }
-
-    /// A pre-filled support email for password recovery. Carries the account
-    /// identifier so support can locate the account, and deliberately nothing
-    /// secret — no password, ever.
-    private func forgotPasswordMailURL() -> URL? {
-        let account = identifier.isEmpty ? phone : identifier
-        let subject = "Thought Pins password help"
-        let body = """
-            I cannot sign in and would like to reset my password.
-
-            Account email or phone: \(account.isEmpty ? "(fill this in)" : account)
-
-            Please do not include my password in any reply.
-            """
-        var components = URLComponents()
-        components.scheme = "mailto"
-        components.path = "support@thoughtpins.com"
-        components.queryItems = [
-            URLQueryItem(name: "subject", value: subject),
-            URLQueryItem(name: "body", value: body),
-        ]
-        return components.url
-    }
-
-    /// Why Sign in is disabled, or nil when it is not.
-    ///
-    /// Create account has had this guard from the start; Sign in did not, so an
-    /// empty form still posted to `/v1/auth/login`. `LoginRequest` requires a
-    /// password of at least one character, so that round trip could only ever
-    /// fail — and it failed by putting the validator's own words, "Request
-    /// validation failed", in front of the person's very first interaction with
-    /// the app. Seen on a device on 2026-09-04, on the screen every App Review
-    /// begins on.
-    private var signInBlocker: String? {
-        if identifier.isEmpty && phone.isEmpty {
-            return "Enter the email address or phone number for your account."
-        }
-        if password.isEmpty {
-            return "Enter your password."
-        }
-        return nil
-    }
-
-    /// Why Create account is disabled, or nil when it is not.
-    ///
-    /// A disabled button with no stated reason is the shape of a failed App
-    /// Review: the reviewer cannot register, and nothing on screen says which
-    /// of three rules they have not met yet.
-    private var registrationBlocker: String? {
-        if identifier.isEmpty && phone.isEmpty {
-            return "Add an email address or phone number to create an account."
-        }
-        // Code points, matching the server's own length rule, so the client
-        // never accepts a password the API is about to reject.
-        let length = password.unicodeScalars.count
-        if length < 12 {
-            return "Choose a password of at least 12 characters."
-        }
-        if length > 256 {
-            return "Choose a password of 256 characters or fewer."
-        }
-        if !legalAccepted {
-            return "Accept AI processing above to create an account."
-        }
-        return nil
-    }
-}
-
 struct ThoughtPinsAIConsentView: View {
     @ObservedObject var model: ThoughtPinsAppModel
     @State private var confirmed = false
@@ -462,7 +223,7 @@ struct ThoughtPinsAIConsentView: View {
                         ThoughtPinsBrandMark()
                             .frame(width: 72, height: 72)
                         Text("Your memories stay under your control")
-                            .font(.system(.title2, design: .serif).weight(.semibold))
+                            .font(.system(.title2, design: .default).weight(.semibold))
                             .multilineTextAlignment(.center)
                         Text("Thought Pins sends the content you choose to save or discuss to configured AI services so it can organize memories and answer with context. It does not use that content for advertising.")
                             .font(.body)
@@ -640,7 +401,7 @@ struct ThoughtPinsInviteView: View {
                         ThoughtPinsBrandMark()
                             .frame(width: 72, height: 72)
                         Text("Invitation required")
-                            .font(.system(.title2, design: .serif).weight(.semibold))
+                            .font(.system(.title2, design: .default).weight(.semibold))
                         Text("Thought Pins is invitation-only right now. Your account is saved — enter an invite code to start using it.")
                             .font(.body)
                             .foregroundStyle(.secondary)

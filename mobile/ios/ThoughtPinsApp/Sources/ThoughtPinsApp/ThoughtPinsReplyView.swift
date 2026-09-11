@@ -46,7 +46,7 @@ struct ThoughtPinsReplyView: View {
                         .font(.body)
                 case .heading(let level, let text):
                     Text(thoughtPinsFormattedReply(text))
-                        .font(.system(level <= 2 ? .headline : .subheadline, design: .serif).weight(.semibold))
+                        .font(.system(level <= 2 ? .headline : .subheadline, design: .default).weight(.semibold))
                         .padding(.top, 2)
                 case .bullet(let text, let depth):
                     HStack(alignment: .firstTextBaseline, spacing: 6) {

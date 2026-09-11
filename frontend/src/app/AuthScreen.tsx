@@ -229,9 +229,10 @@ export function AuthScreen({
             <h1>{mode === "login" ? "Welcome back" : "Create your memory space"}</h1>
             <p>{mode === "login" ? "Return to the memory you have been building." : "Start with a private journal that becomes easier to revisit."}</p>
           </div>
-          <div className="segmented" role="tablist" aria-label="Auth mode">
-          <button className={mode === "login" ? "active" : ""} onClick={() => selectMode("login")} type="button">Login</button>
+          <div className="segmented" role="group" aria-label="Auth mode">
+          <button aria-pressed={mode === "login"} className={mode === "login" ? "active" : ""} onClick={() => selectMode("login")} type="button">Login</button>
           <button
+            aria-pressed={mode === "register"}
             className={mode === "register" ? "active" : ""}
             disabled={registrationLocked}
             onClick={() => selectMode("register")}

@@ -4,65 +4,57 @@ This file is the canonical design contract for automated review. Product
 strategy lives in `docs/product/PRODUCT.md`; implementation notes live in
 `DESIGN_SYSTEM.md`.
 
-## Physical Scene
+## Direction
 
-A person checks a private memory companion at a desk in daylight or on a phone
-between real-world moments. The interface must remain calm and readable, but
-it should feel authored rather than sterile.
+The September 2026 redesign brings a modern, slightly futuristic visual system
+to iOS, the responsive web app, and the public site. Cool mineral surfaces,
+precise typography, an orbital memory motif, and the established ember mark
+connect the surfaces. Content and primary actions retain the strongest hierarchy.
+Android retains its existing native palette until a separate implementation pass.
 
 ## Color Strategy
 
-Product UI uses a restrained neutral canvas with terracotta below 10 percent
-of the visible surface. The public brand page may commit more strongly to the
-terracotta and charcoal pair. Sage and blue are semantic support colors, not
-alternate themes.
+| Role | Light | Dark |
+|---|---|---|
+| Canvas | `#f4f5f9` | `#0c1220` |
+| Surface | `#ffffff` | `#151e30` |
+| Ink | `#192132` | `#edf2ff` |
+| Soft ink | `#616b7f` | `#a9b5cb` |
+| Line | `#e0e4ee` | `#2a354b` |
+| Brand mark | `#e8612b` | `#e8612b` |
+| Filled action | `#b33e16` | `#b33e16` |
+| Action text | `#b33e16` | `#ffb291` |
+| Secondary accent | `#5454b8` | `#aca8ff` |
+| Secondary tint | `#eeedfb` | `#282849` |
 
-### Palette
-
-| Role | Value |
-|---|---|
-| Canvas | `#f8f8f6` |
-| Surface | `#ffffff` |
-| Secondary surface | `#fcfbf9` |
-| Ink | `#221d16` |
-| Soft ink | `#6b6459` |
-| Faint ink | `#948c7f` |
-| Line | `#e6e2dd` |
-| Strong line | `#d5cfc7` |
-| Brand orange | `#e8612b` |
-| Deep brand | `#bd451b` |
-| Accessible action | `#b33e16` |
-| Action hover | `#8f2e0e` |
-| Brand tint | `#fbe9dd` |
-| Success sage | `#587465` |
-| Success tint | `#e6ede7` |
-| Source blue | `#44708a` |
-| Source tint | `#e4edf2` |
-| Danger | `#a83232` |
-| Charcoal | `#26211b` |
+White text belongs on the accessible action fill; dark-mode links and active
+navigation labels use the lighter action text. Pastel tints also have explicit
+dark counterparts. The public homepage uses the dark palette in both system
+appearances. Gradients are reserved for subtle atmosphere and hero surfaces.
+Native system controls retain the established softened ember tint `#e8895f`
+in dark mode; filled buttons use the shared `#b33e16` in both appearances.
 
 ## Typography
 
-- Display and reflective text: **Newsreader Variable**, weights 480-620.
-- Product and reading text: **Source Sans 3 Variable**, weights 400-700.
-- Monospace: SFMono-Regular, Consolas, or Liberation Mono.
-- Both brand fonts are self-hosted. No runtime font CDN requests.
-- App headings use fixed rem sizes. Marketing display type may use bounded
-  responsive sizing, never viewport-width font scaling.
-- Body copy is normally 16px with 1.55-1.7 line height and a 75ch ceiling.
-- Headings use balanced wrapping; prose uses pretty wrapping where supported.
-- Letter spacing is zero. Do not use negative tracking.
+- iOS and the web app use native sans typography: SF Pro on Apple platforms,
+  with Segoe UI and system sans fallbacks on other devices.
+- Existing bundled fonts remain available for the static compatibility surface.
+- Display headings may use restrained negative tracking, down to `-0.07em`.
+  Prose and controls use normal tracking. The responsive gate enforces this.
+- Body text remains readable with generous line height and a bounded measure.
+- Native type uses scalable text styles; accessibility sizes reflow controls
+  and collection grids. Never shrink text to force a layout to fit.
 
 ## Shape And Depth
 
-- Cards, panels, inputs: 8px radius.
-- Buttons: 7px radius.
-- Status labels: 6px radius.
-- Avatars and icon-only circular actions may be fully round.
-- Borders and whitespace are the default separators.
-- Static cards do not carry broad shadows. Floating composers and dialogs may
-  use one purposeful elevation layer.
-- Do not nest cards.
+- Web cards: 22px. Native cards: continuous 24pt corners.
+- Web controls: 13px, with 16–24px composer and search surfaces.
+- Navigation, identity marks, and orbital geometry may use circular forms.
+- One subtle elevation layer for a floating composer, popover, or dialog.
+- Borders, surface contrast, and whitespace establish hierarchy; every section
+  does not need a card. Selectable memories and pins do.
+- Native navigation remains platform navigation, preserving its behavior across
+  iOS versions and device classes.
 
 ## Spacing
 
@@ -112,13 +104,13 @@ It is white on the terracotta app tile. Canonical files are
 
 ## Theme
 
-- Site and web app offer a manual light / dark / auto choice, persisted as
-  `tp-theme`. Auto removes `data-theme` so the system decides; an explicit
-  choice sets `data-theme="light"|"dark"` and wins over the system.
-- Dark mode is designed, not inverted: dark tokens are hand-tuned pairs of
-  the light palette (canvas `#1c1916`, ink `#f5f1ea`, brand text `#f0906a`,
-  action `#cd4d20` on the site; the app dark scheme mirrors them).
-- Every screenshot review runs in both themes at every device width.
+- Web app and legal/support pages honor the existing persisted `tp-theme`
+  preference. The app exposes appearance directly in the header.
+- iOS follows system appearance with explicit light/dark token pairs.
+- The public homepage is intentionally cinematic and dark.
+- Screenshot review covers both app appearances, narrow phones, tablets, desktop,
+  native Dynamic Type, and reduced motion. Marketing copy remains visible when
+  reduced motion is enabled.
 
 ## Product States
 
@@ -160,10 +152,10 @@ the user's vault.
 
 ## Absolute Avoidances
 
-- Gradients used as decoration or text fill.
+- Rainbow surfaces, gradient text, or animated backdrops behind reading content.
 - Colored side stripes on cards and callouts.
 - Identical marketing card grids.
 - Repeated tiny uppercase section kickers.
 - Decorative numbered markers unless sequence is meaningful.
-- Glassmorphism, ornamental blobs, paper grain, and oversized rounded cards.
+- Heavy blur behind body text, ornamental blobs, paper grain, and oversized rounded cards.
 - Provider-specific or founder-specific language in public product surfaces.

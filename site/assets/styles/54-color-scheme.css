@@ -23,8 +23,8 @@
 /* Token remap — this block and the one inside the media query below must
    stay identical. */
 :root[data-theme="dark"] {
-  --tp-canvas: #1c1916;
-  --tp-surface: #26211b;
+  --tp-canvas: #0c1220;
+  --tp-surface: #131b2b;
   --tp-surface-warm: #2b251e;
   --tp-ink: #f5f1ea;
   --tp-ink-soft: #b5ac9f;
@@ -35,7 +35,7 @@
   --tp-sage-soft: #26332b;
   --tp-blue-soft: #223038;
   --tp-charcoal: #211d18;
-  --tp-charcoal-soft: #332c24;
+  --tp-charcoal-soft: #222c40;
 
   --tp-eyebrow: #f0906a;
   --tp-link: #f0906a;
@@ -55,8 +55,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --tp-canvas: #1c1916;
-    --tp-surface: #26211b;
+    --tp-canvas: #0c1220;
+    --tp-surface: #131b2b;
     --tp-surface-warm: #2b251e;
     --tp-ink: #f5f1ea;
     --tp-ink-soft: #b5ac9f;
@@ -67,7 +67,7 @@
     --tp-sage-soft: #26332b;
     --tp-blue-soft: #223038;
     --tp-charcoal: #211d18;
-    --tp-charcoal-soft: #332c24;
+    --tp-charcoal-soft: #222c40;
 
     --tp-eyebrow: #f0906a;
     --tp-link: #f0906a;

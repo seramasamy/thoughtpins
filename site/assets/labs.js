@@ -224,7 +224,7 @@ async function setupConstellation() {
     }
 
     // Copy yields the stage as the mark forms
-    if (copy) copy.style.opacity = String(1 - clamp01((p - 0.5) / 0.32));
+    if (copy) copy.style.opacity = reduceMotion.matches ? "1" : String(1 - clamp01((p - 0.5) / 0.32));
     if (hint) hint.style.opacity = String(1 - clamp01(p / 0.12));
 
     if (!reduceMotion.matches) raf = window.requestAnimationFrame(draw);

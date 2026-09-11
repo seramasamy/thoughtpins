@@ -90,6 +90,19 @@ MOBILE_REACHABILITY_MARKERS = (
 )
 
 
+def _check_display_tracking(styles: str, failures: list[str]) -> None:
+    """Compact sans headings may track tightly; prose and controls may not."""
+    for selector, declarations in re.findall(r"([^{}]+)\{([^{}]*)\}", styles):
+        match = re.search(r"letter-spacing:\s*(-[\d.]+)([a-z]+)", declarations)
+        if not match:
+            continue
+        amount, unit = float(match.group(1)), match.group(2)
+        if unit != "em" or amount < -0.07:
+            failures.append("display tracking must stay within -0.07em of normal")
+        if re.search(r"(?<![\w-])(?:body|p|input|textarea|select|button)(?![\w-])", selector):
+            failures.append("negative letter spacing is disallowed for prose and controls")
+
+
 def main() -> int:
     failures: list[str] = []
     styles = _read_css(FRONTEND / "src" / "styles.css", failures)
@@ -193,8 +206,7 @@ def _check_maintenance_banner_once(styles: str, failures: list[str]) -> None:
 def _check_no_viewport_font_scaling(styles: str, failures: list[str]) -> None:
     if re.search(r"font-size:\s*[^;]*(vw|vh|vmin|vmax)", styles):
         failures.append("font sizes must not scale directly with viewport units")
-    if re.search(r"letter-spacing:\s*-\d", styles):
-        failures.append("negative letter spacing is disallowed for review UI")
+    _check_display_tracking(styles, failures)
 
 
 def _css_blocks(styles: str, selector: str) -> list[str]:

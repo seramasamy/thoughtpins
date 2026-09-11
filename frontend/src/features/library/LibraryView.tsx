@@ -111,10 +111,10 @@ export function LibraryView({ token, run }: ScreenProps) {
       <div className="library-layout">
         <form className={`panel library-add mode-${addMode}`} onSubmit={submit}>
           <PanelTitle icon={<Archive size={18} />} title="Add a source" />
-          <div className="segmented library-mode" role="tablist" aria-label="Source format">
-            <button className={addMode === "link" ? "active" : ""} type="button" onClick={() => setAddMode("link")}><Link2 size={15} />Link</button>
-            <button className={addMode === "text" ? "active" : ""} type="button" onClick={() => setAddMode("text")}><FileText size={15} />Text</button>
-            <button className={addMode === "file" ? "active" : ""} type="button" onClick={() => setAddMode("file")}><FileUp size={15} />File</button>
+          <div className="segmented library-mode" role="group" aria-label="Source format">
+            <button aria-pressed={addMode === "link"} className={addMode === "link" ? "active" : ""} type="button" onClick={() => setAddMode("link")}><Link2 size={15} />Link</button>
+            <button aria-pressed={addMode === "text"} className={addMode === "text" ? "active" : ""} type="button" onClick={() => setAddMode("text")}><FileText size={15} />Text</button>
+            <button aria-pressed={addMode === "file"} className={addMode === "file" ? "active" : ""} type="button" onClick={() => setAddMode("file")}><FileUp size={15} />File</button>
           </div>
 
           <div className="form-stack library-fields">

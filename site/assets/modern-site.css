@@ -1,0 +1,112 @@
+/* Public product presentation. The same mineral surfaces and ember mark as
+   the apps, with a larger typographic scale for the introduction. */
+:root {
+  --lab-bg: #0c1220;
+  --lab-bg-2: #10192a;
+  --lab-card: #151f32;
+  --lab-ink: #f1f4ff;
+  --lab-soft: #aab7d0;
+  --lab-faint: #91a0bc;
+  --lab-line: #ffffff16;
+  --lab-apricot: #aca8ff;
+  --serif: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.lab-nav { padding: 18px 32px; background: #0c1220db; border-bottom: 1px solid var(--lab-line); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+.lab-nav::before { display: none; }
+.lab-brand { font-weight: 650; letter-spacing: -0.035em; }
+.lab-brand img { border-radius: 10px; }
+.lab-nav-links { gap: 22px; }
+.lab-nav-links a { font-size: 12px; color: var(--lab-soft); }
+.lab-nav-signup { border-radius: 999px; padding: 10px 18px; }
+.lab-nav-login { font-size: 13px; }
+.lab-hero { background: radial-gradient(ellipse at 80% 20%, #514b9b25, transparent 55%), var(--lab-bg); }
+.lab-hero-copy { max-width: 1060px; }
+.lab-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.15em; color: var(--lab-apricot); }
+.lab-h1 { font-size: 88px; font-weight: 650; line-height: 1.02; letter-spacing: -0.065em; }
+.lab-italic, em { font-style: normal; }
+.lab-h1 .lab-italic { color: var(--lab-apricot); }
+.lab-lede { max-width: 560px; color: var(--lab-soft); font-size: 17px; line-height: 1.75; }
+.lab-button { border-radius: 999px; min-height: 52px; padding: 15px 26px; font-family: var(--sans); font-size: 14px; font-weight: 600; background: #bd451b; box-shadow: 0 8px 30px #e8612b18; }
+.lab-button:hover { background: #a83814; }
+.lab-quiet { font-size: 13px; color: var(--lab-soft); }
+.lab-scroll-hint { letter-spacing: 0.12em; }
+.lab-marquee { background: #10192a; color: var(--lab-soft); font-size: 14px; border-color: var(--lab-line); }
+.lab-marquee-track { font-style: normal; }
+.lab-week-head h2, .lab-product-head h2, .lab-keep-head h2 { font-size: 48px; line-height: 1.15; letter-spacing: -0.05em; font-weight: 600; }
+.lab-card { border-radius: 24px; background: linear-gradient(145deg, #1d2940, var(--lab-card)); border: 1px solid #ffffff16; box-shadow: none; }
+.lab-card-body { font-family: var(--sans); font-size: 22px; line-height: 1.55; letter-spacing: -0.025em; font-weight: 450; }
+.lab-card-meta { font-family: var(--sans); color: var(--lab-apricot); font-size: 11px; letter-spacing: 0.1em; }
+.lab-card-tag { border-radius: 999px; color: var(--lab-soft); background: #ffffff08; border: 1px solid var(--lab-line); }
+.lab-card-ask { background: linear-gradient(145deg,#272747,#172039); border-color: #aca8ff40; }
+.lab-product { background: radial-gradient(ellipse at 50% 50%, #414c7520, transparent 65%); }
+.lab-preview-tabs { border-radius: 999px; padding: 4px; }
+.lab-preview-tabs button { border-radius: 999px; min-height: 40px; font-size: 12px; }
+.lab-preview-tabs .is-active { color: #161a2b; background: #c3c0ff; }
+.lab-frame { border-radius: 22px; border-color: #ffffff26; box-shadow: 0 30px 100px #0006; }
+.lab-frame-bar { background: #1f293d; color: var(--lab-soft); border-color: #ffffff12; }
+.lab-frame-bar i { background: #6b7892; }
+.lab-phone { border-radius: 46px; background: #283047; box-shadow: 0 25px 90px #0005; }
+.lab-demo-caption { font-size: 12px; color: var(--lab-soft); line-height: 1.7; }
+.lab-keep { padding-top: 100px; padding-bottom: 100px; }
+.lab-keep-lede { font-size: 16px; line-height: 1.8; }
+.lab-keep-list { gap: 18px; }
+.lab-keep-list li { padding: 26px; border-radius: 22px; border: 1px solid var(--lab-line); background: var(--lab-card); }
+.lab-keep-list strong { font-family: var(--sans); font-size: 18px; color: var(--lab-ink); }
+.lab-keep-list span { font-size: 13px; line-height: 1.8; color: var(--lab-soft); }
+.lab-closer { border-top: 1px solid var(--lab-line); background: radial-gradient(ellipse at 50% 100%, #514b9b20, transparent 60%); }
+.lab-closer-line { font-size: 48px; line-height: 1.2; font-weight: 600; letter-spacing: -0.05em; }
+.lab-footer { background: #09101c; color: var(--lab-soft); }
+.lab-footer nav a { min-height: 44px; display: inline-flex; align-items: center; }
+.lab-skip { position: fixed; top: 8px; left: 8px; padding: 14px; z-index: 100; color: #fff; background: #252f48; border-radius: 10px; transform: translateY(-180%); }
+.lab-skip:focus { transform: translateY(0); }
+
+/* The illustrative demo uses the product's actual surface vocabulary. */
+.demo-live { --dl-bg: #f4f5f9; --dl-surface: #fff; --dl-ink: #192132; --dl-muted: #616b7f; --dl-line: #e0e4ee; }
+.dl-app { font-family: var(--sans); background: #f4f5f9; color: #192132; }
+.dl-rail { background: #172033; }
+.dl-topbar { border-color: #e0e4ee; }
+.dl-topbar strong { font-family: var(--sans); letter-spacing: -0.035em; }
+.dl-note, .dl-user, .dl-composer { border-radius: 16px; }
+.dl-user { background: #eeedfb; color: #303453; }
+.dl-reply-body { color: #192132; }
+.dl-link { color: #514eae; background: #eeedfb; }
+
+@media (max-width: 1100px) {
+  .lab-nav-links { gap: 14px; }
+  .lab-nav-links a { font-size: 11px; }
+  .lab-h1 { font-size: 72px; }
+}
+@media (max-width: 760px) {
+  .lab-nav { padding: max(12px, env(safe-area-inset-top)) 18px 12px; }
+  .lab-brand { font-size: 16px; }
+  .lab-nav-links { display: none; }
+  .lab-nav-actions { gap: 12px; }
+  .lab-h1 { font-size: 54px; line-height: 1.04; }
+  .lab-hero-copy { padding: 0 22px; }
+  .lab-lede { font-size: 15px; line-height: 1.7; max-width: 400px; }
+  .lab-eyebrow { font-size: 10px; }
+  .lab-hero-cta > span { gap: 18px; }
+  .lab-week-head h2, .lab-product-head h2, .lab-keep-head h2 { font-size: 34px; }
+  .lab-card { border-radius: 20px; }
+  .lab-card-body { font-size: 20px; }
+  .lab-keep { padding-top: 64px; padding-bottom: 64px; }
+  .lab-keep-list li { padding: 24px; }
+  .lab-closer-line { font-size: 34px; }
+  .lab-frame { border-radius: 16px; }
+}
+@media (max-width: 360px) {
+  .lab-brand { font-size: 14px; gap: 7px; }
+  .lab-brand img { width: 28px; height: 28px; }
+  .lab-nav-login { font-size: 12px; }
+  .lab-nav-signup { padding: 8px 12px; font-size: 12px; }
+  .lab-h1 { font-size: 45px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lab-hero-copy { opacity: 1 !important; }
+  .lab-constellation { opacity: 0.12; }
+  .lab-hero-sticky { min-height: 700px; }
+  .lab-track { grid-template-columns: repeat(auto-fit,minmax(min(100%,280px),1fr)); gap: 18px; }
+  .lab-card { min-height: 260px; }
+}
