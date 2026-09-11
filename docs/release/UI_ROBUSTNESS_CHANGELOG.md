@@ -25,3 +25,17 @@ contract checks now inspect both the view and its extracted submission owner.
 Browser fixtures are fictional and local. No paid model request is needed for
 these scenarios. Screenshots and execution logs belong in ignored `reports/`
 directories and are not part of a public code export.
+
+## Website accessibility — 11 September 2026
+
+The footer home link lost its accessible name when its text was hidden at the
+narrowest width. The seven supporting/classic pages now give that link an
+explicit name. An audit of all eight pages at 320, 390, 834, and 1440 pixels
+found seven link-name violations before the fix and none afterward; none of
+the 32 layouts scroll horizontally. Reduced motion is enabled for the audit.
+
+To reproduce, serve `site/` on loopback port 8878, then run
+`node scripts/audit-site-accessibility.mjs` from `frontend/`. The script uses
+Playwright Chromium and saves screenshots and axe results under ignored
+`reports/ui-robustness/`. `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` can select an
+installed Chrome when the host cannot run Playwright's bundled browser.
