@@ -7,7 +7,8 @@ public actor ThoughtPinsAPIClient {
     private let urlSession: URLSession
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
-    private var refreshTask: Task<ApiSession?, Error>?
+    private var refreshTask: (id: UUID, session: ApiSession, task: Task<ApiSession?, Error>)?
+    private var sessionRenewal = SessionRenewalState()
 
     public init(baseURL: URL, sessionStore: SessionStore, urlSession: URLSession? = nil) {
         self.baseURL = baseURL
@@ -80,6 +81,9 @@ public actor ThoughtPinsAPIClient {
         guard let current = try sessionStore.load() else {
             return
         }
+        // Clear locally before suspension; a pending renewal must not restore it.
+        var localFailure: Error?
+        do { try sessionStore.save(nil) } catch { localFailure = error }
         let serverResult: Result<StatusResponse, Error>
         do {
             let response: StatusResponse = try await request(
@@ -92,8 +96,8 @@ public actor ThoughtPinsAPIClient {
         } catch {
             serverResult = .failure(error)
         }
-        // A network outage must not leave a user signed in on a shared device.
-        try sessionStore.save(nil)
+        // Still attempt server revocation if Keychain refuses the local clear.
+        if let localFailure { throw localFailure }
         _ = try serverResult.get()
     }
 
@@ -600,8 +604,11 @@ public actor ThoughtPinsAPIClient {
         body: Body?,
         idempotencyKey: String? = nil,
         allowRefresh: Bool = true,
-        timeout: TimeInterval? = nil
+        timeout: TimeInterval? = nil,
+        expectedSession: SessionRequestContext? = nil
     ) async throws -> T {
+        let context = auth ? sessionRenewal.capture(try sessionStore.load()) : nil
+        if let expectedSession, context != expectedSession { throw CancellationError() }
         let mutationMethods = ["POST", "PUT", "PATCH", "DELETE"]
         let resolvedIdempotencyKey = idempotencyKey ?? (auth && mutationMethods.contains(method) ? UUID().uuidString : nil)
         var request = URLRequest(url: makeURL(path: path, queryItems: queryItems))
@@ -614,8 +621,8 @@ public actor ThoughtPinsAPIClient {
         request.setValue("no-store", forHTTPHeaderField: "Cache-Control")
         request.setValue("no-cache", forHTTPHeaderField: "Pragma")
         request.setValue(UUID().uuidString, forHTTPHeaderField: "X-Request-ID")
-        if auth, let session = try sessionStore.load() {
-            request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
+        if let context {
+            request.setValue("Bearer \(context.session.accessToken)", forHTTPHeaderField: "Authorization")
         }
         if let resolvedIdempotencyKey {
             request.setValue(resolvedIdempotencyKey, forHTTPHeaderField: "Idempotency-Key")
@@ -625,14 +632,17 @@ public actor ThoughtPinsAPIClient {
         }
 
         let (data, response) = try await urlSession.data(for: request)
+        if let context, sessionRenewal.current(for: context, stored: try sessionStore.load()) == nil {
+            throw CancellationError()
+        }
         guard let http = response as? HTTPURLResponse else {
             throw APIClientError.invalidResponse
         }
         if http.statusCode == 401, auth {
-            if allowRefresh {
-                let refreshed: Bool
+            if allowRefresh, let context {
+                let refreshed: SessionRequestContext?
                 do {
-                    refreshed = try await refreshSession()
+                    refreshed = try await refreshSession(for: context)
                 } catch APIClientError.httpStatus(let refreshStatus, _)
                     where refreshStatus == 401 || refreshStatus == 403 {
                     // The server has rejected the refresh token itself. Nothing
@@ -641,10 +651,13 @@ public actor ThoughtPinsAPIClient {
                     // request failed and the only way out was finding Sign out.
                     // A 5xx during refresh is transient and deliberately not
                     // caught here: that session may still be good.
+                    guard sessionRenewal.current(for: context, stored: try sessionStore.load()) == context else {
+                        throw CancellationError()
+                    }
                     try? sessionStore.save(nil)
                     throw APIClientError.sessionExpired
                 }
-                if refreshed {
+                if let refreshed {
                     return try await self.request(
                         path: path,
                         method: method,
@@ -652,19 +665,25 @@ public actor ThoughtPinsAPIClient {
                         queryItems: queryItems,
                         body: body,
                         idempotencyKey: resolvedIdempotencyKey,
-                        allowRefresh: false
+                        allowRefresh: false,
+                        timeout: timeout,
+                        expectedSession: refreshed
                     )
                 }
-            } else {
+                throw CancellationError()
+            } else if !allowRefresh, let context {
                 // A 401 while carrying a token we refreshed moments ago. The
                 // refresh succeeded and the result is still unauthorised, so the
                 // account is gone or revoked server-side.
+                guard sessionRenewal.current(for: context, stored: try sessionStore.load()) == context else {
+                    throw CancellationError()
+                }
                 try? sessionStore.save(nil)
                 throw APIClientError.sessionExpired
             }
         }
         guard (200..<300).contains(http.statusCode) else {
-            throw APIClientError.httpStatus(http.statusCode, sanitizedErrorMessage(from: data))
+            throw APIClientError.httpStatus(http.statusCode, sanitizedAPIErrorMessage(from: data))
         }
         if T.self == EmptyResponse.self {
             return EmptyResponse() as! T
@@ -682,65 +701,28 @@ public actor ThoughtPinsAPIClient {
         return components.url ?? url
     }
 
-    private func refreshSession() async throws -> Bool {
-        if let refreshTask {
-            return try await refreshTask.value != nil
+    private func refreshSession(for original: SessionRequestContext) async throws -> SessionRequestContext? {
+        guard let current = sessionRenewal.current(for: original, stored: try sessionStore.load()) else { return nil }
+        if current.session != original.session { return current }
+        if let refreshTask, refreshTask.session == current.session {
+            _ = try await refreshTask.task.value
+            return sessionRenewal.current(for: original, stored: try sessionStore.load())
         }
-        guard let current = try sessionStore.load() else {
-            return false
-        }
+        let id = UUID()
         let task = Task<ApiSession?, Error> {
-            var request = URLRequest(url: self.makeURL(path: "/v1/auth/refresh"))
-            request.httpMethod = "POST"
-            request.cachePolicy = .reloadIgnoringLocalCacheData
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.setValue("no-store", forHTTPHeaderField: "Cache-Control")
-            request.setValue(UUID().uuidString, forHTTPHeaderField: "X-Request-ID")
-            let encoder = JSONEncoder()
-            encoder.keyEncodingStrategy = .convertToSnakeCase
-            request.httpBody = try encoder.encode(RefreshRequest(refreshToken: current.refreshToken))
-            let (data, response) = try await self.urlSession.data(for: request)
-            guard let http = response as? HTTPURLResponse else {
-                throw APIClientError.invalidResponse
-            }
-            guard (200..<300).contains(http.statusCode) else {
-                throw APIClientError.httpStatus(http.statusCode, self.sanitizedErrorMessage(from: data))
-            }
-            let decoder = JSONDecoder()
-            decoder.keyDecodingStrategy = .convertFromSnakeCase
-            let tokens = try decoder.decode(TokenResponse.self, from: data)
-            let session = ApiSession(accessToken: tokens.accessToken, refreshToken: tokens.refreshToken)
-            // Stored here, inside the task, and not by whoever happens to be
-            // awaiting it. When the task finishes, the owner and every waiter
-            // become runnable in an unspecified order, and a waiter resuming
-            // first went straight back into request() -- a same-actor call, so
-            // no suspension -- and read the old access token for its retry.
-            // That retry carries allowRefresh: false, so it could not recover:
-            // one concurrent 401 out of several surfaced as a spurious auth
-            // failure. Saving before the task returns removes the window.
+            let session = try await requestSessionRenewal(baseURL: self.baseURL, urlSession: self.urlSession, session: current.session)
+            guard self.sessionRenewal.current(for: current, stored: try self.sessionStore.load()) == current else { return nil }
+            // Publish before waking any waiter, and preserve only this account's generation.
             try self.sessionStore.save(session)
+            self.sessionRenewal.didRenew(session)
             return session
         }
-        refreshTask = task
-        do {
-            let refreshed = try await task.value
-            refreshTask = nil
-            return refreshed != nil
-        } catch {
-            refreshTask = nil
-            throw error
+        refreshTask = (id, current.session, task)
+        defer {
+            if refreshTask?.id == id { refreshTask = nil }
         }
-    }
-
-    private func sanitizedErrorMessage(from data: Data) -> String? {
-        guard
-            data.count <= 64 * 1024,
-            let envelope = try? decoder.decode(APIErrorEnvelope.self, from: data)
-        else {
-            return nil
-        }
-        let message = envelope.error.message.trimmingCharacters(in: .whitespacesAndNewlines)
-        return message.isEmpty ? nil : String(message.prefix(512))
+        _ = try await task.value
+        return sessionRenewal.current(for: original, stored: try sessionStore.load())
     }
 
     // Internal rather than private so the test suite can assert the session's
@@ -819,18 +801,6 @@ private struct OAuthLoginRequest: Encodable {
     let authorizationCode: String?
     let redirectUri: String?
     let nonce: String?
-}
-
-private struct RefreshRequest: Encodable {
-    let refreshToken: String
-}
-
-private struct APIErrorEnvelope: Decodable {
-    let error: APIErrorBody
-}
-
-private struct APIErrorBody: Decodable {
-    let message: String
 }
 
 private struct IngestRequest: Encodable {
