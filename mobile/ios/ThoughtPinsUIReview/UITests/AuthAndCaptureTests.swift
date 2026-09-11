@@ -44,12 +44,35 @@ final class AuthAndCaptureTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = accessibility ? ["--accessibility-review"] : []
         app.launch()
-        XCTAssertTrue(app.tabBars.buttons["Chat"].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.thoughtPinsTab("Chat").waitForExistence(timeout: 20))
         app.buttons["Account"].firstMatch.tap()
         let signOut = app.buttons["Sign out"]
         reveal(signOut, in: app); signOut.tap()
         XCTAssertTrue(app.secureTextFields["Password"].waitForExistence(timeout: 5))
         return app
+    }
+
+    func testNativeTabNavigationAndTabletLandscape() throws {
+        try configure()
+        let app = XCUIApplication(); app.launch()
+        XCTAssertTrue(app.thoughtPinsTab("Chat").waitForExistence(timeout: 20))
+        let tablet = app.frame.width >= 700
+        defer { XCUIDevice.shared.orientation = .portrait }
+        for landscape in tablet ? [false, true] : [false] {
+            if landscape {
+                XCUIDevice.shared.orientation = .landscapeLeft
+                let rotated = XCTNSPredicateExpectation(
+                    predicate: NSPredicate { _, _ in app.frame.width > app.frame.height }, object: app
+                )
+                XCTAssertEqual(XCTWaiter.wait(for: [rotated], timeout: 5), .completed)
+            }
+            for name in ["Recap", "People", "Chat", "Places", "Pins"] {
+                let tab = app.thoughtPinsTab(name)
+                XCTAssertTrue(tab.isHittable); tab.tap()
+                XCTAssertTrue(app.navigationBars[name].waitForExistence(timeout: 5))
+                shot("Navigation-\(name)-\(landscape ? "landscape" : "portrait")")
+            }
+        }
     }
 
     func testSignInValidationPasswordVisibilityAndRecovery() throws {
@@ -78,7 +101,7 @@ final class AuthAndCaptureTests: XCTestCase {
             shot("Auth-retry")
         }
         submit.tap()
-        XCTAssertTrue(app.tabBars.buttons["Chat"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.thoughtPinsTab("Chat").waitForExistence(timeout: 15))
     }
 
     func testSignupAndPhoneKeyboardAtLargestTextSize() throws {
@@ -109,8 +132,8 @@ final class AuthAndCaptureTests: XCTestCase {
     func testFailedLinkRetainsDraftAndCaptureCanGoBack() throws {
         try configure(["POST /v1/library": [503]])
         let app = XCUIApplication(); app.launch()
-        XCTAssertTrue(app.tabBars.buttons["Pins"].waitForExistence(timeout: 20))
-        app.tabBars.buttons["Pins"].tap(); app.buttons["Add a pin"].tap()
+        XCTAssertTrue(app.thoughtPinsTab("Pins").waitForExistence(timeout: 20))
+        app.thoughtPinsTab("Pins").tap(); app.buttons["Add a pin"].tap()
         let link = app.textFields["Article link"]
         reveal(link, in: app); link.tap(); link.typeText("https://example.com/fictional")
         dismissKeyboard(in: app)
@@ -124,6 +147,9 @@ final class AuthAndCaptureTests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [cleared], timeout: 10), .completed)
         let back = app.navigationBars.buttons["Pins"].firstMatch
         XCTAssertTrue(back.isHittable); back.tap()
-        XCTAssertTrue(app.buttons["Add a pin"].isHittable)
+        let returned = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "hittable == true"), object: app.buttons["Add a pin"]
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [returned], timeout: 5), .completed)
     }
 }

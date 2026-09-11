@@ -21,7 +21,7 @@ final class RecoveryTests: XCTestCase {
         try configure(["POST /v1/chat": [503, 429]])
         let app = XCUIApplication()
         app.launch()
-        XCTAssertTrue(app.tabBars.buttons["Chat"].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.thoughtPinsTab("Chat").waitForExistence(timeout: 20))
         let composer = app.descendants(matching: .any)["thoughtpins-chat-input"]
         let send = app.buttons["thoughtpins-chat-send"]
         composer.tap()
@@ -49,14 +49,14 @@ final class RecoveryTests: XCTestCase {
         try configure()
         let app = XCUIApplication()
         app.launch()
-        XCTAssertTrue(app.tabBars.buttons["Chat"].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.thoughtPinsTab("Chat").waitForExistence(timeout: 20))
         let composer = app.descendants(matching: .any)["thoughtpins-chat-input"]
         composer.tap()
         composer.typeText("   ")
         XCTAssertFalse(app.buttons["thoughtpins-chat-send"].isEnabled)
         app.buttons["Dismiss keyboard"].tap()
         XCTAssertFalse(app.keyboards.firstMatch.exists)
-        app.tabBars.buttons["People"].tap()
+        app.thoughtPinsTab("People").tap()
         let search = app.textFields["Search people"]
         search.tap()
         search.typeText("a fictional missing name\n")
@@ -70,7 +70,7 @@ final class RecoveryTests: XCTestCase {
         try configure()
         let app = XCUIApplication()
         app.launch()
-        XCTAssertTrue(app.tabBars.buttons["Chat"].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.thoughtPinsTab("Chat").waitForExistence(timeout: 20))
         app.buttons["Account"].firstMatch.tap()
         let export = app.buttons["Export account"]
         XCTAssertTrue(export.waitForExistence(timeout: 5))
@@ -98,7 +98,7 @@ final class RecoveryTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-thoughtpins.voiceDisclosure.2026-07-13", "NO"]
         app.launch()
-        XCTAssertTrue(app.tabBars.buttons["Chat"].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.thoughtPinsTab("Chat").waitForExistence(timeout: 20))
         app.buttons["Record a voice note"].tap()
         XCTAssertTrue(app.alerts["Record a voice note"].waitForExistence(timeout: 5))
         app.alerts.buttons["Cancel"].tap()

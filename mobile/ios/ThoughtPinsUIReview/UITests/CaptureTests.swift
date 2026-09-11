@@ -24,25 +24,25 @@ final class CaptureTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = []
         app.launch()
-        XCTAssertTrue(app.tabBars.buttons["Chat"].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.thoughtPinsTab("Chat").waitForExistence(timeout: 20))
         for tab in ["Recap", "People", "Chat", "Places", "Pins"] {
-            app.tabBars.buttons[tab].tap()
+            app.thoughtPinsTab(tab).tap()
             shot(tab, app)
         }
-        app.tabBars.buttons["Recap"].tap()
+        app.thoughtPinsTab("Recap").tap()
         let rating = app.buttons["Importance rating"].firstMatch
         reveal(rating, in: app)
         rating.tap()
         app.buttons["Set importance to 3 out of 5"].tap()
         let rated = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "3 out of 5"), object: rating)
         XCTAssertEqual(XCTWaiter.wait(for: [rated], timeout: 5), .completed)
-        app.tabBars.buttons["People"].tap()
+        app.thoughtPinsTab("People").tap()
         let search = app.textFields["Search people"]
         search.tap()
         search.typeText("nomatchingperson\n")
         XCTAssertTrue(app.staticTexts["No matches"].waitForExistence(timeout: 5))
         app.buttons["Clear search"].tap()
-        app.tabBars.buttons["Chat"].tap()
+        app.thoughtPinsTab("Chat").tap()
         let prompt = app.buttons["What has been on my mind?"]
         if !prompt.isHittable { app.swipeDown() }
         prompt.tap()
@@ -65,14 +65,14 @@ final class CaptureTests: XCTestCase {
         let password = app.secureTextFields["Password"]
         password.tap()
         password.typeText("fictional password only\n")
-        XCTAssertTrue(app.tabBars.buttons["Chat"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.thoughtPinsTab("Chat").waitForExistence(timeout: 10))
     }
 
     func testChatComposer() throws {
         let app = XCUIApplication()
         app.launchArguments = []
         app.launch()
-        XCTAssertTrue(app.tabBars.buttons["Chat"].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.thoughtPinsTab("Chat").waitForExistence(timeout: 20))
         let composer = app.descendants(matching: .any)["thoughtpins-chat-input"]
         composer.tap()
         composer.typeText("What should I remember?")
@@ -89,7 +89,7 @@ final class CaptureTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += ["--accessibility-review"]
         app.launch()
-        XCTAssertTrue(app.tabBars.buttons["Chat"].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.thoughtPinsTab("Chat").waitForExistence(timeout: 20))
         let composer = app.descendants(matching: .any)["thoughtpins-chat-input"]
         XCTAssertTrue(composer.isHittable)
         XCTAssertTrue(app.buttons["thoughtpins-chat-send"].exists)
@@ -103,7 +103,7 @@ final class CaptureTests: XCTestCase {
         XCTAssertTrue(reply.isHittable)
         shot("Chat-reply", app)
         for tab in ["Recap", "People", "Places", "Pins"] {
-            app.tabBars.buttons[tab].tap()
+            app.thoughtPinsTab(tab).tap()
             shot(tab, app)
             if tab != "Recap" {
                 let search = app.textFields["Search \(tab.lowercased())"]
@@ -120,7 +120,7 @@ final class CaptureTests: XCTestCase {
     func testLandscapeScreens() throws {
         let app = XCUIApplication()
         app.launch()
-        XCTAssertTrue(app.tabBars.buttons["Chat"].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.thoughtPinsTab("Chat").waitForExistence(timeout: 20))
         guard app.frame.width >= 700 else {
             throw XCTSkip("The production iPhone target supports portrait; rotation is reviewed on iPad.")
         }
@@ -130,7 +130,7 @@ final class CaptureTests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [landscape], timeout: 5), .completed)
         XCTAssertTrue(app.descendants(matching: .any)["thoughtpins-chat-input"].isHittable)
         for tab in ["Chat", "Recap", "People", "Places", "Pins"] {
-            app.tabBars.buttons[tab].tap()
+            app.thoughtPinsTab(tab).tap()
             shot(tab, app)
         }
     }

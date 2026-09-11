@@ -335,7 +335,7 @@ jobs:
     # So: it runs on a push to main **when the push touched iOS**, on a v* tag,
     # and on demand. A Python-only or docs-only commit still costs nothing. A
     # commit that changes Swift, the project spec, or the iOS scripts cannot
-    # reach main without the archive having been built.
+    # receive a successful iOS check without tests and an archive build.
     #
     # Pull requests stay excluded: a branch is usually pushed many times before
     # it merges, and main is the boundary that matters.
@@ -429,6 +429,7 @@ jobs:
           done
           curl --fail --silent http://127.0.0.1:8877/__review > /dev/null
           xcodegen generate --spec mobile/ios/ThoughtPinsUIReview/project.yml
+          NATIVE_TEST_STATUS=0
           for DEVICE_FAMILY in iPhone iPad; do
             TEST_DEVICE=$(xcrun simctl list devices available --json | python3 -c '
           import json, sys
@@ -441,12 +442,25 @@ jobs:
                       print(device["udid"])
                       sys.exit(0)
           sys.exit("No available simulator for " + sys.argv[1])' "$DEVICE_FAMILY")
-            xcodebuild -project mobile/ios/ThoughtPinsUIReview/DesignReview.xcodeproj \
+            if ! xcodebuild -project mobile/ios/ThoughtPinsUIReview/DesignReview.xcodeproj \
             -scheme DesignReview -destination "platform=iOS Simulator,id=$TEST_DEVICE" \
             -parallel-testing-enabled NO -derivedDataPath "$RUNNER_TEMP/NativeReviewBuild" \
             -resultBundlePath "$RUNNER_TEMP/native-review-$DEVICE_FAMILY.xcresult" \
-            -only-testing:ModelTests -only-testing:DesignReviewTests/AuthAndCaptureTests test
+            -only-testing:ModelTests -only-testing:DesignReviewTests/AuthAndCaptureTests test; then
+              NATIVE_TEST_STATUS=1
+            fi
             xcrun simctl shutdown "$TEST_DEVICE" || true
+          done
+          exit "$NATIVE_TEST_STATUS"
+
+      - name: Export native screenshots for review without Xcode
+        if: always()
+        run: |
+          for result in "$RUNNER_TEMP"/native-review-*.xcresult; do
+            if [ -f "$result/Info.plist" ]; then
+              xcrun xcresulttool export attachments --path "$result" --output-path "${result%.xcresult}-images"
+              xcrun xcresulttool get test-results summary --path "$result" > "${result%.xcresult}-summary.json"
+            fi
           done
 
       - name: Keep native test results and screenshots
@@ -454,7 +468,18 @@ jobs:
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: native-auth-capture-review
-          path: ${{ runner.temp }}/native-review-*.xcresult
+          path: |
+            ${{ runner.temp }}/native-review-*.xcresult
+            ${{ runner.temp }}/native-review-*-summary.json
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Keep portable native screenshots
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: native-review-screenshots
+          path: ${{ runner.temp }}/native-review-*-images
           retention-days: 30
           if-no-files-found: warn
 
