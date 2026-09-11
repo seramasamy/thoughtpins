@@ -6,6 +6,7 @@ import type { ScreenProps } from "../../app/types";
 import type { IngestResponse } from "../../types";
 import { EmptyState, IconButton, KeyValue, PrimaryButton, SecondaryButton, StatusPill } from "../../components/ui";
 import { truncate } from "../../components/format";
+import { useExclusiveAction } from "../../components/useExclusiveAction";
 import { EncryptedDraftQueue, browserStorage, syncDraftQueue, type CaptureDraft, type DraftSyncSummary } from "../../core";
 
 export function CaptureView({ token, run }: ScreenProps) {
@@ -15,6 +16,7 @@ export function CaptureView({ token, run }: ScreenProps) {
   const [syncSummary, setSyncSummary] = useState<DraftSyncSummary | null>(null);
   const [queueMessage, setQueueMessage] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<IngestResponse | null>(null);
+  const { pending, perform } = useExclusiveAction();
 
   const queue = useMemo(() => {
     const storage = browserStorage();
@@ -31,30 +33,37 @@ export function CaptureView({ token, run }: ScreenProps) {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    const body = text.trim();
-    if (!body) return;
+    await perform(async () => {
+      const submitted = text;
+      const body = text.trim();
+      if (!body) return;
 
-    // A queued entry is accepted but not yet enriched. Saying "saved" for both
-    // outcomes is what makes a queued entry look finished while its memories are
-    // still missing, so the two are reported differently.
-    const queuedNotice = "Entry queued. Memories appear once processing finishes.";
-    const result = await run(() => api.ingest(token, body), (response) =>
-      response?.status === "queued" ? queuedNotice : "Entry saved",
-    );
-    if (result) {
-      setSavedAt(new Date());
-      setText("");
-      setQueueMessage(null);
-      setLastResult(result);
+      // A queued entry is accepted but not yet enriched. Saying "saved" for both
+      // outcomes is what makes a queued entry look finished while its memories are
+      // still missing, so the two are reported differently.
+      const queuedNotice = "Entry queued. Memories appear once processing finishes.";
+      const result = await run(() => api.ingest(token, body), (response) =>
+        response?.status === "queued" ? queuedNotice : "Entry saved",
+      );
+      if (result) {
+        setSavedAt(new Date());
+        setText(current => current === submitted ? "" : current);
+        setQueueMessage(null);
+        setLastResult(result);
+        void refreshDrafts();
+        return;
+      }
+
+      if (!queue) return;
+      const queued = await run(() => queue.create(body, "queued"));
+      if (!queued) {
+        setQueueMessage("Could not save locally. Your text is still here; try saving again.");
+        return;
+      }
+      setText(current => current === submitted ? "" : current);
+      setQueueMessage("Saved locally. Sync queued drafts when the connection or backend is healthy.");
       void refreshDrafts();
-      return;
-    }
-
-    if (!queue) return;
-    await queue.create(body, "queued");
-    setText("");
-    setQueueMessage("Saved locally. Sync queued drafts when the connection or backend is healthy.");
-    void refreshDrafts();
+    });
   };
 
   const syncQueued = async () => {
@@ -91,7 +100,7 @@ export function CaptureView({ token, run }: ScreenProps) {
           <span className="capture-saved">{savedAt ? `Last saved ${savedAt.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}` : "Not saved yet"}</span>
           <div className="capture-editor-actions">
             <span className="subtle">{text.length.toLocaleString()} / 50,000</span>
-            <PrimaryButton disabled={!text.trim()}>
+            <PrimaryButton disabled={pending || !text.trim()}>
               <Send size={16} />
               Save
             </PrimaryButton>

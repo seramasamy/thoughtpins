@@ -92,7 +92,7 @@ export function useChatSubmission(options: Options) {
         text: body, conversation_id: "main", include_private: o.includePrivate,
         confirm_action: Boolean(forceConfirm || (o.pendingActionId && intent === "confirm")),
         pending_action_id: o.pendingActionId, supersedes_message_id: supersedesId,
-      }, controller.signal));
+      }, controller.signal), "");
       if (!mounted.current || controller.signal.aborted) return;
       if (!result) { recoverDraft(); return; }
       o.setLastResponse(result);

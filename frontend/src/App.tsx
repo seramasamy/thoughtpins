@@ -93,7 +93,9 @@ export default function App() {
     try {
       const result = await task();
       const message = typeof success === "function" ? success(result) : success;
-      if (message) setNotice({ tone: "ok", text: message });
+      // An explicit empty success message clears a recovered action's error
+      // without adding a toast to every chat reply. Reads omit this argument.
+      if (success !== undefined) setNotice(message ? { tone: "ok", text: message } : null);
       return result;
     } catch (error) {
       // A cancelled request is a choice the person made, not a failure. Let the

@@ -7,6 +7,7 @@ import type { LibrarySourceResponse } from "../../types";
 import { cleanDisplayText, displayStatus, formatShortDate, humanizeIdentifier } from "../../components/format";
 import { ContentSkeleton, EmptyState, IconButton, PrimaryButton, StatusPill, useContentSwap } from "../../components/ui";
 import { runOnEnter } from "../../components/keyboard";
+import { useExclusiveAction } from "../../components/useExclusiveAction";
 
 export function PinsView({ token, run }: ScreenProps) {
   const [sources, setSources] = useState<LibrarySourceResponse[]>([]);
@@ -16,6 +17,7 @@ export function PinsView({ token, run }: ScreenProps) {
   const [loaded, setLoaded] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const swap = useContentSwap(loaded);
+  const { pending, perform } = useExclusiveAction();
 
   const load = useCallback(async () => {
     const result = await run(() => api.librarySources(token, 100));
@@ -36,18 +38,21 @@ export function PinsView({ token, run }: ScreenProps) {
 
   const savePin = async (event: FormEvent) => {
     event.preventDefault();
-    const value = capture.trim();
-    if (!value) return;
-    const isUrl = /^https?:\/\/\S+$/i.test(value);
-    const result = await run(() => api.createLibrarySource(token, {
-      url: isUrl ? value : null,
-      text: isUrl ? null : value,
-      source_type: isUrl ? "article" : "note",
-    }), isUrl ? "Link pinned" : "Note pinned");
-    if (result) {
-      setCapture("");
-      await load();
-    }
+    await perform(async () => {
+      const submitted = capture;
+      const value = capture.trim();
+      if (!value) return;
+      const isUrl = /^https?:\/\/\S+$/i.test(value);
+      const result = await run(() => api.createLibrarySource(token, {
+        url: isUrl ? value : null,
+        text: isUrl ? null : value,
+        source_type: isUrl ? "article" : "note",
+      }), isUrl ? "Link pinned" : "Note pinned");
+      if (result) {
+        setCapture(current => current === submitted ? "" : current);
+        await load();
+      }
+    });
   };
 
   const upload = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -79,7 +84,7 @@ export function PinsView({ token, run }: ScreenProps) {
         <input value={capture} onChange={(event) => setCapture(event.target.value)} placeholder="Paste a link or note..." aria-label="New pin" enterKeyHint="done" />
         <input ref={fileRef} className="visually-hidden" type="file" onChange={upload} aria-label="Choose a document to pin" />
         <IconButton type="button" onClick={() => fileRef.current?.click()} aria-label="Upload a document" title="Upload a document"><FileUp size={17} /></IconButton>
-        <PrimaryButton disabled={!capture.trim()} aria-label="Save pin"><Pin size={16} />Pin</PrimaryButton>
+        <PrimaryButton disabled={pending || !capture.trim()} aria-label="Save pin"><Pin size={16} />Pin</PrimaryButton>
       </form>
 
       <div className="pins-toolbar">

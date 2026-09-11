@@ -21,6 +21,7 @@ for (const status of [429, 503]) {
     await expect(composer(page)).toHaveValue("My fictional note includes a detail I must not lose.");
     await page.getByRole("button", { name: "Send message", exact: true }).click();
     await expect(page.getByText(reply, { exact: true })).toBeVisible();
+    await expect(page.getByText("Please try again shortly.", { exact: true })).toHaveCount(0);
     expect(mock?.getChatPostCount()).toBe(1);
     await expect(page.locator(".chat-message-row.user")).toHaveCount(1);
   });

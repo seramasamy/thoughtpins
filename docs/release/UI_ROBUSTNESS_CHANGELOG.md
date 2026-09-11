@@ -39,3 +39,24 @@ To reproduce, serve `site/` on loopback port 8878, then run
 Playwright Chromium and saves screenshots and axe results under ignored
 `reports/ui-robustness/`. `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` can select an
 installed Chrome when the host cannot run Playwright's bundled browser.
+
+## Web saves and offline recovery — 11 September 2026
+
+Journal and pin saves now reject overlapping submissions, including two form
+events before a render. Completion clears only the submitted draft, preserving
+new text typed during the request. A local-storage failure keeps journal text
+editable and explains that it still needs saving. A successful chat retry
+clears the previous error without adding a success toast to each reply.
+
+Six saving scenarios pass: duplicate journal/pin submissions, newer-text
+preservation, failed pin retry, exact account-deletion confirmation and failed
+deletion recovery, encrypted offline drafts surviving reload, and storage
+exhaustion. The two original save-lock scenarios failed before the fix. Chat
+429/503 recovery was rerun after the notice change and passes.
+
+## Website cache consistency — 11 September 2026
+
+The release gate found two cache versions in use across the redesigned site.
+All versioned references now use `20260911-robustness-1`, and the recorded
+digest covers all 26 referenced assets. Returning visitors can receive the
+updated styles, fonts, previews, and manifest together. The cache gate passes.
