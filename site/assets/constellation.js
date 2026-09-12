@@ -12,38 +12,81 @@
   let pageActive = true;
   const moving = () => !reduced.matches && document.documentElement.dataset.motionPaused === "false";
   const visible = () => inView && !document.hidden && pageActive;
-  const nodes = Array.from({ length: 64 }, (_, i) => {
-    // Golden-angle placement keeps the composition stable across resizes.
-    const angle = i * 2.3999632297;
-    const radius = 0.45 + ((i * 17) % 31) / 62;
-    return { x: 0.5 + Math.cos(angle) * radius * 0.64,
-      y: 0.48 + Math.sin(angle) * radius * 0.62, phase: angle, hub: i % 7 === 0 };
-  });
+  let seed = 731;
+  const random = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296);
+  const nodes = Array.from({ length: 112 }, (_, i) => ({
+    // Seeded positions preserve the original scattered constellation on resize.
+    x: 0.02 + random() * 0.96, y: 0.04 + random() * 0.92,
+    phase: random() * Math.PI * 2, depth: 0.45 + random() * 0.55,
+    warm: i % 4 === 0, hub: i % 9 === 0,
+  }));
+  let active = [], links = [];
+  function connect() {
+    active = nodes.slice(0, width < 600 ? 64 : 112);
+    const distance = (a, b) => Math.hypot((a.x - b.x) * width, (a.y - b.y) * height);
+    const pairs = new Map();
+    const add = (a, b) => pairs.set(`${Math.min(a, b)}:${Math.max(a, b)}`, { a, b });
+    // A spanning tree keeps every memory connected; nearby links add structure.
+    // Build only on resize, not on every animation frame.
+    const joined = new Set([0]);
+    const nearest = active.map((node, i) => ({ from: 0, to: i, length: distance(active[0], node) }));
+    while (joined.size < active.length) {
+      const next = nearest.filter(edge => !joined.has(edge.to)).reduce((a, b) => a.length < b.length ? a : b);
+      add(next.from, next.to);
+      joined.add(next.to);
+      active.forEach((node, i) => {
+        const length = distance(active[next.to], node);
+        if (length < nearest[i].length) nearest[i] = { from: next.to, to: i, length };
+      });
+    }
+    active.forEach((node, i) => {
+      active.map((other, j) => ({ j, length: distance(node, other) }))
+        .filter(other => other.j !== i).sort((a, b) => a.length - b.length).slice(0, 2)
+        .forEach(other => add(i, other.j));
+    });
+    links = [...pairs.values()];
+  }
   function draw() {
     ctx.clearRect(0, 0, width, height);
     const time = elapsed / 1000;
-    const points = nodes.slice(0, width < 600 ? 40 : 64).map(node => ({ ...node,
-      x: node.x * width + Math.sin(time * 0.22 + node.phase) * 12,
-      y: node.y * height + Math.cos(time * 0.18 + node.phase) * 10 }));
-    const reach = Math.min(210, Math.max(110, width * 0.17));
+    const points = active.map(node => ({ ...node,
+      x: node.x * width + Math.sin(time * 0.3 + node.phase) * 22 * node.depth,
+      y: node.y * height + Math.cos(time * 0.24 + node.phase) * 26 * node.depth }));
+    const cool = "180,174,255", warm = "244,180,147";
+    // Faint long connections give the closer mesh a second, deeper layer.
+    const hubs = points.filter(point => point.hub);
+    ctx.lineWidth = 0.65;
+    hubs.forEach((a, i) => {
+      const b = hubs[(i + 1) % hubs.length];
+      ctx.strokeStyle = `rgba(${warm},0.075)`;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    });
     ctx.lineWidth = 0.8;
-    for (let i = 0; i < points.length; i++) {
-      const a = points[i];
-      // At most three forward links per point keep the mesh legible.
-      const near = points.slice(i + 1).map(b => ({ b, distance: Math.hypot(a.x - b.x, a.y - b.y) }))
-        .filter(({ distance }) => distance < reach).sort((a, b) => a.distance - b.distance).slice(0, 3);
-      for (const { b, distance } of near) {
-        ctx.strokeStyle = `rgba(172,168,255,${0.22 * (1 - distance / reach)})`;
-        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    links.forEach((link, i) => {
+      const a = points[link.a], b = points[link.b];
+      const color = a.warm || b.warm ? warm : cool;
+      ctx.strokeStyle = `rgba(${color},${0.14 + 0.12 * Math.min(a.depth, b.depth)})`;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      if (i % 23 === 0) {
+        const progress = (time * 0.09 + i * 0.137) % 1;
+        ctx.fillStyle = `rgba(${color},${Math.sin(progress * Math.PI) ** 2 * 0.85})`;
+        ctx.beginPath(); ctx.arc(a.x + (b.x - a.x) * progress, a.y + (b.y - a.y) * progress, 1.8, 0, Math.PI * 2); ctx.fill();
       }
-      if (a.hub) {
-        ctx.beginPath(); ctx.arc(a.x, a.y, 7, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(232,137,95,0.19)"; ctx.stroke();
+    });
+    points.forEach(point => {
+      const color = point.warm || point.hub ? warm : cool;
+      const glow = ctx.createRadialGradient(point.x, point.y, 0, point.x, point.y, point.hub ? 18 : 8);
+      glow.addColorStop(0, `rgba(${color},${point.hub ? 0.28 : 0.13})`);
+      glow.addColorStop(1, `rgba(${color},0)`);
+      ctx.fillStyle = glow;
+      ctx.beginPath(); ctx.arc(point.x, point.y, point.hub ? 18 : 8, 0, Math.PI * 2); ctx.fill();
+      if (point.hub) {
+        ctx.strokeStyle = `rgba(${color},0.35)`;
+        ctx.beginPath(); ctx.arc(point.x, point.y, 6.5, 0, Math.PI * 2); ctx.stroke();
       }
-      ctx.beginPath(); ctx.arc(a.x, a.y, a.hub ? 2.4 : 1.4, 0, Math.PI * 2);
-      ctx.fillStyle = a.hub ? "rgba(232,137,95,0.85)" : "rgba(190,188,255,0.64)";
-      ctx.fill();
-    }
+      ctx.fillStyle = `rgba(${color},${0.65 + 0.2 * Math.sin(time * 0.55 + point.phase)})`;
+      ctx.beginPath(); ctx.arc(point.x, point.y, point.hub ? 2.6 : 1 + point.depth, 0, Math.PI * 2); ctx.fill();
+    });
   }
   function tick(now) {
     frame = 0;
@@ -71,6 +114,7 @@
     canvas.width = Math.round(width * dpr);
     canvas.height = Math.round(height * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    connect();
     sync();
   }
   if ("ResizeObserver" in window) new ResizeObserver(resize).observe(canvas);

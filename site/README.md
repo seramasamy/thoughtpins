@@ -33,7 +33,10 @@ return link. The modern header and footer do not advertise the classic route.
 progressive reveals and example controls; `assets/motion-preference.js` shares
 the session choice with the classic site;
 `assets/constellation.js` owns the decorative canvas. Keep the network bounded
-(40 nodes on phones, 64 otherwise, 30 draws/second, pixel ratio capped at 2).
+(64 nodes on phones, 112 otherwise, 30 draws/second, pixel ratio capped at 2).
+Seeded floating nodes, warm glows and traveling signals retain the original
+connected-memory character. A spanning tree and nearby links are computed only
+on resize; the network stays connected without sorting neighbors every frame.
 Pause when offscreen, hidden or leaving the page, and resume on restoration.
 The motion toggle and live system Reduce Motion changes cover both canvas and
 marquee. All content and native scrolling remain usable without JavaScript.

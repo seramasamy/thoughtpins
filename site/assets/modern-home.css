@@ -5,13 +5,13 @@ html { scroll-padding-top: 100px; }
 .lab-nav-links { justify-content: center; }
 .lab-nav-links a, .lab-nav-login, .lab-brand { min-height: 44px; display: inline-flex; align-items: center; }
 .lab-brand span { font-family: var(--sans); font-weight: 650; letter-spacing: -0.04em; }
-.lab-hero { height: auto; }
+.lab-hero { height: auto; background: radial-gradient(ellipse at 12% 62%, #a6583610, transparent 50%), radial-gradient(ellipse at 82% 28%, #514b9b2b, transparent 60%), var(--lab-bg); }
 .lab-hero-sticky { position: relative; height: auto; min-height: min(900px, 100svh); padding: 180px 0 150px; }
 .lab-hero-copy { opacity: 1; width: min(1060px, 100%); }
 .lab-h1 { font-size: clamp(48px, 7.5vw, 100px); letter-spacing: -0.065em; }
 .lab-h1 .lab-italic { font-weight: 600; }
 .lab-lede { max-width: 510px; }
-.lab-constellation { pointer-events: none; mask-image: radial-gradient(ellipse at center, #0003 18%, #000 65%); -webkit-mask-image: radial-gradient(ellipse at center, #0003 18%, #000 65%); }
+.lab-constellation { pointer-events: none; mask-image: radial-gradient(ellipse at 50% 47%, #0008 12%, #000c 45%, #000 72%); -webkit-mask-image: radial-gradient(ellipse at 50% 47%, #0008 12%, #000c 45%, #000 72%); }
 .lab-button { gap: 20px; }
 .lab-scroll-hint { bottom: 32px; font-size: 10px; gap: 12px; }
 .lab-scroll-hint span { height: 24px; }
@@ -86,5 +86,5 @@ html[data-motion-paused="true"] .lab-marquee-track { animation-play-state: pause
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
-  .lab-constellation { opacity: 0.6; }
+  .lab-constellation { opacity: 0.85; }
 }
