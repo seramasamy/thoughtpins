@@ -72,24 +72,88 @@ stage an inspectable contract.
 | **Durable asynchronous work** | Relational job claims, broker handoff recovery and deduplicated persistence address interrupted and repeated delivery. [Technical walkthrough](docs/architecture/TECHNICAL_REVIEW_GUIDE.md#privacy-semantics) |
 | **Tenant and lifecycle boundaries** | User-scoped storage, PostgreSQL RLS, private-recall controls, token rotation, export and coordinated deletion across derived indexes. [RLS verification](scripts/verify_postgres_rls.py) · [Lifecycle](src/thoughtpins/data_lifecycle.py) |
 
+### Eight-channel retrieval, from question to evidence
+
+On capture, original sources and extracted entities, relationships and memories
+are persisted in SQL; vector and graph projections provide additional access
+paths. SQL holds the authoritative records, and supported derived indexes can
+be rebuilt. At query time, the following stages assemble evidence for a reply.
+
 ```mermaid
-flowchart LR
-    Capture["Writing · voice · sources"] --> Source["Durable source record"]
-    Source --> Extract["Typed extraction"]
-    Extract --> Memory[("SQL memory + provenance")]
-    Memory --> Derived["Derived vector / graph indexes"]
-    Query["Question + tenant + privacy scope"] --> Search["Hybrid candidates"]
-    Memory --> Search
-    Derived --> Search
-    Search --> Rank["Rank + diversify + cover"]
-    Rank --> Evidence["Bounded evidence context"]
-    Evidence --> Answer["Model response"]
+%%{init: {'flowchart': {'nodeSpacing': 20, 'rankSpacing': 24}}}%%
+flowchart TB
+    Query["Question + user scope<br/>+ private-recall policy"] --> Channels
+
+    subgraph Channels["1 · Candidate generation — search.py"]
+        direction LR
+        subgraph Text["Text and source lookup"]
+            direction TB
+            Exact["exact_phrase<br/>Literal wording"]
+            Keyword["keyword<br/>Extracted memory text"]
+            Raw["raw_keyword<br/>Original entry text"]
+            Title["document_title<br/>Saved source titles"]
+            Exact ~~~ Keyword ~~~ Raw ~~~ Title
+        end
+        subgraph Structure["Semantic and structured lookup"]
+            direction TB
+            Vector["vector<br/>Embedding similarity"]
+            Entity["entity_filter · optional<br/>Entity-linked memories"]
+            SQLGraph["sql_graph<br/>Related-entity memories"]
+            Graph["graph_evidence<br/>Relationship facts and paths"]
+            Vector ~~~ Entity ~~~ SQLGraph ~~~ Graph
+        end
+        Text ~~~ Structure
+    end
+
+    Channels --> Merge["2 · Merge candidates<br/>Identity + sources + channel ranks"]
+    Merge --> Rank["3 · Rank fusion — ranking.py<br/>RRF + bounded evidence features"]
+    Rank --> Select["4 · Select evidence<br/>Adaptive MMR + coverage"]
+    Select --> Context["5 · Build context<br/>Sources + plan + token budget"]
+    Context --> Answer["6 · Model response<br/>Evidence is untrusted input"]
+
+    classDef boundary fill:#172039,stroke:#8795bc,color:#f4f6ff
+    classDef channel fill:#f4f2ff,stroke:#7566ca,color:#24233c
+    classDef stage fill:#fff0e5,stroke:#c76835,color:#482a1a
+    class Query,Answer boundary
+    class Exact,Keyword,Raw,Title,Vector,Entity,SQLGraph,Graph channel
+    class Merge,Rank,Select,Context stage
+    style Channels fill:#f5f7fb,stroke:#a8b3cb,color:#172039
+    style Text fill:#ffffff,stroke:#c5cddd,color:#172039
+    style Structure fill:#ffffff,stroke:#c5cddd,color:#172039
 ```
 
-SQL holds the authoritative records; supported derived indexes can be rebuilt.
-The ranking score is a retrieval heuristic, not a probability that an answer is
-true. Model behavior and index availability are evaluated separately from
-replaying a fixed candidate set.
+The channel groups show complementary mechanisms, not parallel execution or
+independent votes. The current collectors run sequentially; `entity_filter`
+runs only when supplied. Each collector has an exception boundary, and losing
+a channel can reduce recall. Vector hits are checked against scoped SQL
+records before admission. The lexical channels use the project's token/phrase
+scoring; BM25 is a separate evaluation baseline.
+
+**Why combine these paths?** A rare name can survive literal lookup when its
+embedding match is weak. A paraphrase can benefit from vectors. Graph expansion
+can reach related memories, while raw-entry lookup can recover wording that
+extraction omitted. These are design motivations; channel ablations determine
+their measured contribution on a given workload.
+
+**How does a candidate become context?** Duplicate candidate identities retain
+the channels that found them and their ranks. Reciprocal rank fusion contributes
+`RRF(d) = Σc 1 / (60 + max(1, rank_c(d)))`; the final score also uses bounded
+lexical, temporal, salience and social-attribution features. The 20 validated
+ranking parameters define a heuristic policy, not a learned reranker or a
+probability of correctness. Adaptive maximal marginal relevance (MMR) reduces
+redundancy, and coverage checks retain evidence for the question's different
+aspects. The evidence plan and context budget then prepare labelled material
+for the response model.
+
+**What can an engineer verify?** Candidate generation, fixed-pool ranking and
+live-model answers are separate evaluation targets. Replay a cloned candidate
+pool with a pinned `as_of_date` under policy ablations; measure source-level
+Recall@k, MRR/nDCG and evidence coverage. The
+[search recovery tests](tests/test_search_resilience.py),
+[recall tests](tests/test_search_recall.py) and
+[ranking regressions](tests/test_retrieval_robustness.py) cover concrete failure
+cases. Larger holdouts, dense/learned baselines and production latency/cost
+measurements remain the next evidence to establish.
 
 **For a research or AI systems review:** start with the [algorithm walkthrough](docs/architecture/RETRIEVAL_ARCHITECTURE.md),
 then the [evaluation protocol](docs/architecture/EXTERNAL_MEMORY_BENCHMARKS.md)
