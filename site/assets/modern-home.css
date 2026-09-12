@@ -11,7 +11,7 @@ html { scroll-padding-top: 100px; }
 .lab-h1 { font-size: clamp(48px, 7.5vw, 100px); letter-spacing: -0.065em; }
 .lab-h1 .lab-italic { font-weight: 600; }
 .lab-lede { max-width: 510px; }
-.lab-constellation { pointer-events: none; mask-image: radial-gradient(ellipse at 50% 47%, #0008 12%, #000c 45%, #000 72%); -webkit-mask-image: radial-gradient(ellipse at 50% 47%, #0008 12%, #000c 45%, #000 72%); }
+.lab-constellation { pointer-events: none; mask-image: none; -webkit-mask-image: none; }
 .lab-button { gap: 20px; }
 .lab-scroll-hint { bottom: 32px; font-size: 10px; gap: 12px; }
 .lab-scroll-hint span { height: 24px; }

@@ -32,16 +32,20 @@ return link. The modern header and footer do not advertise the classic route.
 `assets/modern-home.css` owns this composition. `assets/labs.js` owns the
 progressive reveals and example controls; `assets/motion-preference.js` shares
 the session choice with the classic site;
-`assets/constellation.js` owns the decorative canvas. Keep the network bounded
-(64 nodes on phones, 112 otherwise, 30 draws/second, pixel ratio capped at 2).
-Seeded floating nodes, warm glows and traveling signals retain the original
-connected-memory character. A spanning tree and nearby links are computed only
-on resize; the network stays connected without sorting neighbors every frame.
+`assets/constellation.js` owns the decorative canvas. Its floating phase was
+recovered from pre-redesign backup `a67bbdf`: 135 motes on every screen, the
+original individual floating speeds, 14px wobble, 12px vertical drift, dynamic
+nearby links and long fine strands. Keep the original display-synchronized
+cadence and pixel ratio cap of 2. Do not thin the phone field or slow its clock.
+Positions scale on resize without reshuffling. The current hero keeps its text
+visible; the old scroll-to-logo sequence is separate from the floating field.
 Pause when offscreen, hidden or leaving the page, and resume on restoration.
 The motion toggle and live system Reduce Motion changes cover both canvas and
 marquee. All content and native scrolling remain usable without JavaScript.
 Product captures reserve their dimensions before lazy loading to avoid layout
-shifts. `frontend/site-e2e/motion.spec.ts` covers these behavior boundaries.
+shifts. `frontend/site-e2e/motion.spec.ts` covers these behavior boundaries;
+`frontend/site-e2e/constellation.spec.ts` checks the original density, displacement
+and changing connections against a controlled display clock.
 
 Public diagrams in the repository use the self-contained static
 [retrieval SVG](../docs/architecture/assets/retrieval-pipeline.svg), with a text
