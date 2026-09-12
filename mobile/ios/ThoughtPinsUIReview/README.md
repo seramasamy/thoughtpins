@@ -29,6 +29,12 @@ does not require the runner's Xcode version.
 selection across visibility changes, typing/deletion after concealment, and
 publishing the latest input before Return submits. Password entry keeps one
 native text field rather than replacing it when Show/Hide changes.
+It also verifies that enabled/focus changes are deferred beyond the render
+transaction and that newer updates or dismantling cancel queued work. Disabling
+an active UIKit input directly inside `updateUIView` previously re-entered
+SwiftUI's focus graph and froze keyboard submission. The capture flow exercises
+that real Go-key path. Control-reveal checks include the keyboard and accessory
+toolbar bounds, since XCTest's hittability alone can include covered fields.
 
 The app currently advertises ordinary password AutoFill. Automatic strong-password
 generation needs a configured `webcredentials` association and a separate signed

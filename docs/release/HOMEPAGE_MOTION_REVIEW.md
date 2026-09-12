@@ -2,7 +2,8 @@
 
 This change keeps the mineral/violet/ember visual system and makes the public
 site easier to read and navigate. It changes presentation and animation
-lifecycle behavior; it does not change retrieval, authentication or storage.
+lifecycle behavior, including native password focus; retrieval, authentication
+protocols and storage contracts are unchanged.
 
 | Surface | Change | Reason |
 | --- | --- | --- |
@@ -13,6 +14,7 @@ lifecycle behavior; it does not change retrieval, authentication or storage.
 | Site motion | A stable violet/ember network with capped drawing and a shared Pause motion control. Marquee copies include their trailing gap. | Avoid reshuffling on resize, loop seams, background canvas work and inaccessible autoplay. Both homepages and their button hover effects share the session choice and live Reduce Motion setting. Canvas work also follows page visibility and viewport intersection. |
 | Both product previews | Reserve screenshot aspect ratios before lazy loading. | Avoid the collapsed phone frame and layout jump on slow connections. |
 | Native iOS | A static vector network replaces blurred decorative orbits; sign-in uses one compact brand header; thinking dots use a bounded timeline. Press feedback respects Reduce Motion. | Crisp graphics and less form scrolling on compact phones, with loading animation tied to view visibility, active scene and accessibility preference. |
+| Native password submission | Apply enabled/focus changes after SwiftUI finishes rendering; cancel stale queued updates when the field changes or is removed. | Pressing the keyboard's Go action could freeze sign-in when disabling the active UIKit field re-entered SwiftUI's focus graph. The Return-key workflow and direct coordinator test cover this path. |
 
 ## Reproduce the checks
 
@@ -41,6 +43,12 @@ against fictional fixtures for navigation, authentication, error recovery,
 Dynamic Type and iPad rotation. Use the CI results for the exact commit when
 reviewing a current iOS SDK. Local macOS 13 cannot run the current Playwright
 WebKit build or produce an App Store upload with a supported Xcode version.
+
+Native review also checks the visible bounds above the software keyboard and
+its accessory toolbar. A control reported as hittable by XCTest can still be
+covered on a newer simulator. The test waits for keyboard readiness before
+checking the password field after Next, and submits through Go as well as the
+button. These checks retain the actual focus and successful sign-in assertions.
 
 The site cache key and digest move together so returning visitors receive the
 new assets. The domain and public-route checks follow the registration link,

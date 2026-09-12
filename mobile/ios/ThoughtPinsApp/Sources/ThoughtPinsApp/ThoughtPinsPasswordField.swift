@@ -66,22 +66,38 @@ struct ThoughtPinsPasswordInput: UIViewRepresentable {
     func updateUIView(_ field: ThoughtPinsPasswordTextField, context: Context) {
         context.coordinator.parent = self
         field.configure(text: text, revealed: revealed, fontSize: fontSize)
-        field.isEnabled = context.environment.isEnabled
-        if (isFocused && field.isEnabled) != field.isFirstResponder {
-            // SwiftUI must finish updating the identifier's focus before UIKit
-            // transfers first responder to this input on the next run loop.
-            let coordinator = context.coordinator
-            DispatchQueue.main.async { [weak field] in
-                guard let field else { return }
-                if coordinator.parent.isFocused && field.isEnabled { field.becomeFirstResponder() }
-                else { field.resignFirstResponder() }
-            }
-        }
+        context.coordinator.updateInteraction(field, isEnabled: context.environment.isEnabled)
+    }
+
+    static func dismantleUIView(_ field: ThoughtPinsPasswordTextField, coordinator: Coordinator) {
+        coordinator.cancelInteractionUpdate()
+        field.delegate = nil
     }
 
     final class Coordinator: NSObject, UITextFieldDelegate {
         var parent: ThoughtPinsPasswordInput
+        private var interactionRevision = 0
         init(_ parent: ThoughtPinsPasswordInput) { self.parent = parent }
+
+        func cancelInteractionUpdate() { interactionRevision += 1 }
+
+        func updateInteraction(_ field: ThoughtPinsPasswordTextField, isEnabled: Bool) {
+            interactionRevision += 1
+            let revision = interactionRevision
+            // Disabling an active UITextField resigns first responder. Doing
+            // that inside updateUIView re-enters SwiftUI's focus graph and can
+            // deadlock keyboard submission. Apply both changes after the render
+            // transaction; a newer update or dismantle invalidates stale work.
+            DispatchQueue.main.async { [weak self, weak field] in
+                guard let self, let field, revision == self.interactionRevision else { return }
+                if field.isEnabled != isEnabled { field.isEnabled = isEnabled }
+                if self.parent.isFocused && isEnabled {
+                    if field.window != nil && !field.isFirstResponder { field.becomeFirstResponder() }
+                } else if field.isFirstResponder {
+                    field.resignFirstResponder()
+                }
+            }
+        }
         @objc func changed(_ field: UITextField) {
             let value = field.text ?? ""
             if parent.text != value { parent.text = value }

@@ -23,19 +23,35 @@ final class AuthAndCaptureTests: XCTestCase {
     override func tearDownWithError() throws { try configure() }
 
     private func reveal(_ element: XCUIElement, in app: XCUIApplication) {
-        for _ in 0..<14 where !element.isHittable {
+        func visibleHeight() -> CGFloat {
+            let keyboard = app.keyboards.firstMatch
+            let done = app.buttons["Dismiss keyboard"].firstMatch
+            let bottom = keyboard.exists ? keyboard.frame.minY : app.frame.maxY
+            // The accessory toolbar also covers content. Current XCTest can
+            // report a field behind that toolbar/keyboard as hittable.
+            let clearBottom = keyboard.exists && done.exists ? min(bottom, done.frame.minY) : bottom
+            return min(app.frame.height, clearBottom - app.frame.minY)
+        }
+        func visible() -> Bool {
+            guard element.exists else { return false }
+            let frame = element.frame
+            return frame.minY.isFinite && frame.height > 0
+                && frame.midY >= app.frame.minY
+                && frame.maxY <= app.frame.minY + visibleHeight()
+                && element.isHittable
+        }
+        for _ in 0..<14 {
+            if visible() { return }
             // Keep the gesture inside the form when a keyboard covers the
             // lower screen. Dragging the keyboard cannot reveal a form field.
-            let keyboard = app.keyboards.firstMatch
-            let visibleHeight = keyboard.exists
-                ? min(app.frame.height, keyboard.frame.minY - app.frame.minY) : app.frame.height
-            let fraction = visibleHeight / app.frame.height
-            let down = element.exists && element.frame.maxY < app.frame.minY + visibleHeight / 2
+            let height = visibleHeight()
+            let fraction = height / app.frame.height
+            let down = element.exists && element.frame.maxY < app.frame.minY + height / 2
             let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: fraction * (down ? 0.4 : 0.7)))
             let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: fraction * (down ? 0.65 : 0.45)))
             start.press(forDuration: 0.05, thenDragTo: end)
         }
-        XCTAssertTrue(element.isHittable)
+        XCTAssertTrue(visible())
     }
 
     private func shot(_ name: String) {
@@ -168,9 +184,13 @@ final class AuthAndCaptureTests: XCTestCase {
         let email = app.textFields["Email"]
         reveal(email, in: app); email.tap(); email.typeText("new-review@example.com\n")
         let password = app.secureTextFields["Password"]
-        let focused = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: password)
-        XCTAssertEqual(XCTWaiter.wait(for: [focused], timeout: 5), .completed)
         waitForPasswordKeyboard(in: app)
+        let focused = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            // During iPad keyboard transitions XCTest may briefly return an
+            // infinite window origin; asking hittability then throws immediately.
+            password.exists && password.frame.minY.isFinite && password.isHittable
+        }, object: password)
+        XCTAssertEqual(XCTWaiter.wait(for: [focused], timeout: 5), .completed)
         password.typeText("fictional password only")
         app.buttons["Show password"].tap()
         XCTAssertEqual(app.textFields["Password"].value as? String, "fictional password only")

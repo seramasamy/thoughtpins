@@ -4,6 +4,35 @@ import XCTest
 @testable import ThoughtPinsApp
 
 final class PasswordFieldTests: XCTestCase {
+    @MainActor func testDisablingWaitsForRenderAndNewerUpdatesWin() async {
+        let input = ThoughtPinsPasswordInput(
+            text: .constant("fictional"), isFocused: .constant(false),
+            revealed: false, fontSize: 17, submit: {}
+        )
+        let coordinator = input.makeCoordinator()
+        let field = ThoughtPinsPasswordTextField()
+        coordinator.updateInteraction(field, isEnabled: false)
+        XCTAssertTrue(field.isEnabled, "Disabling must not re-enter focus during a SwiftUI update")
+        await nextMainTurn()
+        XCTAssertFalse(field.isEnabled)
+
+        coordinator.updateInteraction(field, isEnabled: true)
+        coordinator.updateInteraction(field, isEnabled: false)
+        await nextMainTurn()
+        XCTAssertFalse(field.isEnabled, "A stale queued update must not re-enable the field")
+
+        coordinator.updateInteraction(field, isEnabled: true)
+        coordinator.cancelInteractionUpdate()
+        await nextMainTurn()
+        XCTAssertFalse(field.isEnabled, "A dismantled input must ignore queued interaction changes")
+    }
+
+    @MainActor private func nextMainTurn() async {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.main.async { continuation.resume() }
+        }
+    }
+
     @MainActor func testTypingAndDeletingAfterConcealmentKeepExistingText() {
         let field = ThoughtPinsPasswordTextField()
         field.configure(text: "fictional", revealed: false, fontSize: 17)
