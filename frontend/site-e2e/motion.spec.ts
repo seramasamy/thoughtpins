@@ -42,6 +42,13 @@ test("motion can pause, persist, react to system preference and resume", async (
   await page.emulateMedia({ reducedMotion: "no-preference" });
   const reducedDraws = Number(await draws(page));
   await expect.poll(async () => Number(await draws(page))).toBeGreaterThan(reducedDraws + 2);
+  // A cached document must pick up a choice made on the other homepage.
+  await page.evaluate(() => {
+    sessionStorage.setItem("thoughtpins.motionPaused", "true");
+    window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
+  });
+  await expect(page.getByRole("button", { name: "Resume motion" })).toBeVisible();
+  await expectStill(page);
 });
 
 test("network stops offscreen and across page lifecycle events", async ({ page }) => {

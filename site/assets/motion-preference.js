@@ -4,7 +4,10 @@
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
   const toggle = document.querySelector("[data-motion-toggle]");
   let paused = false;
-  try { paused = sessionStorage.getItem("thoughtpins.motionPaused") === "true"; } catch { /* Use memory only. */ }
+  function readPreference() {
+    try { paused = sessionStorage.getItem("thoughtpins.motionPaused") === "true"; } catch { /* Use memory only. */ }
+  }
+  readPreference();
   function sync() {
     root.dataset.motionPaused = String(paused || reduced.matches);
     if (toggle) {
@@ -19,5 +22,8 @@
     sync();
   });
   reduced.addEventListener("change", sync);
+  // Back/forward cache can restore an older document after the preference
+  // changed on the other homepage. Re-read the session before restarting it.
+  window.addEventListener("pageshow", () => { readPreference(); sync(); });
   sync();
 })();
