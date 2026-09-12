@@ -8,10 +8,10 @@ protocols and storage contracts are unchanged.
 | Surface | Change | Reason |
 | --- | --- | --- |
 | GitHub README and retrieval walkthrough | One static, self-contained SVG replaces both Mermaid blocks. Five stages show query scope, all eight collectors, ranking/selection, context and response. A text equivalent accompanies the image. | Readers can inspect the architecture without GitHub's Mermaid renderer. The optional entity filter, sequential collection and failure limits remain explicit. |
-| Modern homepage | How it works → The app → Your control; clearer capture/recall copy and a shorter hero. | Explain the workflow before asking someone to try it, with less empty scrolling. Existing `#week` links remain valid. |
+| Modern homepage | How it works → The app → Your control; clearer capture/recall copy, with the original scroll-to-logo introduction restored. | Explain the workflow while preserving the homepage's defining interaction. Existing `#week` links remain valid. |
 | Navigation | Remove classic links from the modern header/footer; retain `/classic/` and its Modern Site return link. Restore visible mobile Log in. | Keep the main site focused while preserving the older entry point. |
 | Examples | Native horizontal scrolling at every size, Previous/Next, arrow keys, Home/End, position and progress. | Remove scroll-driven horizontal transforms; make the full sequence reachable with a thumb, keyboard or pointer. Partial final steps work when multiple cards fit. |
-| Site motion | Recover the actual floating field from pre-redesign backup `a67bbdf`: 135 motes on all screens, original individual speeds, 14px wobble and 12px drift, dynamic nearby links, long fine strands and display-synchronized drawing. Marquee copies include their trailing gap. | The interim 64/112-node replacement and 30 Hz throttle changed the original's density and movement. The recovered field retains Pause motion, live Reduce Motion, visibility/viewport pauses and stable resizing. The hero text remains visible; the prior scroll-to-logo sequence is separate. |
+| Site motion | Recover the full sequence from pre-redesign backup `a67bbdf`: 135 floating motes on all screens, original individual speeds, 14px wobble and 12px drift, changing connections and fine strands. Scrolling fades the introduction and assembles the mark using its actual eight paths, original cubic easing and phone/desktop runways; scrolling back reverses it. | Preserve the original density, display-synchronized movement and logo formation. Pause motion stops automatic animation while scrolling remains visitor-controlled. Live Reduce Motion, short windows or oversized text use ordinary flow. Fully faded links are inert; keyboard focus keeps the introduction visible. Marquee copies include their trailing gap. |
 | Both product previews | Reserve screenshot aspect ratios before lazy loading. | Avoid the collapsed phone frame and layout jump on slow connections. |
 | Native iOS | A static vector network replaces blurred decorative orbits; sign-in uses one compact brand header; thinking dots use a bounded timeline. Press feedback respects Reduce Motion. | Crisp graphics and less form scrolling on compact phones, with loading animation tied to view visibility, active scene and accessibility preference. |
 | Native password submission | Apply enabled/focus changes after SwiftUI finishes rendering; cancel stale queued updates when the field changes or is removed. | Pressing the keyboard's Go action could freeze sign-in when disabling the active UIKit field re-entered SwiftUI's focus graph. The Return-key workflow and direct coordinator test cover this path. |
@@ -29,6 +29,11 @@ The browser suite covers both sites at eight widths, product tabs, keyboard use,
 contrast/overflow, missing JavaScript, blocked storage, unavailable canvas,
 slow image loading, motion preference changes and lifecycle restoration. The
 motion tests observe canvas draws rather than relying on static screenshots.
+Scroll tests compare all 135 formed positions with the actual SVG asset on phone,
+tablet and desktop, including reversal and resizing. They also cover paused
+scrolling, live Reduce Motion, short viewports, large text, keyboard focus and
+unavailable SVG geometry. The sampled mark is a focused module, so logo geometry
+can be maintained without growing the legacy site controller.
 Simulated page lifecycle events exercise the handlers; they are not proof of
 every browser's back/forward cache policy.
 

@@ -12,6 +12,9 @@ html { scroll-padding-top: 100px; }
 .lab-h1 .lab-italic { font-weight: 600; }
 .lab-lede { max-width: 510px; }
 .lab-constellation { pointer-events: none; mask-image: none; -webkit-mask-image: none; }
+.lab-hero[data-constellation-morph="ready"] { height: 260svh; }
+.lab-hero[data-constellation-morph="ready"] .lab-hero-sticky { position: sticky; top: 0; height: 100svh; min-height: 100svh; padding: 100px 0 80px; }
+.lab-hero-copy[inert] { pointer-events: none; }
 .lab-button { gap: 20px; }
 .lab-scroll-hint { bottom: 32px; font-size: 10px; gap: 12px; }
 .lab-scroll-hint span { height: 24px; }
@@ -60,6 +63,7 @@ html[data-motion-paused="true"] .lab-marquee-track { animation-play-state: pause
   .lab-nav-links a { font-size: 11px; }
 }
 @media (max-width: 760px) {
+  .lab-hero[data-constellation-morph="ready"] { height: 190svh; }
   .lab-nav { grid-template-columns: minmax(0, 1fr) auto; padding: max(10px, env(safe-area-inset-top)) 18px 10px; }
   .lab-nav-links { display: none; }
   .lab-brand span { display: inline; font-size: 16px; }
