@@ -1,0 +1,56 @@
+name: Strict release rehearsal
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: strict-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PYTHONUTF8: "1"
+      PYTHONPATH: src
+      CELERY_BROKER_URL: redis://localhost:6379/1
+    steps:
+      - name: Check out source
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Install locked development dependencies
+        run: |
+          python -m pip install uv==0.12.5
+          python -m uv export --frozen --extra dev --extra workers --no-emit-project --format requirements-txt --output-file /tmp/requirements-dev.txt
+          python -m pip install --require-hashes -r /tmp/requirements-dev.txt
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      # Source gates inspect the shipped bundle before the release script's
+      # own build step. Prepare it on this otherwise clean runner.
+      - name: Prepare the web bundle
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+      - name: Run the unmodified strict release gate
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD | tee release-check.log
+          python scripts/release_check.py --strict-quality 2>&1 | tee -a release-check.log
+      - name: Retain the release evidence
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: strict-release-${{ github.sha }}
+          path: release-check.log
+          retention-days: 30
+          if-no-files-found: warn

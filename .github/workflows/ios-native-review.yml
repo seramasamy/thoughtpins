@@ -63,7 +63,8 @@ jobs:
             -scheme DesignReview -destination "platform=iOS Simulator,id=$TEST_DEVICE" \
             -parallel-testing-enabled NO -derivedDataPath "$RUNNER_TEMP/NativeReviewBuild" \
             -resultBundlePath "$RUNNER_TEMP/native-review-$DEVICE_FAMILY.xcresult" \
-            -only-testing:ModelTests -only-testing:DesignReviewTests/AuthAndCaptureTests test
+            -only-testing:ModelTests -only-testing:DesignReviewTests/AuthAndCaptureTests \
+            -only-testing:DesignReviewTests/CaptureTests/testScreens test
 
       - name: Export native screenshots for review without Xcode
         if: always()

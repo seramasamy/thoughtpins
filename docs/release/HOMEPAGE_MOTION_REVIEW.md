@@ -30,6 +30,12 @@ motion tests observe canvas draws rather than relying on static screenshots.
 Simulated page lifecycle events exercise the handlers; they are not proof of
 every browser's back/forward cache policy.
 
+The manually dispatched `.github/workflows/strict-release.yml` runs the same
+unmodified strict gate on a clean Linux runner and retains its log with the
+commit SHA. It needs no production credentials and does not deploy anything.
+This provides a reproducible alternative when a development machine is
+resource-constrained; it does not relax checks or test deadlines.
+
 Run the [native review harness](../../mobile/ios/ThoughtPinsUIReview/README.md)
 against fictional fixtures for navigation, authentication, error recovery,
 Dynamic Type and iPad rotation. Use the CI results for the exact commit when

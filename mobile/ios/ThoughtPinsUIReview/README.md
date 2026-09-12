@@ -7,6 +7,12 @@ dismissal, a chat prompt and reply, account access, sign-out, and email sign-in.
 are XCTest attachments. Run on iPhone SE, a current iPhone, and iPad in both
 appearances. Separate tests cover landscape and the largest Dynamic Type size.
 
+The main capture flow uses the email keyboard's Next action to focus and reveal
+the password field before typing, then verifies successful sign-in. This avoids
+an impossible tap through the keyboard on compact phones and exercises the
+production focus/scroll contract. CI includes this flow alongside the focused
+authentication and capture recovery cases.
+
 `AuthAndCaptureTests` adds password visibility and editing after concealment,
 whitespace validation, 401/429 sign-in recovery, consent-gated account creation,
 phone keyboard dismissal, signup/legal controls at the largest text size,
