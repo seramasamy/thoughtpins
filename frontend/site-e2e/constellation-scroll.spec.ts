@@ -156,6 +156,20 @@ test("short landscape windows and oversized text keep the introduction in normal
   await expect(page.locator("[data-primary-cta]")).toBeInViewport();
 });
 
+test("changing Reduce Motion offscreen restores the introduction's accessibility", async ({ page }) => {
+  await observeMark(page);
+  await page.goto("/");
+  await loadMark(page);
+  await scrollPhase(page, 1);
+  await expectFormed(page);
+  await page.locator("footer").scrollIntoViewIfNeeded();
+  await page.waitForTimeout(150);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(page.locator("[data-hero-wrap]")).toHaveAttribute("data-constellation-morph", "static");
+  await expect(page.locator(".lab-hero-copy")).not.toHaveAttribute("inert", "");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(/Your memory,\s*connected\./);
+});
+
 test("keyboard focus keeps a fading call to action visible and usable", async ({ page }) => {
   await observeMark(page);
   await page.goto("/");

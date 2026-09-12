@@ -34,6 +34,9 @@ tablet and desktop, including reversal and resizing. They also cover paused
 scrolling, live Reduce Motion, short viewports, large text, keyboard focus and
 unavailable SVG geometry. The sampled mark is a focused module, so logo geometry
 can be maintained without growing the legacy site controller.
+An offscreen preference-change regression verifies that entering the static
+layout immediately clears the faded introduction's inert state, even while
+canvas drawing is suspended.
 Simulated page lifecycle events exercise the handlers; they are not proof of
 every browser's back/forward cache policy.
 

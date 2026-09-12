@@ -52,6 +52,8 @@ The motion toggle pauses automatic floating/twinkle and the marquee; deliberate
 scrolling still controls assembly. Live system Reduce Motion disables both
 automatic animation and assembly. All content and native scrolling remain usable
 without JavaScript.
+Changing to a static layout restores the introduction's accessibility even if
+the canvas is offscreen and its drawing loop is suspended.
 Product captures reserve their dimensions before lazy loading to avoid layout
 shifts. `frontend/site-e2e/motion.spec.ts` covers these behavior boundaries;
 `frontend/site-e2e/constellation.spec.ts` checks the original density, displacement

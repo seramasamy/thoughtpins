@@ -1,4 +1,4 @@
-import { sampleConstellationMark } from "/assets/constellation-shape.js?v=20260912-scroll-logo-1";
+import { sampleConstellationMark } from "/assets/constellation-shape.js?v=20260912-scroll-logo-2";
 
 /* Original floating memory field and scroll-to-logo sequence from backup a67bbdf.
    One frame when paused; no frame loop while hidden or outside the viewport. */
@@ -123,6 +123,11 @@ import { sampleConstellationMark } from "/assets/constellation-shape.js?v=202609
     const fits = window.innerHeight >= 600 && (!copy || copy.offsetHeight + 180 <= window.innerHeight);
     wrap.dataset.constellationMorph = shape && fits && !reduced.matches &&
       document.documentElement.hasAttribute("data-motion-paused") ? "ready" : "static";
+    // Restore semantics even offscreen, where sync deliberately skips drawing.
+    if (wrap.dataset.constellationMorph === "static" && copy) {
+      copy.style.opacity = "1";
+      copy.inert = false;
+    }
     const rect = canvas.getBoundingClientRect();
     width = rect.width; height = rect.height;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
