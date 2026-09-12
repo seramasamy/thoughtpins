@@ -2,11 +2,14 @@
 // Never point this harness at production or load a real account.
 import http from 'node:http';
 import { installMockApi } from '../e2e/mockApi.ts';
+import { NativeReviewHolds } from './native-review-holds.mjs';
+const holds = new NativeReviewHolds();
 let handler;
 let failures = {};
 let calls = {};
 let delays = {};
 async function reset() {
+  holds.reset();
   failures = {}; calls = {}; delays = {};
   await installMockApi({ route: async (pattern, cb) => { handler = cb; } }, 'local', 0, 'product', { aiConsentAccepted: true });
 }
@@ -20,6 +23,12 @@ http.createServer(async (req, res) => {
     const settings = JSON.parse(body || '{}');
     failures = settings.failures || {};
     delays = settings.delays || {};
+    holds.configure(settings.holds || []);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end('{}'); return;
+  }
+  if (req.url === '/__review/release' && req.method === 'POST') {
+    holds.release(JSON.parse(body || '{}').route);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end('{}'); return;
   }
@@ -31,6 +40,7 @@ http.createServer(async (req, res) => {
   const key = `${req.method} ${path}`;
   calls[key] = (calls[key] || 0) + 1;
   const failure = failures[key]?.shift();
+  await holds.wait(key);
   const delay = Math.max(0, Math.min(5000, Number(delays[key]) || 0));
   if (delay) await new Promise(resolve => setTimeout(resolve, delay));
   if (failure) {

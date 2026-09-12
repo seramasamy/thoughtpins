@@ -3,13 +3,13 @@ import XCTest
 final class AuthAndCaptureTests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
 
-    private func configure(_ failures: [String: [Int]] = [:], delays: [String: Int] = [:]) throws {
+    private func control(_ path: String, body: [String: Any]) throws {
         let done = expectation(description: "Configure fictional API")
-        var request = URLRequest(url: URL(string: "http://127.0.0.1:8877/__review")!)
+        var request = URLRequest(url: URL(string: "http://127.0.0.1:8877\(path)")!)
         request.httpMethod = "POST"
         request.timeoutInterval = 15
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: ["failures": failures, "delays": delays])
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
         URLSession.shared.dataTask(with: request) { _, response, error in
             XCTAssertNil(error)
             XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)
@@ -18,6 +18,10 @@ final class AuthAndCaptureTests: XCTestCase {
         // A freshly booted CI simulator can take several seconds to initialize
         // its first URLSession connection. This is fixture setup, not app latency.
         wait(for: [done], timeout: 20)
+    }
+
+    private func configure(_ failures: [String: [Int]] = [:], holds: [String] = []) throws {
+        try control("/__review", body: ["failures": failures, "holds": holds])
     }
 
     override func tearDownWithError() throws { try configure() }
@@ -114,7 +118,7 @@ final class AuthAndCaptureTests: XCTestCase {
     }
 
     func testSignInValidationPasswordVisibilityAndRecovery() throws {
-        try configure(["POST /v1/auth/login": [401, 429]], delays: ["POST /v1/auth/login": 2000])
+        try configure(["POST /v1/auth/login": [401, 429]], holds: ["POST /v1/auth/login"])
         let app = signedOutApp()
         shot("Auth-sign-in")
         let email = app.textFields["Email"]
@@ -139,11 +143,16 @@ final class AuthAndCaptureTests: XCTestCase {
             reveal(submit, in: app); submit.tap()
             XCTAssertTrue(app.staticTexts["thoughtpins-auth-progress"].waitForExistence(timeout: 3))
             XCTAssertFalse(submit.isEnabled)
+            // Keep the fictional response pending until the in-flight state is
+            // observed. A two-second delay raced CI's accessibility snapshots.
+            try control("/__review/release", body: ["route": "POST /v1/auth/login"])
             let retry = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: submit)
             XCTAssertEqual(XCTWaiter.wait(for: [retry], timeout: 10), .completed)
             XCTAssertEqual(email.value as? String, "review@example.com")
             shot("Auth-retry")
         }
+        // The final successful login must also be allowed through the fixture.
+        try control("/__review/release", body: ["route": "POST /v1/auth/login"])
         submit.tap()
         XCTAssertTrue(app.thoughtPinsTab("Chat").waitForExistence(timeout: 15))
     }

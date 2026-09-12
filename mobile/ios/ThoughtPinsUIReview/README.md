@@ -35,6 +35,11 @@ an active UIKit input directly inside `updateUIView` previously re-entered
 SwiftUI's focus graph and froze keyboard submission. The capture flow exercises
 that real Go-key path. Control-reveal checks include the keyboard and accessory
 toolbar bounds, since XCTest's hittability alone can include covered fields.
+The authentication recovery fixture holds each response until XCTest has
+observed the progress message and disabled submit button, then releases it.
+This avoids racing a short artificial delay against CI accessibility snapshots.
+The hold controller has direct tests for queued requests, release-before-arrival
+and reset cleanup; it exists only in the loopback review server.
 
 The app currently advertises ordinary password AutoFill. Automatic strong-password
 generation needs a configured `webcredentials` association and a separate signed

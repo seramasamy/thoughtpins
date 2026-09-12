@@ -49,6 +49,11 @@ its accessory toolbar. A control reported as hittable by XCTest can still be
 covered on a newer simulator. The test waits for keyboard readiness before
 checking the password field after Next, and submits through Go as well as the
 button. These checks retain the actual focus and successful sign-in assertions.
+For in-flight authentication, the fictional server holds its response until the
+test has observed the progress message and disabled button. A fixed two-second
+delay could finish before a CI accessibility snapshot captured those controls.
+Explicit release removes that race while retaining the UI deadlines and checks;
+it changes neither production response timing nor authentication behavior.
 
 The site cache key and digest move together so returning visitors receive the
 new assets. The domain and public-route checks follow the registration link,
