@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="824" viewBox="0 0 840 824" role="img" aria-labelledby="title desc">
+  <title id="title">Thought Pins: from question to evidence</title>
+  <desc id="desc">Five stages: scope a question to the user and privacy policy; collect candidates through eight retrieval paths; merge identities, fuse ranks and select diverse evidence; build labelled context within a token budget; generate a model response. Collectors run sequentially; the entity filter is optional. SQL is authoritative and checks vector hits. Evidence is untrusted input.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10Z" fill="#8589b5"/></marker>
+  </defs>
+  <rect width="840" height="824" rx="24" fill="#0c1220"/>
+  <g font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif">
+    <text x="40" y="45" fill="#f1f4ff" font-size="25" font-weight="600">From question to evidence</text>
+    <text x="40" y="71" fill="#b1bdd3" font-size="15">Thought Pins · retrieval at query time</text>
+
+    <g fill="none" stroke="#8589b5" stroke-width="1.5" marker-end="url(#arrow)">
+      <path d="M420 171V197"/><path d="M420 438V464"/>
+      <path d="M420 558V584"/><path d="M420 678V704"/>
+    </g>
+    <g stroke="#35435e" fill="#151f32">
+      <rect x="40" y="101" width="760" height="70" rx="14"/>
+      <rect x="40" y="207" width="760" height="231" rx="14"/>
+      <rect x="40" y="474" width="760" height="84" rx="14"/>
+      <rect x="40" y="594" width="760" height="84" rx="14"/>
+      <rect x="40" y="714" width="760" height="70" rx="14"/>
+    </g>
+    <g fill="#b8b3ff" font-size="16" font-weight="600">
+      <text x="60" y="130">01</text><text x="60" y="238">02</text>
+      <text x="60" y="505">03</text><text x="60" y="625">04</text><text x="60" y="745">05</text>
+    </g>
+    <g fill="#f1f4ff" font-size="19" font-weight="600">
+      <text x="101" y="130">Scope the question</text>
+      <text x="101" y="238">Collect candidates · eight paths</text>
+      <text x="101" y="505">Merge, rank, select</text>
+      <text x="101" y="625">Build evidence context</text>
+      <text x="101" y="745">Generate a response</text>
+    </g>
+    <g fill="#b1bdd3" font-size="15">
+      <text x="101" y="153">Question + authenticated user + private-recall policy</text>
+      <text x="101" y="530">Identity + provenance → RRF + bounded features → adaptive MMR + coverage</text>
+      <text x="101" y="650">Source labels + query-specific evidence plan + token budget</text>
+      <text x="101" y="769">The model receives evidence as untrusted input; answers can be wrong.</text>
+    </g>
+    <path d="M60 254H780 M420 269V391" stroke="#35435e" fill="none"/>
+    <g fill="#e2e5f5" font-family="ui-monospace, SFMono-Regular, Consolas, monospace" font-size="15">
+      <text x="65" y="280">exact_phrase</text><text x="445" y="280">vector</text>
+      <text x="65" y="316">keyword</text><text x="445" y="316">entity_filter</text>
+      <text x="65" y="352">raw_keyword</text><text x="445" y="352">sql_graph</text>
+      <text x="65" y="388">document_title</text><text x="445" y="388">graph_evidence</text>
+    </g>
+    <g fill="#b1bdd3" font-size="14">
+      <text x="224" y="280">literal wording</text><text x="613" y="280">embedding similarity</text>
+      <text x="224" y="316">memory text</text><text x="613" y="316">entity-linked memory*</text>
+      <text x="224" y="352">original entries</text><text x="613" y="352">related-entity memory</text>
+      <text x="224" y="388">saved source titles</text><text x="613" y="388">facts and paths</text>
+      <text x="65" y="418">Sequential collectors · *optional filter · channel failure can reduce recall</text>
+      <text x="40" y="809">SQL holds authoritative records. Vector hits must pass scoped SQL checks.</text>
+    </g>
+  </g>
+</svg>

@@ -23,3 +23,23 @@ eight phone, tablet, and desktop widths, including device-tab keyboard use,
 resizing, no-JavaScript fallback, dark appearance, contrast, and overflow. The
 command starts a loopback static server that supports the production policy
 URLs. No account or model-provider credentials are needed.
+
+The modern homepage follows **How it works → The app → Your control**. The
+existing `#week` anchor now opens a directly scrollable set of examples; it is
+kept for existing links. `/classic/` remains available with its **Modern Site**
+return link. The modern header and footer do not advertise the classic route.
+
+`assets/modern-home.css` owns this composition. `assets/labs.js` owns the
+progressive reveals, example controls and session motion preference;
+`assets/constellation.js` owns the decorative canvas. Keep the network bounded
+(40 nodes on phones, 64 otherwise, 30 draws/second, pixel ratio capped at 2).
+Pause when offscreen, hidden or leaving the page, and resume on restoration.
+The motion toggle and live system Reduce Motion changes cover both canvas and
+marquee. All content and native scrolling remain usable without JavaScript.
+Product captures reserve their dimensions before lazy loading to avoid layout
+shifts. `frontend/site-e2e/motion.spec.ts` covers these behavior boundaries.
+
+Public diagrams in the repository use the self-contained static
+[retrieval SVG](../docs/architecture/assets/retrieval-pipeline.svg), with a text
+equivalent beside each use. Do not require GitHub's Mermaid runtime to read the
+architecture. The SVG contains no scripts, external fonts or remote assets.

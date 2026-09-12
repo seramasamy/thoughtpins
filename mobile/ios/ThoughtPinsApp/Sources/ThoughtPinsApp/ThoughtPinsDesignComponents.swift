@@ -1,28 +1,5 @@
 import SwiftUI
 
-/// The orbit connects the brand to its purpose without adding a moving backdrop.
-struct ThoughtPinsOrbit: View {
-    var size: CGFloat = 132
-
-    var body: some View {
-        ZStack {
-            Circle().fill(ThoughtPinsTheme.accentSoft).blur(radius: 20).padding(22)
-            Ellipse().stroke(ThoughtPinsTheme.line, lineWidth: 1)
-                .frame(width: size, height: size * 0.72).rotationEffect(.degrees(-30))
-            Ellipse().stroke(ThoughtPinsTheme.line, lineWidth: 1)
-                .frame(width: size * 0.78, height: size * 0.64).rotationEffect(.degrees(45))
-            ThoughtPinsBrandMark().frame(width: size * 0.43, height: size * 0.43)
-                .shadow(color: ThoughtPinsTheme.brand.opacity(0.18), radius: 16, y: 8)
-            Circle().fill(ThoughtPinsTheme.accent).frame(width: 7, height: 7)
-                .offset(x: size * 0.32, y: -size * 0.3)
-            Circle().fill(ThoughtPinsTheme.brand).frame(width: 5, height: 5)
-                .offset(x: -size * 0.32, y: size * 0.27)
-        }
-        .frame(width: size, height: size)
-        .accessibilityHidden(true)
-    }
-}
-
 struct ThoughtPinsPageIntro: View {
     let eyebrow: String
     let title: String
@@ -85,6 +62,7 @@ struct ThoughtPinsPrimaryStyle: ButtonStyle {
             .background(ThoughtPinsTheme.buttonFill, in: RoundedRectangle(cornerRadius: 17, style: .continuous))
             .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.45)
             .scaleEffect(configuration.isPressed && !reduceMotion ? 0.98 : 1)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: configuration.isPressed)
     }
 }
 

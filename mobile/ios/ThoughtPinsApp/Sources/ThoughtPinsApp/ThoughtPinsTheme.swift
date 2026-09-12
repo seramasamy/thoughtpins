@@ -29,34 +29,6 @@ enum ThoughtPinsTheme {
     }
 }
 
-/// The three-dot thinking motif: model or indexing work, never decoration.
-/// Falls back to static dots when Reduce Motion is on.
-struct ThoughtPinsThinkingDots: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var animating = false
-
-    var body: some View {
-        HStack(spacing: 5) {
-            ForEach(0..<3, id: \.self) { index in
-                Circle()
-                    .fill(ThoughtPinsTheme.inkSoft)
-                    .frame(width: 6, height: 6)
-                    .opacity(animating ? 1.0 : 0.25)
-                    .animation(
-                        reduceMotion
-                            ? nil
-                            : .easeInOut(duration: 0.6)
-                                .repeatForever(autoreverses: true)
-                                .delay(Double(index) * 0.16),
-                        value: animating
-                    )
-            }
-        }
-        .onAppear { animating = true }
-        .accessibilityHidden(true)
-    }
-}
-
 /// Branded empty state: quiet mark, clear heading, one supporting sentence.
 struct ThoughtPinsEmptyState: View {
     let title: String

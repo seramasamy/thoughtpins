@@ -39,9 +39,11 @@ REQUIRED_SITE_FILES = [
 REQUIRED_SITE_MARKERS = {
     "site/index.html": [
         "Thought Pins - Your memory, connected",
-        "Create your memory",
-        "A calmer way to remember",
-        "Obsidian-compatible vault",
+        # Keep the registration and control surfaces present without requiring
+        # retired marketing headings. The export claim must still be visible.
+        'data-primary-cta data-app-link="register" href="/app/?auth=register"',
+        'id="keep" aria-labelledby="keep-title"',
+        "Obsidian-compatible Markdown vault",
         "data-app-link",
     ],
     "site/privacy.html": [

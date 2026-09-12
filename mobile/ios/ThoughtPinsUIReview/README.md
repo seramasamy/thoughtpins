@@ -82,3 +82,11 @@ portrait, and iPad supports rotation. The landscape test skips iPhone.
 Restore the simulator's appearance when finished. Inspect layout
 and reachability at the largest sizes; screenshots alone do not prove VoiceOver
 order or native behavior on an iOS SDK newer than the installed Xcode.
+
+The shared `ThoughtPinsOrbit` is a static vector network used by authentication,
+Chat and empty states. Inspect it in light/dark appearance on compact iPhone and
+iPad; it has no timer, hit targets or VoiceOver elements.
+`ThoughtPinsThinkingDots` uses a bounded TimelineView only for work feedback,
+pausing when its view disappears, its scene is inactive, or Reduce Motion is
+enabled. Button press feedback also honors Reduce Motion. Keep those lifecycle
+checks separate from appearance review; a screenshot cannot prove them.

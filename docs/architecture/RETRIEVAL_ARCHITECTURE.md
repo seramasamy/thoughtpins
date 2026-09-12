@@ -57,15 +57,10 @@ policy. Vector filtering and SQL authorization provide complementary checks.
 Local review modes have different authentication rules and must remain isolated
 from production.
 
-```mermaid
-flowchart TB
-    Query["Query + user scope + privacy policy"] --> Collect["Eight available candidate paths"]
-    Collect --> Merge["Merge identity, provenance and per-channel ranks"]
-    Merge --> Rank["Bounded score fusion"]
-    Rank --> Select["Adaptive diversity + requested-facet coverage"]
-    Select --> Plan["Evidence plan + token budget"]
-    Plan --> Model["Response model receives labelled evidence"]
-```
+![Five stages: scoped question, eight retrieval paths, merge and ranking, evidence context, model response.](assets/retrieval-pipeline.svg)
+
+Scope → collect → merge/rank/select → build context → respond. The diagram is
+a static SVG, with the channel and ranking contracts described in the text below.
 
 ## 3. Fuse ranks and evidence explicitly
 

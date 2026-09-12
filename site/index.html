@@ -20,18 +20,20 @@
 <meta name="twitter:image" content="https://thoughtpins.com/assets/product-chat-desktop.png">
 <title>Thought Pins - Your memory, connected</title>
 <link rel="canonical" href="https://thoughtpins.com/">
-<link rel="icon" href="/assets/thought-pins-mark.svg?v=20260911-product-3" type="image/svg+xml">
-    <link rel="icon" href="/assets/favicon.ico?v=20260911-product-3" sizes="any">
-<link rel="icon" href="/assets/apple-touch-icon.png?v=20260911-product-3" type="image/png" sizes="1024x1024">
-<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=20260911-product-3">
+<link rel="icon" href="/assets/thought-pins-mark.svg?v=20260912-motion-1" type="image/svg+xml">
+    <link rel="icon" href="/assets/favicon.ico?v=20260912-motion-1" sizes="any">
+<link rel="icon" href="/assets/apple-touch-icon.png?v=20260912-motion-1" type="image/png" sizes="1024x1024">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=20260912-motion-1">
 <link rel="manifest" href="/assets/site.webmanifest">
-<link rel="stylesheet" href="/assets/labs.css?v=20260911-product-3">
-<link rel="stylesheet" href="/assets/labs-demo.css?v=20260911-product-3">
-<link rel="stylesheet" href="/assets/styles/23-demo-live.css?v=20260911-product-3">
-<link rel="stylesheet" href="/assets/modern-site.css?v=20260911-product-3">
-<link rel="stylesheet" href="/assets/product-showcase.css?v=20260911-product-3">
-<script src="/assets/labs.js?v=20260911-product-3" defer></script>
-<script src="/assets/site.js?v=20260911-product-3" defer></script>
+<link rel="stylesheet" href="/assets/labs.css?v=20260912-motion-1">
+<link rel="stylesheet" href="/assets/labs-demo.css?v=20260912-motion-1">
+<link rel="stylesheet" href="/assets/styles/23-demo-live.css?v=20260912-motion-1">
+<link rel="stylesheet" href="/assets/modern-site.css?v=20260912-motion-1">
+  <link rel="stylesheet" href="/assets/product-showcase.css?v=20260912-motion-1">
+  <link rel="stylesheet" href="/assets/modern-home.css?v=20260912-motion-1">
+  <script src="/assets/labs.js?v=20260912-motion-1" defer></script>
+  <script src="/assets/constellation.js?v=20260912-motion-1" defer></script>
+<script src="/assets/site.js?v=20260912-motion-1" defer></script>
 <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -62,16 +64,14 @@
 
 <header class="lab-nav">
   <a class="lab-brand" href="/" aria-label="Thought Pins home">
-    <img src="/assets/thought-pins-mark.svg?v=20260911-product-3" alt="" width="34" height="34">
+    <img src="/assets/thought-pins-mark.svg?v=20260912-motion-1" alt="" width="34" height="34">
     <span>Thought Pins</span>
   </a>
   <nav class="lab-nav-links" aria-label="Main navigation">
-    <a href="#week">A week</a>
-    <a href="#product">Product</a>
-    <a href="/privacy">Privacy</a>
-    <a href="/support">Support</a>
-    <a href="https://github.com/seramasamy/thoughtpins" rel="noopener">Open Source Code</a>
-    <a href="/classic/">Classic Site</a>
+    <a href="#week">How it works</a>
+    <a href="#product">The app</a>
+    <a href="#keep">Your control</a>
+    <a href="https://github.com/seramasamy/thoughtpins" rel="noopener">Source code</a>
   </nav>
   <div class="lab-nav-actions">
     <a class="lab-nav-login" data-app-link="login" href="/app/?auth=login">Log in</a>
@@ -80,21 +80,21 @@
 </header>
 
 <main id="main">
-  <!-- Hero: constellation assembles the mark as you scroll -->
+  <!-- Hero: a quiet network surrounds the introduction. -->
   <section class="lab-hero" data-hero-wrap>
     <div class="lab-hero-sticky">
       <canvas class="lab-constellation" data-constellation aria-hidden="true"></canvas>
       <div class="lab-hero-copy">
-        <p class="lab-eyebrow" data-reveal-line><span>A memory layer for real life</span></p>
+        <p class="lab-eyebrow" data-reveal-line><span>Journaling. Recall. Connection.</span></p>
         <h1 class="lab-h1" aria-label="Your memory, connected.">
           <span class="lab-line" data-reveal-line><span>Your memory,</span></span>
           <span class="lab-line lab-italic" data-reveal-line><span>connected.</span></span>
         </h1>
-        <p class="lab-lede" data-reveal-line><span>A place for your thoughts. A connection between your moments. Remember the people, places, and ideas that make your life yours.</span></p>
+        <p class="lab-lede" data-reveal-line><span>Write what happened. Save what stayed with you. Find the people, places, and ideas again, in your own words.</span></p>
         <div class="lab-hero-cta" data-reveal-line>
           <span>
-            <a class="lab-button" data-primary-cta data-app-link="register" href="/app/?auth=register">Create your memory</a>
-            <a class="lab-quiet" href="#week">See a week remembered</a>
+            <a class="lab-button" data-primary-cta data-app-link="register" href="/app/?auth=register">Start your journal <span aria-hidden="true">↗</span></a>
+            <a class="lab-quiet" href="#week">See how it connects</a>
           </span>
         </div>
       </div>
@@ -117,40 +117,47 @@
     </div>
   </div>
 
-  <!-- Horizontal timeline scrubber -->
+  <!-- Keep the established #week URL; examples no longer require a scroll runway. -->
   <section class="lab-week" id="week" data-week-wrap aria-labelledby="week-title">
     <div class="lab-week-sticky">
       <header class="lab-week-head">
-        <p class="lab-eyebrow">A week, remembered</p>
-        <h2 id="week-title">Nine entries. Two places.<br><em>One idea that kept returning.</em></h2>
+        <p class="lab-eyebrow">How it works</p>
+        <h2 id="week-title">Small moments.<br><em>A connected picture.</em></h2>
+        <p class="lab-section-detail">Capture a moment, connect it to your life, and find it when you need it. A fictional journal shows the idea.</p>
       </header>
-      <div class="lab-track" data-week-track>
+      <div class="lab-track" data-week-track tabindex="0" role="region" aria-label="Journal examples. Scroll or use the arrow keys to browse.">
         <article class="lab-card">
-          <p class="lab-card-meta">Mon · journal</p>
+          <p class="lab-card-meta">01 · Capture a moment</p>
           <p class="lab-card-body">Rain on the windows at Atlas Cafe. The copper lantern by the door was lit when I arrived.</p>
           <p class="lab-card-tag">Atlas Cafe</p>
         </article>
         <article class="lab-card">
-          <p class="lab-card-meta">Wed · person</p>
+          <p class="lab-card-meta">02 · Remember a person</p>
           <p class="lab-card-body">Nora got the job. Celebrated with the yellow cake. She laughed at the candles.</p>
           <p class="lab-card-tag">Nora</p>
         </article>
         <article class="lab-card">
-          <p class="lab-card-meta">Fri · reading</p>
+          <p class="lab-card-meta">03 · Save an idea</p>
           <p class="lab-card-body">“Attention is care.” Lecture notes saved. Three sections I keep coming back to.</p>
           <p class="lab-card-tag">Source · 3 sections</p>
         </article>
         <article class="lab-card">
-          <p class="lab-card-meta">Sun · recap</p>
+          <p class="lab-card-meta">04 · See the pattern</p>
           <p class="lab-card-body">The week in one view: nine entries, two places, and the lantern again on Sunday.</p>
           <p class="lab-card-tag">Recap · week 28</p>
         </article>
         <article class="lab-card lab-card-cta">
+          <p class="lab-card-meta">05 · Ask in your own words</p>
           <p class="lab-card-body">Ask on Monday:<br><em>“What was that thing about attention?”</em></p>
-          <p class="lab-card-tag">It remembers.</p>
+          <p class="lab-card-tag">Recall with source context</p>
         </article>
       </div>
-      <div class="lab-progress" aria-hidden="true"><span data-week-progress></span></div>
+      <div class="lab-example-controls" data-example-controls hidden>
+        <span class="lab-example-position" data-example-position aria-live="polite" aria-atomic="true">1 / 5</span>
+        <div class="lab-progress" aria-hidden="true"><span data-week-progress></span></div>
+        <button type="button" data-example-prev aria-label="Previous example" aria-controls="week" disabled>←</button>
+        <button type="button" data-example-next aria-label="Next example" aria-controls="week">→</button>
+      </div>
     </div>
   </section>
 
@@ -158,10 +165,10 @@
   <section class="lab-product product-showcase" id="product" aria-labelledby="product-title">
     <div class="showcase-heading">
       <div>
-        <p class="showcase-eyebrow">The product</p>
-        <h2 id="product-title">A space for your thoughts.<br><em>A view of what connects them.</em></h2>
+        <p class="showcase-eyebrow">The app</p>
+        <h2 id="product-title">Your thoughts, in view.<br><em>Your connections, in reach.</em></h2>
       </div>
-      <p>Start with a conversation. Come back to the people, places, and moments that make it yours.</p>
+      <p>One place to write, reflect, and ask. Move between your journal, people, places, and saved ideas on phone, tablet, or desktop.</p>
     </div>
     <div class="showcase-layout">
       <div class="showcase-workspace" data-product-demo data-preview-mode="desktop">
@@ -176,14 +183,14 @@
           <div class="showcase-panel is-active" data-preview-panel="desktop" id="lab-preview-desktop" role="tabpanel" aria-labelledby="preview-tab-desktop" tabindex="0">
             <div class="browser-frame">
               <div class="browser-frame-bar" aria-hidden="true"><i></i><i></i><i></i><span class="browser-frame-address">thoughtpins.com / your space</span></div>
-              <img class="product-app-capture product-app-capture-desktop" src="/assets/product-chat-desktop.png?v=20260911-product-3" width="1440" height="1000" loading="lazy" alt="Thought Pins desktop web app: a personal memory workspace with a conversation composer and Recap, People, Chat, Places, and Pins in the side navigation.">
+              <img class="product-app-capture product-app-capture-desktop" src="/assets/product-chat-desktop.png?v=20260912-motion-1" width="1440" height="1000" loading="lazy" alt="Thought Pins desktop web app: a personal memory workspace with a conversation composer and Recap, People, Chat, Places, and Pins in the side navigation.">
             </div>
           </div>
           <div class="showcase-panel" data-preview-panel="mobile" id="lab-preview-mobile" role="tabpanel" aria-labelledby="preview-tab-mobile" tabindex="0" hidden>
             <div class="phone-shell">
               <div class="phone-speaker" aria-hidden="true"></div>
               <div class="phone-screen">
-                <img class="product-app-capture product-app-capture-mobile" src="/assets/product-chat-mobile.png?v=20260911-product-3" width="390" height="844" loading="lazy" alt="Thought Pins mobile web app, with a compact conversation composer and all five destinations in the bottom navigation.">
+                <img class="product-app-capture product-app-capture-mobile" src="/assets/product-chat-mobile.png?v=20260912-motion-1" width="390" height="844" loading="lazy" alt="Thought Pins mobile web app, with a compact conversation composer and all five destinations in the bottom navigation.">
               </div>
             </div>
           </div>
@@ -217,24 +224,22 @@
   <!-- What you keep: positioning and the data-ownership promise -->
   <section class="lab-keep" id="keep" aria-labelledby="keep-title">
     <header class="lab-keep-head">
-      <p class="lab-eyebrow">Why it feels different</p>
-      <h2 id="keep-title">A calmer way to remember</h2>
-      <p class="lab-keep-lede">Writing something down should not feel like filing it. Thought Pins turns ordinary
-        conversation into a record you can walk back through, without turning your life into data entry.</p>
+      <p class="lab-eyebrow">Your control</p>
+      <h2 id="keep-title">A personal record.<br>Your say in what stays.</h2>
+      <p class="lab-keep-lede">Your memories deserve clear choices. Export your record, choose what enters AI processing, and delete your account from the app.</p>
     </header>
     <ul class="lab-keep-list">
       <li>
         <strong>Yours to take</strong>
-        <span>Export everything as plain files, no lock-in, readable without us. On the web, that includes an
-          Obsidian-compatible vault of Markdown.</span>
+        <span>Download your account data. On the web, export an Obsidian-compatible Markdown vault, too. Third-party source text follows the export policy.</span>
       </li>
       <li>
         <strong>Yours to end</strong>
         <span>Delete your account and its data from inside the app, whenever you decide.</span>
       </li>
       <li>
-        <strong>Yours alone</strong>
-        <span>Kept to your account. Never used to build an advertising profile.</span>
+        <strong>Yours to choose</strong>
+        <span>AI processing requires your consent. Your content is scoped to your account and is never used to build an advertising profile. <a href="/ai-disclosure">How AI processing works</a></span>
       </li>
     </ul>
   </section>
@@ -251,7 +256,6 @@
 <footer class="lab-footer">
   <span>© 2026 Thought Pins</span>
   <nav aria-label="Footer">
-    <a href="/classic/">Classic Site</a>
     <a href="https://github.com/seramasamy/thoughtpins" rel="noopener">Open Source Code</a>
     <a href="/privacy">Privacy</a>
     <a href="/terms">Terms</a>
@@ -261,6 +265,8 @@
   <span class="lab-labs-tag">journaling and personal memory, with human control</span>
 
 </footer>
+
+<button class="lab-motion-toggle" type="button" data-motion-toggle hidden>Pause motion</button>
 
 <noscript><style>.demo-live{display:block}.demo-live[data-dl-phase="reset"] .dl-thread,.dl-thread{opacity:1!important}.dl-msg,.dl-reply{opacity:1!important;transform:none!important}.dl-caret{display:none}</style></noscript>
 <script>

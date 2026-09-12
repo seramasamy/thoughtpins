@@ -79,48 +79,10 @@ are persisted in SQL; vector and graph projections provide additional access
 paths. SQL holds the authoritative records, and supported derived indexes can
 be rebuilt. At query time, the following stages assemble evidence for a reply.
 
-```mermaid
-%%{init: {'flowchart': {'nodeSpacing': 20, 'rankSpacing': 24}}}%%
-flowchart TB
-    Query["Question + user scope<br/>+ private-recall policy"] --> Channels
+![Five stages: scoped question, eight retrieval paths, merge and ranking, evidence context, model response.](docs/architecture/assets/retrieval-pipeline.svg)
 
-    subgraph Channels["1 · Candidate generation — search.py"]
-        direction LR
-        subgraph Text["Text and source lookup"]
-            direction TB
-            Exact["exact_phrase<br/>Literal wording"]
-            Keyword["keyword<br/>Extracted memory text"]
-            Raw["raw_keyword<br/>Original entry text"]
-            Title["document_title<br/>Saved source titles"]
-            Exact ~~~ Keyword ~~~ Raw ~~~ Title
-        end
-        subgraph Structure["Semantic and structured lookup"]
-            direction TB
-            Vector["vector<br/>Embedding similarity"]
-            Entity["entity_filter · optional<br/>Entity-linked memories"]
-            SQLGraph["sql_graph<br/>Related-entity memories"]
-            Graph["graph_evidence<br/>Relationship facts and paths"]
-            Vector ~~~ Entity ~~~ SQLGraph ~~~ Graph
-        end
-        Text ~~~ Structure
-    end
-
-    Channels --> Merge["2 · Merge candidates<br/>Identity + sources + channel ranks"]
-    Merge --> Rank["3 · Rank fusion — ranking.py<br/>RRF + bounded evidence features"]
-    Rank --> Select["4 · Select evidence<br/>Adaptive MMR + coverage"]
-    Select --> Context["5 · Build context<br/>Sources + plan + token budget"]
-    Context --> Answer["6 · Model response<br/>Evidence is untrusted input"]
-
-    classDef boundary fill:#172039,stroke:#8795bc,color:#f4f6ff
-    classDef channel fill:#f4f2ff,stroke:#7566ca,color:#24233c
-    classDef stage fill:#fff0e5,stroke:#c76835,color:#482a1a
-    class Query,Answer boundary
-    class Exact,Keyword,Raw,Title,Vector,Entity,SQLGraph,Graph channel
-    class Merge,Rank,Select,Context stage
-    style Channels fill:#f5f7fb,stroke:#a8b3cb,color:#172039
-    style Text fill:#ffffff,stroke:#c5cddd,color:#172039
-    style Structure fill:#ffffff,stroke:#c5cddd,color:#172039
-```
+Scope → collect → merge/rank/select → build context → respond. The diagram is
+a static SVG, with the channel and ranking contracts described in the text below.
 
 The channel groups show complementary mechanisms, not parallel execution or
 independent votes. The current collectors run sequentially; `entity_filter`

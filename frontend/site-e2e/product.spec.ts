@@ -33,6 +33,7 @@ for (const route of ["/", "/classic/"]) {
       await expect(active).toHaveAttribute("aria-selected", "true");
       const image = page.locator(`[data-preview-panel="${mode}"] img`);
       await expect(image).toBeVisible();
+      await expect.poll(() => image.evaluate(el => el.getBoundingClientRect().height)).toBeGreaterThan(100);
       await expect.poll(() => image.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
 
       await active.focus();
@@ -56,6 +57,11 @@ for (const route of ["/", "/classic/"]) {
     const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
     const page = await context.newPage();
     await page.goto("http://127.0.0.1:8878" + route + "#product");
+    if (route === "/") {
+      await expect(page.locator(".lab-hero-cta > span")).toHaveCSS("opacity", "1");
+      await expect(page.locator(".lab-hero-cta > span")).toHaveCSS("transform", "none");
+      await expect(page.locator("[data-marquee-track]")).toHaveCSS("animation-name", "none");
+    }
     await expect(page.locator(".product-showcase .preview-tabs")).toBeHidden();
     await expect(page.locator('.product-showcase [data-preview-panel="desktop"] img')).toBeVisible();
     await expect(page.getByRole("heading", { name: "Capture it naturally" })).toBeVisible();
@@ -76,4 +82,27 @@ test("Classic appearance selection survives reload", async ({ page }) => {
   await page.evaluate(() => document.fonts.ready);
   const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   expect(accessibility.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, reason: n.failureSummary })) }))).toEqual([]);
+});
+
+test("phone preview reserves its frame while the image is still loading", async ({ page }) => {
+  let releaseImage!: () => void;
+  const pending = new Promise<void>(resolve => { releaseImage = resolve; });
+  await page.route("**/product-chat-mobile.png*", async route => {
+    await pending;
+    await route.continue();
+  });
+  try {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/#product", { waitUntil: "domcontentloaded" });
+    const image = page.locator('[data-preview-panel="mobile"] img');
+    await expect(image).toBeVisible();
+    const height = await image.evaluate(el => el.getBoundingClientRect().height);
+    expect(height).toBeGreaterThan(400);
+    expect(await image.evaluate((el: HTMLImageElement) => el.complete)).toBe(false);
+    releaseImage();
+    await expect.poll(() => image.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
+    expect(await image.evaluate(el => el.getBoundingClientRect().height)).toBeCloseTo(height, 0);
+  } finally {
+    releaseImage();
+  }
 });

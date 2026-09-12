@@ -61,6 +61,7 @@ material grouped so each surface stays easy to audit.
 | [FREE_LAUNCH_POLICY.md](release/FREE_LAUNCH_POLICY.md) | The machine-checked no-monetisation contract |
 | [PRIVACY_AND_STORE_READINESS.md](release/PRIVACY_AND_STORE_READINESS.md) | App Store and Play Store privacy readiness |
 | [RELEASE_VERSIONING.md](release/RELEASE_VERSIONING.md) | Backend, web, iOS, and Android versioning |
+| [HOMEPAGE_MOTION_REVIEW.md](release/HOMEPAGE_MOTION_REVIEW.md) | Homepage structure, static architecture diagram, motion lifecycle and native graphics review |
 | [APP_STORE_APPROVAL_PLAN.md](release/APP_STORE_APPROVAL_PLAN.md) · [APP_REVIEW_RISK_REGISTER.md](release/APP_REVIEW_RISK_REGISTER.md) | Submission plan and review risks |
 | [APPLE_REVIEW_ANSWERS.md](release/APPLE_REVIEW_ANSWERS.md) · [LEGAL_REVIEW_NOTES.md](release/LEGAL_REVIEW_NOTES.md) | Prepared reviewer answers and legal notes |
 | [MACOS_XCODE_APP_STORE_RUNBOOK.md](release/MACOS_XCODE_APP_STORE_RUNBOOK.md) · [MAC_XCODE_V1_EXECUTION_CHECKLIST.md](release/MAC_XCODE_V1_EXECUTION_CHECKLIST.md) | The native release procedure |

@@ -268,7 +268,8 @@ def test_public_legal_pages_are_available_without_auth(isolated_db):
     assert root.status_code == 200
     assert "text/html" in root.headers["content-type"]
     assert "Your memory, connected" in root.text
-    assert "Create your memory" in root.text
+    # Verify the registration destination without freezing editorial CTA copy.
+    assert 'data-primary-cta data-app-link="register" href="/app/?auth=register"' in root.text
 
     script = client.get("/assets/site.js")
     assert script.status_code == 200
