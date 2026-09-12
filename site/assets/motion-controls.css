@@ -1,0 +1,18 @@
+/* One pause control and readable static states for both public homepages. */
+.lab-motion-toggle { position: fixed; z-index: 45; right: max(18px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); min-height: 44px; padding: 0 16px; border: 1px solid #ffffff24; border-radius: 999px; background: #151e30ed; color: #aab7d0; font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: 0.02em; cursor: pointer; }
+.lab-motion-toggle[hidden] { display: none; }
+.lab-motion-toggle:hover { color: #f1f4ff; border-color: #aca8ff77; }
+.lab-motion-toggle:focus-visible { outline: 2px solid #aca8ff; outline-offset: 4px; }
+.classic-site .site-footer { padding-bottom: 88px; }
+html:not([data-motion-paused]) .hero-mark { animation: none; }
+html[data-motion-paused="true"] { scroll-behavior: auto; }
+html[data-motion-paused="true"] *, html[data-motion-paused="true"] *::after { transition: none !important; animation-play-state: paused !important; }
+/* Never freeze an entrance on its invisible first frame. */
+html[data-motion-paused="true"] .hero-inner > *,
+html[data-motion-paused="true"] .hero-mark,
+html[data-motion-paused="true"] .preview-panel { animation: none !important; }
+html[data-motion-paused="true"] .reveal { opacity: 1 !important; transform: none !important; }
+html[data-motion-paused="true"] [data-primary-cta] { transform: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  [data-primary-cta] { transform: none !important; }
+}

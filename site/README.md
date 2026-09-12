@@ -30,7 +30,8 @@ kept for existing links. `/classic/` remains available with its **Modern Site**
 return link. The modern header and footer do not advertise the classic route.
 
 `assets/modern-home.css` owns this composition. `assets/labs.js` owns the
-progressive reveals, example controls and session motion preference;
+progressive reveals and example controls; `assets/motion-preference.js` shares
+the session choice with the classic site;
 `assets/constellation.js` owns the decorative canvas. Keep the network bounded
 (40 nodes on phones, 64 otherwise, 30 draws/second, pixel ratio capped at 2).
 Pause when offscreen, hidden or leaving the page, and resume on restoration.

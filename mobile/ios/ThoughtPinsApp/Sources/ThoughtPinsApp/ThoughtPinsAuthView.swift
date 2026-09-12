@@ -58,12 +58,12 @@ struct ThoughtPinsAuthView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         HStack(spacing: 10) {
-                            ThoughtPinsBrandMark().frame(width: 32, height: 32)
-                            Text("Thought Pins").font(.headline)
+                            Text("Thought Pins").font(.headline).foregroundStyle(ThoughtPinsTheme.inkSoft)
+                            Spacer()
+                            ThoughtPinsOrbit(size: 56)
                         }
-                        .padding(.top, 12)
+                        .padding(.top, 4)
                         VStack(alignment: .leading, spacing: 14) {
-                            ThoughtPinsOrbit(size: 72)
                             Text(creatingAccount ? "Your life.\nA little more connected." : "Welcome back.")
                                 .font(.system(.largeTitle, design: .default).weight(.bold)).tracking(-0.8)
                                 .foregroundStyle(ThoughtPinsTheme.ink)

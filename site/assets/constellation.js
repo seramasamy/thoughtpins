@@ -10,7 +10,7 @@
   let width = 0, height = 0, frame = 0, elapsed = 0, lastTime = 0;
   let inView = true;
   let pageActive = true;
-  const moving = () => !reduced.matches && document.documentElement.dataset.motionPaused !== "true";
+  const moving = () => !reduced.matches && document.documentElement.dataset.motionPaused === "false";
   const visible = () => inView && !document.hidden && pageActive;
   const nodes = Array.from({ length: 64 }, (_, i) => {
     // Golden-angle placement keeps the composition stable across resizes.

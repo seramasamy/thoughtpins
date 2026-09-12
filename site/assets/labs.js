@@ -1,25 +1,6 @@
-/* Modern homepage: progressive enhancement, native scrolling, shared motion preference. */
+/* Modern homepage: progressive reveals and native example scrolling. */
 (() => {
   const root = document.documentElement;
-  const reduced = matchMedia("(prefers-reduced-motion: reduce)");
-  const toggle = document.querySelector("[data-motion-toggle]");
-  let paused = false;
-  try { paused = sessionStorage.getItem("thoughtpins.motionPaused") === "true"; } catch { /* Storage is optional. */ }
-  function syncMotion() {
-    root.dataset.motionPaused = String(paused || reduced.matches);
-    if (toggle) {
-      toggle.hidden = reduced.matches;
-      toggle.textContent = paused ? "Resume motion" : "Pause motion";
-    }
-    document.dispatchEvent(new Event("thoughtpins:motionchange"));
-  }
-  toggle?.addEventListener("click", () => {
-    paused = !paused;
-    try { sessionStorage.setItem("thoughtpins.motionPaused", String(paused)); } catch { /* Retain the choice in memory. */ }
-    syncMotion();
-  });
-  reduced.addEventListener("change", syncMotion);
-  syncMotion();
 
   // Without JS, an observer, or motion, every heading and action stays visible.
   if ("IntersectionObserver" in window) {
@@ -79,7 +60,7 @@
   }
   function move(left) {
     track.scrollTo({ left,
-      behavior: root.dataset.motionPaused === "true" ? "instant" : "smooth" });
+      behavior: root.dataset.motionPaused !== "false" ? "instant" : "smooth" });
   }
   function step(direction) {
     const end = Math.max(0, track.scrollWidth - track.clientWidth);

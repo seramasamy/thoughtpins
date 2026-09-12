@@ -10,9 +10,9 @@ lifecycle behavior; it does not change retrieval, authentication or storage.
 | Modern homepage | How it works → The app → Your control; clearer capture/recall copy and a shorter hero. | Explain the workflow before asking someone to try it, with less empty scrolling. Existing `#week` links remain valid. |
 | Navigation | Remove classic links from the modern header/footer; retain `/classic/` and its Modern Site return link. Restore visible mobile Log in. | Keep the main site focused while preserving the older entry point. |
 | Examples | Native horizontal scrolling at every size, Previous/Next, arrow keys, Home/End, position and progress. | Remove scroll-driven horizontal transforms; make the full sequence reachable with a thumb, keyboard or pointer. Partial final steps work when multiple cards fit. |
-| Site motion | A stable violet/ember network with capped drawing and a shared Pause motion control. Marquee copies include their trailing gap. | Avoid reshuffling on resize, loop seams, background canvas work and inaccessible autoplay. Pause follows session choice, Reduce Motion, page visibility and viewport intersection. |
+| Site motion | A stable violet/ember network with capped drawing and a shared Pause motion control. Marquee copies include their trailing gap. | Avoid reshuffling on resize, loop seams, background canvas work and inaccessible autoplay. Both homepages and their button hover effects share the session choice and live Reduce Motion setting. Canvas work also follows page visibility and viewport intersection. |
 | Both product previews | Reserve screenshot aspect ratios before lazy loading. | Avoid the collapsed phone frame and layout jump on slow connections. |
-| Native iOS | A static vector network replaces blurred decorative orbits; thinking dots use a bounded timeline. Press feedback respects Reduce Motion. | Crisp graphics across phone/iPad sizes, with loading animation tied to view visibility, active scene and accessibility preference. |
+| Native iOS | A static vector network replaces blurred decorative orbits; sign-in uses one compact brand header; thinking dots use a bounded timeline. Press feedback respects Reduce Motion. | Crisp graphics and less form scrolling on compact phones, with loading animation tied to view visibility, active scene and accessibility preference. |
 
 ## Reproduce the checks
 

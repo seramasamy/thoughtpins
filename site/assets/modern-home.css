@@ -18,7 +18,7 @@ html { scroll-padding-top: 100px; }
 .lab-scroll-hint span::after { animation: none; top: 0; opacity: 0.65; }
 .lab-marquee { padding-block: 23px; }
 .lab-marquee-track { gap: 0; animation: none; }
-.lab-marquee-track[data-loop-ready] { animation: lab-marquee 65s linear infinite; }
+html[data-motion-paused] .lab-marquee-track[data-loop-ready] { animation: lab-marquee 65s linear infinite; }
 .lab-marquee-group { display: flex; align-items: baseline; gap: 34px; padding-right: 34px; }
 .lab-marquee-track span { font-family: var(--sans); font-size: 14px; font-style: normal; }
 .lab-week { height: auto; padding: 0; scroll-margin-top: 0; }
@@ -46,8 +46,6 @@ html { scroll-padding-top: 100px; }
 .lab-keep-list strong { margin-bottom: 12px; }
 .lab-closer { padding-block: 110px; }
 .lab-footer { padding-bottom: 88px; }
-.lab-motion-toggle { position: fixed; z-index: 45; right: max(18px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); min-height: 44px; padding: 0 16px; border: 1px solid #ffffff24; border-radius: 999px; background: #151e30ed; color: var(--lab-soft); font: 11px var(--sans); letter-spacing: 0.02em; cursor: pointer; }
-.lab-motion-toggle:hover { color: var(--lab-ink); border-color: #aca8ff77; }
 
 /* Content is visible by default, even if a script or observer is unavailable. */
 [data-reveal-line] > span { transform: none; transition: none; }
@@ -55,9 +53,7 @@ html { scroll-padding-top: 100px; }
   html:not([data-motion-paused="true"]) .lab-reveal-ready > span { transform: translateY(20px); opacity: 0; transition: transform 700ms var(--ease-out), opacity 700ms ease; }
   html:not([data-motion-paused="true"]) .lab-reveal-ready:is(.lab-in, :focus-within) > span { transform: none; opacity: 1; }
 }
-html[data-motion-paused="true"] { scroll-behavior: auto; }
 html[data-motion-paused="true"] .lab-marquee-track { animation-play-state: paused !important; }
-html[data-motion-paused="true"] *, html[data-motion-paused="true"] *::after { transition: none !important; }
 @media (max-width: 1000px) {
   .lab-nav { gap: 16px; padding-inline: 22px; }
   .lab-nav-links { gap: 15px; }

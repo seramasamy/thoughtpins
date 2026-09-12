@@ -120,12 +120,16 @@ function startHeroParticles() {
   if (!canvas || typeof canvas.getContext !== "function") return;
 
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-  const ctx = canvas.getContext("2d");
+  let ctx;
+  try { ctx = canvas.getContext("2d"); } catch { return; }
+  if (!ctx) return;
   let width = 0;
   let height = 0;
   let dpr = 1;
   let motes = [];
   let frame = 0;
+  let inView = true;
+  let pageActive = true;
 
   // Focus point: the visitor's pointer while it hovers the hero; otherwise a
   // slow "surge" drifting on a lissajous path so the field keeps forming and
@@ -198,8 +202,8 @@ function startHeroParticles() {
 
   let last = 0;
   function tick(now) {
-    if (document.hidden) { frame = 0; return; }
-    const staticField = reduceMotion.matches;
+    if (document.hidden || !inView || !pageActive) { frame = 0; return; }
+    const staticField = reduceMotion.matches || document.documentElement.dataset.motionPaused !== "false";
     const dt = staticField ? 0 : (last ? Math.min((now - last) / 1000, 0.05) : 0.016);
     last = now;
     const t = now / 1000;
@@ -281,6 +285,7 @@ function startHeroParticles() {
   }
 
   function play() {
+    if (document.hidden || !inView || !pageActive) { pause(); return; }
     if (frame) return;
     last = 0;
     frame = window.requestAnimationFrame(tick);
@@ -297,13 +302,16 @@ function startHeroParticles() {
   window.addEventListener("resize", () => { resize(); play(); }, { passive: true });
   document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); else play(); });
   if (reduceMotion.addEventListener) reduceMotion.addEventListener("change", play);
+  document.addEventListener("thoughtpins:motionchange", play);
+  window.addEventListener("pagehide", () => { pageActive = false; pause(); });
+  window.addEventListener("pageshow", () => { pageActive = true; play(); });
 
   /* Once the hero has scrolled away there is nothing to animate, and a canvas
      repainting sixty times a second behind the fold costs battery and competes
      with the scroll itself for main-thread time. */
   if ("IntersectionObserver" in window) {
     new IntersectionObserver(
-      (entries) => (entries[0].isIntersecting ? play() : pause()),
+      (entries) => { inView = entries[0].isIntersecting; play(); },
       { threshold: 0 }
     ).observe(canvas);
   }
@@ -503,10 +511,14 @@ if (document.readyState === "loading") {
 // ------------------------------------------------------------------
 function setupMagneticCta() {
   if (!window.matchMedia("(pointer: fine)").matches) return;
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
   const cta = document.querySelector("[data-primary-cta]");
   if (!(cta instanceof HTMLElement)) return;
   cta.addEventListener("pointermove", (event) => {
+    if (reduced.matches || document.documentElement.dataset.motionPaused !== "false") {
+      cta.style.transform = "";
+      return;
+    }
     const rect = cta.getBoundingClientRect();
     const dx = event.clientX - (rect.left + rect.width / 2);
     const dy = event.clientY - (rect.top + rect.height / 2);
@@ -517,6 +529,9 @@ function setupMagneticCta() {
   cta.addEventListener("pointerleave", () => {
     cta.style.transform = "";
   });
+  const reset = () => { cta.style.transform = ""; };
+  reduced.addEventListener("change", reset);
+  document.addEventListener("thoughtpins:motionchange", reset);
 }
 
 setupMagneticCta();

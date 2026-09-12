@@ -61,9 +61,18 @@ final class CaptureTests: XCTestCase {
         app.buttons["Sign in"].firstMatch.tap()
         let email = app.textFields["Email"]
         email.tap()
-        email.typeText("review@example.com")
+        // Next uses the form's focus/scroll contract. Tapping an offscreen
+        // password field through the keyboard fails AX scrolling on iPhone SE.
+        email.typeText("review@example.com\n")
         let password = app.secureTextFields["Password"]
-        password.tap()
+        let focused = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "hittable == true"), object: password
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [focused], timeout: 5), .completed)
+        let keyboardReady = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "hittable == true"), object: app.keyboards.keys["a"]
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [keyboardReady], timeout: 20), .completed)
         password.typeText("fictional password only\n")
         XCTAssertTrue(app.thoughtPinsTab("Chat").waitForExistence(timeout: 10))
     }
