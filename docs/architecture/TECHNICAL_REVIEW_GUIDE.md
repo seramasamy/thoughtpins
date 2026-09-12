@@ -1,18 +1,19 @@
-# Technical Review Guide
+# Codebase walkthrough
 
-This is the shortest path through Thought Pins for an engineering review. The
-repository contains a provider-neutral memory backend, responsive web client,
-public site, and native iOS/Android review shells. Telegram is an optional
-adapter; product behavior belongs in shared modules.
+This guide connects Thought Pins' behavior to the modules and tests that own
+it. The repository contains a provider-neutral memory backend, responsive web
+client, public site, native SwiftUI iPhone/iPad app, and a separate Android
+client. Telegram is an optional adapter; product behavior belongs in shared
+modules.
 
-## Research and systems review path
+## Retrieval and evaluation
 
 The [algorithm walkthrough](RETRIEVAL_ARCHITECTURE.md) maps candidate generation,
 score equations, adaptive evidence selection and context construction to their
 owners. The [external evaluation protocol](EXTERNAL_MEMORY_BENCHMARKS.md)
 separates a controlled reranking experiment from end-to-end retrieval and answer
-quality. Review the corpus split and candidate construction before comparing
-numbers across systems.
+quality. Its corpus split and candidate construction define what the reported
+numbers measure.
 
 For reproducible ranking, keep the candidate pool, policy and `as_of_date`
 fixed. Clone candidates before each ablation so scores are not fused twice.
@@ -23,10 +24,9 @@ contracts alongside ranking, rather than folded into one headline quality score.
 Useful next experiments are larger untouched holdouts, dense and learned
 baselines, paired uncertainty estimates, live-model grounding and adversarial
 input, and latency/cost under realistic corpus growth. The current reference
-results are documented with their limited scope; no general superiority over
-other memory systems is established.
+results cover small controlled workloads; the protocol records their scope.
 
-## Run The Local Review Build
+## Run a local example
 
 ```powershell
 python -m venv .venv
@@ -59,7 +59,7 @@ private reflection.
   `OBSIDIAN_INTEROPERABILITY.md` for the versioned format boundary.
 - `api_routes/`, `bot/`, and native/web clients are adapters around those
   shared capabilities.
-- `demo/` is a deterministic reviewer fixture; production routes never depend
+- `demo/` supplies deterministic fictional fixtures; production routes never depend
   on it.
 
 The executable architecture policy is in
@@ -70,7 +70,8 @@ adapters and stylesheets so they may shrink but cannot grow.
 ## Memory Ranking
 
 Retrieval fuses lexical, semantic, graph, phrase, temporal, and provenance
-signals. Exact evidence remains dominant. `memory/salience.py` provides a
+signals. The defaults give retrieval evidence the largest score contribution.
+`memory/salience.py` provides a
 versioned and explainable prior for tie-breaking and recap ordering:
 
 - bounded exponential saturation prevents raw frequency from dominating;
@@ -135,6 +136,8 @@ Redis rate limiting is fail-closed outside local development. A short reconnect
 circuit avoids a retry storm, and the API returns a stable `503` rather than
 silently degrading to per-process counters that can be bypassed across replicas.
 
+## Job delivery
+
 Asynchronous ingestion uses the relational job row as a compact transactional
 outbox. Producers atomically move `pending/retry -> queued` before publishing;
 a broker failure restores `retry` without losing the user's text. Workers claim
@@ -164,12 +167,15 @@ dependencies. Browser tests cover desktop, current and small phones, tablets,
 landscape layouts, keyboard behavior, reduced motion, dark appearance, and
 automated accessibility.
 
-## Honest Release Boundary
+## Deployment and distribution
 
-Source checks on Windows do not replace a signed Xcode archive, simulator and
-device testing, VoiceOver review, TestFlight, or App Store Connect validation.
-Live PostgreSQL RLS proof, production infrastructure, credential rotation, and
-legal-owner review also remain release-owner gates. The public repository is licensed under Apache-2.0; source availability does
-not establish deployment or App Store readiness. Known
-structural debt and exit criteria are tracked in `TECHNICAL_DEBT_REGISTER.md`
-rather than being hidden behind a claim of zero debt.
+Each release needs evidence from its target environment: PostgreSQL RLS under
+the runtime role, dependency readiness, recovery checks and client smoke tests.
+iOS distribution additionally needs a signed archive, device and accessibility
+checks, and App Store Connect validation. The
+[App Store preparation log](../release/APP_STORE_PREPARATION.md) records the
+completed build checks and remaining distribution steps.
+
+Known structural debt and exit criteria are tracked in
+[TECHNICAL_DEBT_REGISTER.md](TECHNICAL_DEBT_REGISTER.md). The public repository
+is licensed under Apache-2.0.

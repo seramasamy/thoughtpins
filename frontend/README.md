@@ -1,8 +1,7 @@
 # Thought Pins Frontend
 
-This is the backend-served web app for Thought Pins. It is intentionally
-chat-first and mirrors the future mobile app structure so iOS and Android can
-reuse the same product model.
+This is the backend-served React web app for Thought Pins. It shares its
+navigation and API contracts with the native clients.
 
 ## Module Map
 

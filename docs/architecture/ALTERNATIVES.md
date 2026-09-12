@@ -22,19 +22,19 @@ our interpretation of those descriptions and Thought Pins' implementation.
 | [Hermes Agent](https://hermes-agent.nousresearch.com/docs/user-guide/features/memory/) | Combines persistent profile/working memory, searchable session history, skills, and optional external memory providers. It is not limited to a short profile file. |
 | [OpenClaw](https://docs.openclaw.ai/concepts/memory) | Provides persistent memory with file-backed records and configurable search as part of its agent environment. |
 
-Thought Pins' proposition is the combined workflow: capture a journal moment,
+Thought Pins combines these steps in one workflow: capture a journal moment,
 derive typed memories, revisit a person or place, inspect the source, and retain
 control through account export and deletion. The
 [module map](../../ARCHITECTURE_MODULES.md),
 [retrieval walkthrough](RETRIEVAL_ARCHITECTURE.md), and
 [vault contract](OBSIDIAN_INTEROPERABILITY.md) show how this is implemented.
 
-A general assistant is a sensible choice for broad everyday work. An Obsidian
-agent fits an existing vault workflow. A research notebook fits a bounded
-collection of sources. Mem0 and Zep fit developers building their own product;
-Hermes and OpenClaw fit tool execution and automation. Choose Thought Pins when
-its dedicated personal-record workflow is the part you want to use or extend.
-This does not imply the other tools cannot support journaling or provenance.
+The main differences here concern scope. General assistants cover broad tasks;
+Obsidian agents work within an existing vault; research notebooks organize a
+collection of sources. Mem0 and Zep provide infrastructure for other products,
+while Hermes and OpenClaw include tool execution and automation. Thought Pins
+centers its application on a personal record. These categories overlap, and
+other tools can also support journaling or provenance.
 
 No paid accounts or model calls were used for this comparison. We have not
 established a retrieval-quality, privacy, reliability, latency, or cost advantage

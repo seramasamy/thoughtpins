@@ -6,8 +6,7 @@ Thought Pins evaluates retrieval against independently labeled data in addition
 to its deterministic product fixtures. These benchmarks answer narrow,
 measurable questions: can the ranker recover the correct historical session,
 preserve a named speaker, and resist plausible but incomplete social decoys?
-They do not prove answer correctness, production latency, or parity with a
-large consumer recommendation system.
+Answer correctness and production latency require separate measurements.
 
 The dataset manifest is `deploy/quality/memory-benchmarks.json`. Downloads live
 under ignored `.tmp/benchmark-corpora/`; no third-party corpus is committed to
@@ -83,8 +82,7 @@ The first holdout read occurred after the initial `social-episodic-v2`
 calibration. A later regression test required a stricter importance gate and a
 larger social coefficient selected solely from train, validation, and the
 adversarial suite. The post-repair holdout replay above is therefore
-confirmatory, not a second pristine holdout. This distinction is recorded so a
-future learned policy can reserve a genuinely untouched corpus.
+confirmatory. A future quality estimate needs a new untouched corpus.
 
 ## Reproduction
 

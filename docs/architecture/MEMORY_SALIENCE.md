@@ -60,10 +60,9 @@ the fixture for provenance:
 - Project Gutenberg: `The Adventures of Sherlock Holmes`, eBook 1661
 - Project Gutenberg: `The Return of Sherlock Holmes`, eBook 221
 
-This is a calibration analogy, not a claim that a person's life should be
-treated like fiction. The same structural signals transfer usefully to
-journaling: people repeatedly involved in distinct contexts, people who act
-or are the subject of decisions, and themes that bridge multiple entries.
+The fixture encodes intended ordering for recurring participants, direct
+involvement and themes across entries. Whether these signals produce useful
+ordering in personal journals requires evaluation on that workload.
 
 The fixture is an invariant suite rather than a learned model. It checks that
 structural role can beat raw name frequency, recurring themes beat vivid

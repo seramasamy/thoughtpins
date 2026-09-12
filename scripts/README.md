@@ -1,8 +1,7 @@
 # Gates And Operational Scripts
 
-113 scripts. Most are gates: they encode a rule that was learned once, usually
-from something breaking, so it cannot be un-learned quietly. A check here is
-cheaper than the incident that produced it.
+This directory contains release gates, evaluation tools and operational
+commands. Gates encode repository contracts and regression checks.
 
 Run everything the way CI does:
 
@@ -10,22 +9,21 @@ Run everything the way CI does:
 python scripts/release_check.py --strict-quality
 ```
 
-That is the single entry point — 49 steps including the full test suite, roughly
-twelve minutes. Do not pipe it through `tail`: the summary is ~49 lines and
-truncating it hides the pytest result, which is how a red gate once went
-unnoticed for three days.
+The runner prints each check and a final summary, including the full test suite.
+Retain the complete output and check its exit status; the number of steps and
+runtime change with the enabled checks and environment.
 
 ## What the families do
 
-**`check_*` (31)** — fitness functions that fail the build. Architecture and
+**`check_*`** — fitness functions that fail the build. Architecture and
 dependency direction, tenant isolation coverage, secret and export hygiene,
 store submission packets, web contracts, dependency locks. Each one prints the
 reason it failed rather than a status code.
 
-**`evaluate_*` and `verify_*` and `smoke_*` (22)** — measurements rather than
-gates. Retrieval quality against held-out sets, LLM behaviour matrices,
-PostgreSQL RLS against a non-owner role, startup and shutdown, Qdrant snapshot
-restore. These need real infrastructure and are not part of the offline gate.
+**`evaluate_*`, `verify_*` and `smoke_*`** — retrieval measurements, model
+behavior checks, PostgreSQL RLS verification, startup/shutdown and recovery
+tests. Some run offline; others require configured infrastructure. Check the
+command's options and the release runner before using a production target.
 
 **The rest** — release, export, and generation tooling: `export_vault.py`,
 `generate_sbom.py`, `create_public_export.py`, `ios_release.sh`,

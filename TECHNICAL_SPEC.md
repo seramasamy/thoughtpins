@@ -3,8 +3,7 @@
 ## Runtime Architecture
 
 ```text
-clients
-  -> backend-served web client (`frontend/static`, mounted at `/app`)
+clients: React web app, SwiftUI iOS app, Android client
   -> FastAPI (`thoughtpins.api`)
       -> SQLAlchemy session (`thoughtpins.store`)
       -> relational schema (`thoughtpins.db`)
@@ -22,14 +21,18 @@ Telegram polling (`thoughtpins.bot.telegram_app`)
   -> same ingestion and query modules
 ```
 
-Telegram is disabled by default and should remain an adapter, not the product
-surface.
+The API runtime serves the public site from `site/` and the built React client
+from `frontend/dist` at `/app`. `frontend/static` is the fallback when a valid
+build is unavailable. Telegram is disabled by default and uses the same core
+modules.
 
 ## Package Layout
 
 ```text
 src/thoughtpins/
-  api.py                  FastAPI app and /v1 routes
+  api.py                  FastAPI composition, middleware and legacy route adapters
+  api_routes/             feature routers and public web/static file serving
+  api_contracts/          typed request and response contracts
   article_fetch.py        URL validation and local/Jina/Firecrawl/Apify fetch providers
   auth.py                 password hashing, JWT access tokens, refresh sessions
   config.py               environment config
@@ -38,7 +41,7 @@ src/thoughtpins/
   email_verification.py   optional email verification token lifecycle
   jobs.py                 ingestion job tracking and local background runner
   oauth.py                Google/Apple OIDC ID token verification
-  rate_limit.py           Redis-backed rate limiter with memory fallback
+  rate_limit.py           Redis-backed rate limiter; memory fallback only in local development
   reading_analysis.py     deterministic publisher/topic/concept extraction for sources
   runtime_health.py       deep dependency health checks
   store.py                engine/session/init helpers
@@ -53,10 +56,10 @@ src/thoughtpins/
   vault/                  Obsidian-compatible Markdown vault rendering, packaging, validation
   obsidian/               compatibility shim for older export imports
   reports/                reports, charts, graph visualizations
-frontend/static/
-  index.html              zero-build web shell served by FastAPI at /app
-  app.js                  browser client for auth, entries, jobs, ask, export
-  styles.css              responsive app UI styles
+frontend/src/             React application, feature modules and shared client primitives
+frontend/dist/            generated production web build (not committed)
+frontend/static/          fallback web client
+site/                     public website, product previews and policy pages
 ```
 
 ## Configuration
@@ -66,7 +69,7 @@ Configuration comes from environment variables and optional `.env`.
 Important variables:
 
 - `ENVIRONMENT`: `development`, `staging`, or `production`.
-- `REQUIRE_API_AUTH`: require API key auth for data routes.
+- `REQUIRE_API_AUTH`: require authentication for data routes; app clients use JWT sessions.
 - `API_KEY`: bootstrap/admin API key.
 - `ALLOW_USER_API_KEYS`: local compatibility switch for permanent per-user API
   key auth; false in production.
@@ -279,30 +282,33 @@ Optional document graph enrichment can be enabled with
 `LIBRARY_EXTRACT_GRAPH=true`; SQL document/source rows remain the source of
 truth and graph extraction failure never makes ingestion fail.
 
-## Memory Retrieval Infra
+## Memory retrieval
 
-Thought Pins' default retrieval stack is local-first and source-of-truth-safe:
+SQL holds the authoritative source records. Eight candidate channels provide
+complementary access paths:
 
 - exact phrase search over active memories;
-- BM25-style lexical scoring over memories and raw entries, with rare-token,
-  exact-phrase, and token-proximity signals so obscure exact details outrank
-  generic overlap;
+- custom token/phrase scoring over memories and raw entries;
 - tenant-filtered dense vector search through the configured vector store;
-- document/source title and summary retrieval;
+- optional lookup by a supplied entity filter;
+- document/source title retrieval;
 - SQL graph expansion from matched entities through typed relationships;
-- context composition with separate sections for query-relevant memories,
-  selected recent memories, graph/source evidence, raw excerpts, open actions,
-  expenses, and exported vault files.
+- graph relationship evidence and paths.
+
+The collectors run sequentially, each within an exception boundary. BM25 is
+implemented separately as an evaluation baseline. The
+[retrieval walkthrough](docs/architecture/RETRIEVAL_ARCHITECTURE.md) lists the
+exact channel names, their limitations and the default score equations.
 
 The ranking pipeline is intentionally inspectable. Query analysis extracts a
 normalized token sequence, high-value identifiers, quoted phrases, phrase
 fragments, and a bounded specificity estimate. Candidate generation can come
 from SQL, vectors, graph traversal, raw entries, or documents; final ranking
 uses reciprocal-rank fusion to combine those incompatible score scales, then
-adds calibrated lexical, phrase, proximity, source-consensus, temporal, and
-source-kind signals. A maximal-marginal-relevance pass packs the final context
-so the assistant gets both the best match and enough diversity to avoid filling
-the prompt with repeated near-duplicates. Each returned `SearchResult` carries
+adds bounded lexical, phrase, proximity, source-consensus, temporal, salience
+and attribution signals. The score is heuristic, not a probability. Adaptive
+maximal marginal relevance and coverage selection reduce repeated evidence
+and retain requested aspects of the question. Each returned `SearchResult` carries
 `ranking_signals` for debugging retrieval failures without exposing private
 memory text in health checks.
 

@@ -1,16 +1,14 @@
 # Contributing To Thought Pins
 
-Thought Pins is a privacy-sensitive memory and journaling system. Contributions
-are welcome once the repository is publicly released, but changes that weaken
-tenant isolation, data lifecycle behavior, or release evidence will not be
-accepted.
+Thought Pins is a memory and journaling system. Contributions should preserve
+tenant isolation, data lifecycle behavior and the existing release gates.
 
 ## Development Setup
 
 Requirements:
 
-- Python 3.11 or newer
-- Node.js 22 or newer
+- Python 3.13 for the pinned development environment; see `pyproject.toml` for supported versions
+- Node.js 22
 - PostgreSQL 16 and Redis 7 for production-parity integration tests
 - Current Xcode on macOS for iOS work
 - JDK 17 and the checked-in Gradle wrapper for Android work

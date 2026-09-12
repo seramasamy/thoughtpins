@@ -9,9 +9,9 @@ Inspired by [David Rockefeller's card file](https://www.wsj.com/articles/david-r
 [![Python](https://img.shields.io/badge/Python-3.13-3776ab)](.python-version)
 [![SwiftUI](https://img.shields.io/badge/iOS-SwiftUI-e8612b)](mobile/ios/ThoughtPinsNative/README.md)
 
-**A private home for your thoughts, and a way to find the connections.**
+**Open-source journaling with structured recall and portable exports.**
 
-[Explore the product](https://thoughtpins.com/#product) · [Get started](#run-locally) · [Technical overview](docs/architecture/TECHNICAL_REVIEW_GUIDE.md) · [Documentation](docs/README.md)
+[Website](https://thoughtpins.com/#product) · [Run locally](#run-locally) · [Codebase walkthrough](docs/architecture/TECHNICAL_REVIEW_GUIDE.md) · [Documentation](docs/README.md)
 
 </div>
 
@@ -30,16 +30,16 @@ screens. Android has a separate client and build checks.
 
 *Product capture uses a fictional account. [Mobile and desktop previews](https://thoughtpins.com/#product).*
 
-The project is in active development. Source, automated checks, and review
+The project is in active development. Source, automated checks, and setup
 instructions are public; hosted availability and store distribution are
 separate release decisions. See [validation and limits](#validation-and-limits)
 for what the evidence supports.
 
 ## Alternatives, briefly
 
-**Choose Thought Pins for a connected record of your life:** write or speak
-naturally, revisit people and places, trace a memory to its source, and export
-the record. Here is where other tools fit alongside it.
+Thought Pins groups journal capture, people and place views, source retrieval,
+and export in one application. The tools below overlap with different parts of
+that workflow.
 
 | Alternative and focus | When Thought Pins helps |
 | --- | --- |
@@ -53,10 +53,10 @@ the record. Here is where other tools fit alongside it.
 
 These tools overlap: memory, graphs, citations, privacy controls, and exports
 are not unique to Thought Pins. This is a workflow comparison, not a quality
-ranking. [Research notes and selection limits](docs/architecture/ALTERNATIVES.md)
+ranking. [Comparison sources and scope](docs/architecture/ALTERNATIVES.md)
 were checked against first-party documentation on 11 September 2026.
 
-## The engineering behind recall
+## How recall works
 
 The central problem is preserving a useful personal record while extraction,
 retrieval, model responses, and network delivery can all be imperfect. Thought
@@ -69,7 +69,7 @@ stage an inspectable contract.
 | **Hybrid candidate generation** | Eight retrieval paths combine exact phrases, lexical matches, embeddings, entity/graph evidence and source titles. An unavailable channel can degrade recall without aborting all search. [Search](src/thoughtpins/memory/search.py) |
 | **Replayable ranking** | Reciprocal rank fusion, bounded relevance/salience signals, social attribution penalties, and adaptive diversity/coverage selection. The ranking policy exposes 20 validated parameters and explicit ablation switches. [Ranker](src/thoughtpins/memory/ranking.py) |
 | **Evidence-aware context** | Query-specific evidence planning, source labels and token budgeting retain attribution and mark retrieved text as untrusted input. [Evidence plan](src/thoughtpins/memory/evidence_plan.py) · [Context](src/thoughtpins/memory/context_package.py) |
-| **Durable asynchronous work** | Relational job claims, broker handoff recovery and deduplicated persistence address interrupted and repeated delivery. [Technical walkthrough](docs/architecture/TECHNICAL_REVIEW_GUIDE.md#privacy-semantics) |
+| **Durable asynchronous work** | Relational job claims, broker handoff recovery and deduplicated persistence address interrupted and repeated delivery. [Job delivery](docs/architecture/TECHNICAL_REVIEW_GUIDE.md#job-delivery) |
 | **Tenant and lifecycle boundaries** | User-scoped storage, PostgreSQL RLS, private-recall controls, token rotation, export and coordinated deletion across derived indexes. [RLS verification](scripts/verify_postgres_rls.py) · [Lifecycle](src/thoughtpins/data_lifecycle.py) |
 
 ### Eight-channel retrieval, from question to evidence
@@ -129,13 +129,13 @@ a channel can reduce recall. Vector hits are checked against scoped SQL
 records before admission. The lexical channels use the project's token/phrase
 scoring; BM25 is a separate evaluation baseline.
 
-**Why combine these paths?** A rare name can survive literal lookup when its
+A rare name can survive literal lookup when its
 embedding match is weak. A paraphrase can benefit from vectors. Graph expansion
 can reach related memories, while raw-entry lookup can recover wording that
 extraction omitted. These are design motivations; channel ablations determine
 their measured contribution on a given workload.
 
-**How does a candidate become context?** Duplicate candidate identities retain
+Duplicate candidate identities retain
 the channels that found them and their ranks. Reciprocal rank fusion contributes
 `RRF(d) = Σc 1 / (60 + max(1, rank_c(d)))`; the final score also uses bounded
 lexical, temporal, salience and social-attribution features. The 20 validated
@@ -145,23 +145,23 @@ redundancy, and coverage checks retain evidence for the question's different
 aspects. The evidence plan and context budget then prepare labelled material
 for the response model.
 
-**What can an engineer verify?** Candidate generation, fixed-pool ranking and
-live-model answers are separate evaluation targets. Replay a cloned candidate
-pool with a pinned `as_of_date` under policy ablations; measure source-level
-Recall@k, MRR/nDCG and evidence coverage. The
+Candidate generation, fixed-pool ranking and live-model answers are separate
+evaluation targets. Ranking experiments replay a cloned candidate pool with a pinned
+`as_of_date` under policy ablations and measure source-level Recall@k, MRR/nDCG
+and evidence coverage. The
 [search recovery tests](tests/test_search_resilience.py),
 [recall tests](tests/test_search_recall.py) and
 [ranking regressions](tests/test_retrieval_robustness.py) cover concrete failure
 cases. Larger holdouts, dense/learned baselines and production latency/cost
 measurements remain the next evidence to establish.
 
-**For a research or AI systems review:** start with the [algorithm walkthrough](docs/architecture/RETRIEVAL_ARCHITECTURE.md),
-then the [evaluation protocol](docs/architecture/EXTERNAL_MEMORY_BENCHMARKS.md)
-and [reviewer's verification path](docs/architecture/TECHNICAL_REVIEW_GUIDE.md).
-They connect the equations to code, isolate what each experiment measures, and
-identify the next experiments needed. This is a systems implementation with
-reproducible evaluation infrastructure; no state-of-the-art retrieval result
-is claimed.
+The [algorithm walkthrough](docs/architecture/RETRIEVAL_ARCHITECTURE.md) links
+the equations to their implementation. The
+[evaluation protocol](docs/architecture/EXTERNAL_MEMORY_BENCHMARKS.md) records
+datasets, reproduction commands and experimental limits. The
+[codebase walkthrough](docs/architecture/TECHNICAL_REVIEW_GUIDE.md) covers the
+remaining application boundaries. These references are optional; the app can
+be used without reading the implementation.
 
 ## User control is part of the design
 

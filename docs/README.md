@@ -11,17 +11,18 @@ material grouped so each surface stays easy to audit.
 | | |
 | --- | --- |
 | [ARCHITECTURE_MODULES.md](../ARCHITECTURE_MODULES.md) | Which module owns which concern. **Read before adding a feature.** |
-| [TECHNICAL_REVIEW_GUIDE.md](architecture/TECHNICAL_REVIEW_GUIDE.md) | A reviewer's tour of the codebase with a verification path |
+| [Codebase walkthrough](architecture/TECHNICAL_REVIEW_GUIDE.md) | Module boundaries, local examples and verification commands |
 | [RUNNING.md](operations/RUNNING.md) | Full local setup, the API surface, and pre-deploy checks |
-| [TECHNICAL_SPEC.md](../TECHNICAL_SPEC.md) | The build order and system specification |
+| [TECHNICAL_SPEC.md](../TECHNICAL_SPEC.md) | Runtime, configuration, API and persistence contracts |
 | [AGENTS.md](../AGENTS.md) | Conventions for AI coding agents working in this repo |
 
 ## Architecture
 
 | | |
 | --- | --- |
-| [RETRIEVAL_ARCHITECTURE.md](architecture/RETRIEVAL_ARCHITECTURE.md) | How recall works: six channels, score fusion, the bitemporal schema, measured numbers |
-| [MEMORY_ARCHITECTURE_REVIEW.md](architecture/MEMORY_ARCHITECTURE_REVIEW.md) | The memory design and its honest gaps, graded |
+| [RETRIEVAL_ARCHITECTURE.md](architecture/RETRIEVAL_ARCHITECTURE.md) | Eight retrieval channels, score fusion, temporal metadata and evaluation scope |
+| [MEMORY_ARCHITECTURE_REVIEW.md](architecture/MEMORY_ARCHITECTURE_REVIEW.md) | Memory design decisions, historical measurements and open questions |
+| [ALTERNATIVES.md](architecture/ALTERNATIVES.md) | Related tools, overlapping workflows and comparison sources |
 | [MEMORY_SALIENCE.md](architecture/MEMORY_SALIENCE.md) | How importance is estimated and bounded |
 | [SOCIAL_EPISODIC_RELEVANCE.md](architecture/SOCIAL_EPISODIC_RELEVANCE.md) | Query-conditioned ranking over social and episodic detail |
 | [EXTERNAL_MEMORY_BENCHMARKS.md](architecture/EXTERNAL_MEMORY_BENCHMARKS.md) | Dataset governance, calibration, holdout metrics, benchmark limits |
@@ -38,7 +39,7 @@ material grouped so each surface stays easy to audit.
 | --- | --- |
 | [RUNNING.md](operations/RUNNING.md) | Local development through production configuration |
 | [PRODUCTION_RUNBOOK.md](operations/PRODUCTION_RUNBOOK.md) | Deploy, rollback, backup, restore, launch checks |
-| [PRODUCTION_PLAN.md](operations/PRODUCTION_PLAN.md) | The detailed build order to a serious launch |
+| [PRODUCTION_PLAN.md](operations/PRODUCTION_PLAN.md) | Implementation sequence and launch dependencies |
 | [PRODUCTION_DECISION.md](operations/PRODUCTION_DECISION.md) | Hosting and infrastructure decisions, with reasoning |
 | [BACKEND_RELEASE_CHECKLIST.md](operations/BACKEND_RELEASE_CHECKLIST.md) | The backend release gate |
 | [WEB_APP_RELEASE_CHECKLIST.md](operations/WEB_APP_RELEASE_CHECKLIST.md) | The backend-served web app gate |

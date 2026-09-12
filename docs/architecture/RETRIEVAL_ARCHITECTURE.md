@@ -1,10 +1,9 @@
 # How recall works
 
-Thought Pins combines typed personal memory with hybrid retrieval and an
-inspectable ranking policy. The engineering work is in preserving attribution,
-privacy scope, temporal metadata and recoverable source records across these
-stages. The ranker is a bounded heuristic model; it is not a trained language
-model or a calibrated estimate of answer correctness.
+Thought Pins combines typed personal memory with hybrid retrieval and a
+bounded ranking policy. Source records, attribution, privacy scope and temporal
+metadata pass through extraction, retrieval and context assembly. The ranker
+uses explicit heuristics; its score is not a probability of answer correctness.
 
 This walkthrough describes the current implementation. Historical measurements
 are identified separately from executable contracts and proposed experiments.
@@ -181,9 +180,9 @@ The protocol records dataset pins, licenses, partition rules, calibration
 choices and reproduction commands. Benchmark corpora and generated reports stay
 in ignored local paths; they are never copied into product accounts.
 
-## A useful research review
+## Reproduction and open questions
 
-A reviewer can evaluate this as a persistent-memory systems implementation:
+The following checks exercise different parts of the pipeline:
 
 1. Trace one attributed or corrected statement from source to context.
 2. Replay a fixed candidate pool with a pinned date under policy ablations.
@@ -194,6 +193,5 @@ A reviewer can evaluate this as a persistent-memory systems implementation:
 6. Test live-model prompt injection, tenant isolation, interrupted ingestion and
    deletion recovery independently of retrieval quality.
 
-The existing work supplies the modular boundaries, deterministic fixtures and
-replay tools for that review. Larger quality claims need the corresponding
-experiments and shareable evidence.
+The fixtures and replay tools cover the implemented contracts. Larger holdouts,
+live-model behavior and production cost measurements remain separate work.

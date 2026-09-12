@@ -1,7 +1,8 @@
 # Backend Deployment Templates
 
-These templates keep the backend deployable before the mobile/frontend clients
-exist. They assume managed PostgreSQL and Redis, plus two runtime processes:
+These templates package the backend, public website and web app. They assume
+managed PostgreSQL and Redis, shared authenticated Qdrant, and two runtime
+processes:
 
 - API: `python -m thoughtpins.server --api-only`
 - Worker: `python -m thoughtpins.worker`
