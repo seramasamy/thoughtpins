@@ -51,6 +51,9 @@ transition and a separate five-second accessibility-frame race on a cold iPad.
 The shared twenty-second readiness check retains the complete-password,
 visibility, editing and successful-submission assertions. It does not prove a
 real iCloud/password-manager round trip.
+The dismissal helper accepts an already-hidden keyboard after a visibility
+change; a visible keyboard still requires the Done button and confirmed
+dismissal. The registration flow must then accept consent and reach the app.
 
 From the repository root, with frontend dependencies installed and Node 22.6+:
 

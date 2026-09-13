@@ -64,7 +64,14 @@ final class AuthAndCaptureTests: XCTestCase {
     }
 
     private func dismissKeyboard(in app: XCUIApplication) {
-        app.buttons["Dismiss keyboard"].tap()
+        // iOS can already have dismissed the input session after a password
+        // visibility change. Require the hidden state in either case; when
+        // the keyboard is present, its explicit Done control must work.
+        if app.keyboards.firstMatch.exists {
+            let done = app.buttons["Dismiss keyboard"]
+            XCTAssertTrue(done.waitForExistence(timeout: 5))
+            done.tap()
+        }
         let hidden = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "exists == false"), object: app.keyboards.firstMatch
         )

@@ -1,9 +1,7 @@
 # Guideline 2.1 response preparation
 
 Apple requested information and a physical-device demonstration for the new
-submission. The request is not an allegation that this private journal needs a
-social feed or an in-app purchase. Submit the evidence for the features the
-chosen build actually includes.
+submission. Supply evidence for the features the chosen signed build includes.
 
 The six answers below are a draft. Before sending, attach a recording of the
 chosen signed build running on a physical device with the latest operating

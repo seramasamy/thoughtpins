@@ -95,7 +95,15 @@ Terms: https://thoughtpins.com/terms
 
 ## Notes for you, not for Apple
 
-### Verified against production on 2026-08-25
+### Current release checks
+
+The 13 September checks used disposable fictional accounts for live uploads,
+original-file exports, resumable imports, recall, edited chat and deletion.
+They do not establish the current password or content of the standing review
+account. Read [Submission status](SUBMISSION_STATUS.md) for the exact source,
+CI evidence, deployment and outstanding physical-device and Apple-account work.
+
+### Historical checks — 25 August to 3 September 2026
 
 Everything below was checked by talking to `api.thoughtpins.com` and by signing
 in on a clean simulator, not by reading configuration.
@@ -203,11 +211,10 @@ wall, and finds no explanation files a 2.1 rejection.
 
 ### Things deliberately not claimed
 
-The notes do not name the AI provider. `site/ai-disclosure.html` and
-`site/privacy.html` are the binding disclosures and must stay accurate about
-what actually processes user content. If you change providers, change those
-pages in the same deploy — App Review compares the app's claims to the linked
-policy, and a mismatch is worse than either statement alone.
+Apple's Guideline 2.1 request asks for the external services used, so the notes
+now name the configured providers. `site/ai-disclosure.html` and
+`site/privacy.html` must describe the same processing. Update the notes and
+public disclosures together when the deployment's providers change.
 
 The notes do not promise that private-memory recall works. Production runs with
 `PRIVATE_ALLOW_LLM` off, which is deliberate: entries marked private are never
