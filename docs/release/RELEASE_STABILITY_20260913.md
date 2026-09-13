@@ -14,6 +14,8 @@ memory network and scroll-to-logo animation.
 | Native iOS networking | File uploads used the ordinary 30-second request timeout. Uploads now have 120 seconds for transfer and extraction, while ordinary requests retain their existing behavior. | Swift URLSession fixture checks the actual request timeout and background-job response decoding. |
 | Web accessibility | Settled success notices and account-deletion text lacked dark-mode contrast. Semantic colors now cover light and dark states; JSON exports are keyboard focusable. Preferences cannot be edited before saved values load. | Full account screens checked with axe at 390, 820 and 1440 CSS pixels in both appearances, plus a delayed-settings response test. |
 | Apple sign-in preparation | Web setup inferred the Services ID from audience ordering, and a failed SDK load could prevent retry. The web audience is explicit, native-only configuration hides the web button, and script loading supports preload, timeout and retry. | Generated-key server checks and browser provider fixtures cover success, bad state, incomplete credentials, failed SDK download and native-only gating. Live Apple account authorization still requires portal configuration and a signed-device check. |
+| Hosted semantic search | The remote collection lacked a keyword index on `user_id`, so strict filtering rejected scoped queries despite successful vector writes. The adapter now ensures this index exists before reporting readiness, including on newly created collections. | Existing-index preservation, wrong-type rejection, permission failure, initialization checks and live tenant-filtered search/count requests. Strict filtering remains enabled. |
+| Native test readiness | The email keyboard satisfied the old letter-key wait while the password input session was still changing. A separate short frame wait raced cold iPad accessibility snapshots. | The shared helper requires the password Go key, usable input bounds and a letter key within the existing twenty-second keyboard deadline. Full-password, editing and login assertions remain required. |
 
 The [storage migration notes](../operations/SHARED_UPLOAD_STORAGE.md) describe
 legacy-file reconciliation, encryption, capacity and rollback. Migration 0027
@@ -40,3 +42,11 @@ credentials and App Store Connect reply are distinct from automated checks.
 Read the [Apple sign-in guide](../../apple-submission/APPLE_SIGN_IN.md) before
 activating the provider. No App Store approval or live Apple login is claimed
 from code or mocked authorization tests alone.
+
+The vector index change is additive metadata on the derived remote collection;
+it neither rewrites source data nor changes SQL tables. Existing deployments
+need permission to create a missing `user_id` keyword payload index. An index
+with another type requires explicit repair and fails initialization; the app
+does not drop it or disable strict filtering. Keep the compatible index when
+rolling back application code. Local Qdrant does not implement payload indexes
+and is excluded from this remote requirement.

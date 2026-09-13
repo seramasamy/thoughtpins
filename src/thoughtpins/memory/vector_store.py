@@ -9,6 +9,7 @@ from typing import Any, Optional
 from loguru import logger
 
 from thoughtpins.config import config
+from thoughtpins.memory.qdrant_schema import ensure_remote_tenant_index
 
 _QDRANT_ID_NAMESPACE = uuid.UUID("8dd1dce0-1de2-4bd0-9f70-8f21a2bdf8e2")
 
@@ -121,6 +122,7 @@ class VectorStore:
                     self._recreate_qdrant_collection()
                 else:
                     logger.debug("Qdrant collection '{}' already exists", self._collection_name)
+            ensure_remote_tenant_index(self._backend, self._collection_name, remote=remote)
             logger.info("Qdrant {} vector store ready", "remote" if remote else "local")
         except ImportError as exc:
             if remote or config.is_production():
@@ -141,6 +143,7 @@ class VectorStore:
             collection_name=self._collection_name,
             vectors_config=VectorParams(size=self._dimension, distance=Distance.COSINE),
         )
+        ensure_remote_tenant_index(backend, self._collection_name, remote=self._qdrant_path is None)
         logger.info("Created Qdrant collection '{}'", self._collection_name)
 
     def _recreate_qdrant_collection(self) -> None:

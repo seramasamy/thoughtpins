@@ -72,12 +72,7 @@ final class AuthAndCaptureTests: XCTestCase {
     }
 
     private func waitForPasswordKeyboard(in app: XCUIApplication) {
-        // Password AutoFill can delay the software keyboard on the simulator.
-        // Sending keys before it appears can enter just one letter.
-        let ready = XCTNSPredicateExpectation(
-            predicate: NSPredicate(format: "hittable == true"), object: app.keyboards.keys["a"]
-        )
-        let result = XCTWaiter.wait(for: [ready], timeout: 20)
+        let result = app.waitForThoughtPinsPasswordKeyboard()
         if result != .completed { shot("Auth-keyboard-unavailable") }
         XCTAssertEqual(result, .completed)
     }
@@ -194,12 +189,6 @@ final class AuthAndCaptureTests: XCTestCase {
         reveal(email, in: app); email.tap(); email.typeText("new-review@example.com\n")
         let password = app.secureTextFields["Password"]
         waitForPasswordKeyboard(in: app)
-        let focused = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            // During iPad keyboard transitions XCTest may briefly return an
-            // infinite window origin; asking hittability then throws immediately.
-            password.exists && password.frame.minY.isFinite && password.isHittable
-        }, object: password)
-        XCTAssertEqual(XCTWaiter.wait(for: [focused], timeout: 5), .completed)
         password.typeText("fictional password only")
         app.buttons["Show password"].tap()
         XCTAssertEqual(app.textFields["Password"].value as? String, "fictional password only")

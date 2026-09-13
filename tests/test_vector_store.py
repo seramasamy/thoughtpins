@@ -87,13 +87,17 @@ def test_remote_qdrant_uses_shared_authenticated_endpoint(monkeypatch) -> None:
     from thoughtpins.memory.vector_store import VectorStore
 
     calls: list[dict] = []
+    indexes: list[dict] = []
 
     class FakeQdrantClient:
         def __init__(self, **kwargs):
             calls.append(kwargs)
 
         def get_collection(self, _name):
-            return SimpleNamespace(config=SimpleNamespace(params=SimpleNamespace(vectors=None)))
+            return SimpleNamespace(config=SimpleNamespace(params=SimpleNamespace(vectors=None)), payload_schema={})
+
+        def create_payload_index(self, **kwargs):
+            indexes.append(kwargs)
 
         def close(self) -> None:
             pass
@@ -122,6 +126,9 @@ def test_remote_qdrant_uses_shared_authenticated_endpoint(monkeypatch) -> None:
         }
     ]
     assert store._qdrant_path is None
+    assert indexes == [
+        {"collection_name": "journal_memories_3", "field_name": "user_id", "field_schema": "keyword", "wait": True}
+    ]
 
 
 def test_remote_qdrant_initialization_fails_closed(monkeypatch) -> None:

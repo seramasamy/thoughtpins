@@ -67,16 +67,7 @@ final class CaptureTests: XCTestCase {
         // password field through the keyboard fails AX scrolling on iPhone SE.
         email.typeText("review@example.com\n")
         let password = app.secureTextFields["Password"]
-        let keyboardReady = XCTNSPredicateExpectation(
-            predicate: NSPredicate(format: "hittable == true"), object: app.keyboards.keys["a"]
-        )
-        XCTAssertEqual(XCTWaiter.wait(for: [keyboardReady], timeout: 20), .completed)
-        let focused = XCTNSPredicateExpectation(
-            predicate: NSPredicate { _, _ in
-                password.exists && password.frame.minY.isFinite && password.isHittable
-            }, object: password
-        )
-        XCTAssertEqual(XCTWaiter.wait(for: [focused], timeout: 5), .completed)
+        XCTAssertEqual(app.waitForThoughtPinsPasswordKeyboard(), .completed)
         password.typeText("fictional password only\n")
         XCTAssertTrue(app.thoughtPinsTab("Chat").waitForExistence(timeout: 10))
     }

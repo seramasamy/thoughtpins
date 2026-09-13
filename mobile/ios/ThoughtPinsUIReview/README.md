@@ -44,8 +44,13 @@ and reset cleanup; it exists only in the loopback review server.
 The app currently advertises ordinary password AutoFill. Automatic strong-password
 generation needs a configured `webcredentials` association and a separate signed
 device check; requesting it without that association blocked manual entry on the
-iOS 17.2 review host. The tests wait for usable keyboard keys and check the entire
-entered value. They do not prove a real iCloud/password-manager round trip.
+iOS 17.2 review host. `PasswordKeyboardSupport` waits for the password field's
+Go key and a usable field frame; an ordinary letter key can still belong to the
+previous email keyboard. CI recordings exposed input injection during that
+transition and a separate five-second accessibility-frame race on a cold iPad.
+The shared twenty-second readiness check retains the complete-password,
+visibility, editing and successful-submission assertions. It does not prove a
+real iCloud/password-manager round trip.
 
 From the repository root, with frontend dependencies installed and Node 22.6+:
 
