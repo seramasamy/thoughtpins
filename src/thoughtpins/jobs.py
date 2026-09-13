@@ -364,17 +364,26 @@ def run_ingestion_job(job_id: str, tenant_user_id: str | None = None) -> None:
             job.metadata_json = metadata
             session.commit()
 
-            result = process_message(
-                session,
-                job.raw_text,
-                user_id=job.user_id,
-                source=job.source,
-                author_user_id=job.user_id,
-                occurred_at_utc=_job_datetime(metadata.get("occurred_at_utc")),
-                force_journal=metadata.get("force_journal") is True,
-                dedup_key=str(metadata.get("dedup_key") or ""),
-                user_importance=metadata.get("user_importance"),
-            )
+            if job.source == "library_enrichment" and metadata.get("operation") == "library_enrichment":
+                from thoughtpins.library_enrichment import run_document_enrichment
+
+                result = run_document_enrichment(
+                    session,
+                    user_id=job.user_id,
+                    document_id=str(metadata.get("document_id") or ""),
+                )
+            else:
+                result = process_message(
+                    session,
+                    job.raw_text,
+                    user_id=job.user_id,
+                    source=job.source,
+                    author_user_id=job.user_id,
+                    occurred_at_utc=_job_datetime(metadata.get("occurred_at_utc")),
+                    force_journal=metadata.get("force_journal") is True,
+                    dedup_key=str(metadata.get("dedup_key") or ""),
+                    user_importance=metadata.get("user_importance"),
+                )
             job.entry_id = result.get("entry_id") or None
             job.status = "completed" if result.get("type") != "error" else "failed"
             job.error = result.get("error")

@@ -218,7 +218,7 @@
 }
 
 .health-state.bad {
-  color: var(--tp-danger);
+  color: var(--tp-danger-text);
 }
 
 .health-state.bad .health-dot {
@@ -307,12 +307,12 @@
 }
 
 .account-section-danger .account-section-title > svg {
-  color: var(--tp-danger);
+  color: var(--tp-danger-text);
 }
 
 .account-section-danger .danger-zone {
   border-color: #e7c2bd;
-  background: #fdf8f7;
+  background: var(--tp-danger-soft);
 }
 
 .account-empty {
@@ -469,3 +469,5 @@
     flex-direction: column;
   }
 }
+
+.preferences-fields { min-inline-size: 0; padding: 0; margin: 0; border: 0; }

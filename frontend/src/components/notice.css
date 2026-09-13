@@ -19,21 +19,21 @@
 }
 
 .notice.ok {
-  color: #2f4a3c;
+  color: var(--tp-sage);
   border-color: #c4d6c9;
   background: var(--tp-sage-soft);
 }
 
 .notice.warn {
-  color: #6e4a04;
+  color: var(--tp-warning);
   border-color: #ead9ac;
-  background: #fdf3dd;
+  background: var(--tp-warning-soft);
 }
 
 .notice.error {
-  color: #8a2b2b;
+  color: var(--tp-danger-text);
   border-color: #e7c2bd;
-  background: #f9eae7;
+  background: var(--tp-danger-soft);
 }
 
 .notice span {

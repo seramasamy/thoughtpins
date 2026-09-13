@@ -135,7 +135,7 @@ def create_metadata_router(
             oauth_google_enabled=bool(config.GOOGLE_OAUTH_CLIENT_IDS),
             oauth_apple_enabled=bool(config.APPLE_OAUTH_CLIENT_IDS),
             oauth_google_client_id=(config.GOOGLE_OAUTH_CLIENT_IDS[0] if config.GOOGLE_OAUTH_CLIENT_IDS else None),
-            oauth_apple_client_id=(config.APPLE_OAUTH_CLIENT_IDS[0] if config.APPLE_OAUTH_CLIENT_IDS else None),
+            oauth_apple_client_id=(config.APPLE_OAUTH_WEB_CLIENT_ID or None if config.APPLE_OAUTH_CLIENT_IDS else None),
             magic_link_enabled=bool(config.MAGIC_LINK_ENABLED),
             invite_required=bool(config.INVITE_ONLY),
             invite_request_email=config.INVITE_REQUEST_EMAIL,

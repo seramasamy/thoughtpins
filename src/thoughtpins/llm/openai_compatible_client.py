@@ -98,6 +98,10 @@ class OpenAICompatibleLLMClient:
         thinking_enabled = self._thinking if use_thinking is None else use_thinking
         if thinking_enabled:
             extra_body["thinking"] = {"type": "enabled"}
+        elif config.LLM_SUPPORTS_THINKING:
+            # Omitting the option lets a provider whose default is reasoning
+            # re-enable it, even for structured extraction that requested off.
+            extra_body["thinking"] = {"type": "disabled"}
         if thinking_enabled and self._reasoning_effort:
             extra_body["reasoning_effort"] = self._reasoning_effort
 

@@ -8,6 +8,33 @@ final class ThoughtPinsAPIClientTests: XCTestCase {
         super.tearDown()
     }
 
+    func testUploadsAllowTimeForExtractionAndDecodeTheBackgroundJob() async throws {
+        URLProtocolStub.handler = { request in
+            XCTAssertEqual(request.url?.path, "/v1/uploads")
+            XCTAssertEqual(request.timeoutInterval, 120)
+            let payload = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(request.bodyData)) as? [String: Any])
+            XCTAssertEqual(payload["surface"] as? String, "ios")
+            XCTAssertEqual(payload["destination"] as? String, "library")
+            return try StubResponse.make(for: request, status: 200, body: [
+                "status": "processed", "route_type": "library_upload", "filename": "fixture.txt",
+                "media_kind": "document", "destination": "library", "extraction_status": "processed",
+                "extracted_chars": 7, "attachment_saved": true,
+                "document_id": "source-fixture", "job_id": "enrichment-fixture",
+            ])
+        }
+        let client = ThoughtPinsAPIClient(
+            baseURL: URL(string: "https://api.example.com")!,
+            sessionStore: TestSessionStore(ApiSession(accessToken: "access", refreshToken: "refresh")),
+            urlSession: makeSession()
+        )
+        let response = try await client.uploadFile(
+            filename: "fixture.txt", contentBase64: Data("fixture".utf8).base64EncodedString(),
+            mediaType: "text/plain", destination: "library"
+        )
+        XCTAssertEqual(response.documentId, "source-fixture")
+        XCTAssertEqual(response.jobId, "enrichment-fixture")
+    }
+
     func testOAuthCarriesAppleAuthorizationCodeWithoutCaching() async throws {
         let store = TestSessionStore()
         let session = makeSession()

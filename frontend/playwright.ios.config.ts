@@ -14,7 +14,7 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "./e2e",
-  testMatch: ["ios-device-matrix.spec.ts", "auth-recovery.spec.ts", "session-recovery.spec.ts"],
+  testMatch: ["ios-device-matrix.spec.ts", "auth-recovery.spec.ts", "session-recovery.spec.ts", "apple-signin.spec.ts", "account-accessibility.spec.ts"],
   timeout: 60_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,

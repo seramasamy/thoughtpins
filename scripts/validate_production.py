@@ -23,18 +23,17 @@ def oauth_web_build_problems(
     """Return frontend/backend OAuth configuration mismatches."""
     values = os.environ if environ is None else environ
     google_web_client = values.get("VITE_GOOGLE_CLIENT_ID", "").strip()
-    apple_web_client = values.get("VITE_APPLE_CLIENT_ID", "").strip()
+    apple_web_client = (values.get("APPLE_OAUTH_WEB_CLIENT_ID") or values.get("VITE_APPLE_CLIENT_ID", "")).strip()
     problems: list[str] = []
     if google_client_ids:
         if not google_web_client:
             problems.append("VITE_GOOGLE_CLIENT_ID is required when Google OAuth is enabled for the web app.")
         elif google_web_client not in google_client_ids:
             problems.append("VITE_GOOGLE_CLIENT_ID must be included in GOOGLE_OAUTH_CLIENT_IDS.")
-    if apple_client_ids:
-        if not apple_web_client:
-            problems.append("VITE_APPLE_CLIENT_ID is required when Apple OAuth is enabled for the web app.")
-        elif apple_web_client not in apple_client_ids:
-            problems.append("VITE_APPLE_CLIENT_ID must be included in APPLE_OAUTH_CLIENT_IDS.")
+    # Native-only Apple sign-in needs no Services ID. The web UI stays hidden
+    # until an explicit web audience exists; a bundle ID cannot substitute for it.
+    if apple_web_client and apple_web_client not in apple_client_ids:
+        problems.append("Apple web client ID must be included in APPLE_OAUTH_CLIENT_IDS.")
     return problems
 
 

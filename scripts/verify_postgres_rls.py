@@ -45,6 +45,8 @@ LIVE_RLS_TABLES = (
     "relationships",
     "reports",
     "safety_reports",
+    "stored_attachments",
+    "vault_import_chunks",
     "vault_import_sessions",
     "voice_assets",
 )
@@ -65,6 +67,8 @@ DELETE_ORDER = (
     "events",
     "reports",
     "safety_reports",
+    "stored_attachments",
+    "vault_import_chunks",
     "vault_import_sessions",
     "voice_assets",
     "llm_usage_events",
@@ -366,6 +370,34 @@ def _insert_fixture_rows(conn, ids: dict[str, tuple[str, str]], user_a: str, use
     )
     conn.execute(
         text(
+            'INSERT INTO vault_import_chunks (id, user_id, transfer_id, "offset", byte_size, payload) '
+            "VALUES (:a, :ua, :ta, 0, 1, :payload), (:b, :ub, :tb, 0, 1, :payload)"
+        ),
+        {
+            "a": ids["vault_import_chunks"][0],
+            "b": ids["vault_import_chunks"][1],
+            "ua": user_a,
+            "ub": user_b,
+            "ta": ids["vault_import_sessions"][0],
+            "tb": ids["vault_import_sessions"][1],
+            "payload": b"x",
+        },
+    )
+    conn.execute(
+        text(
+            "INSERT INTO stored_attachments (id, user_id, reference, original_filename, byte_size, payload, created_at_utc) "
+            "VALUES (:a, :ua, :a, 'a.txt', 1, :payload, NOW()), (:b, :ub, :b, 'b.txt', 1, :payload, NOW())"
+        ),
+        {
+            "a": ids["stored_attachments"][0],
+            "b": ids["stored_attachments"][1],
+            "ua": user_a,
+            "ub": user_b,
+            "payload": b"x",
+        },
+    )
+    conn.execute(
+        text(
             """
             INSERT INTO voice_assets (
                 id, user_id, raw_entry_id, storage_ref, original_filename, media_type, container,
@@ -630,6 +662,8 @@ def main() -> int:
         "reports": (f"rep_a_{suffix}", f"rep_b_{suffix}"),
         "safety_reports": (f"saf_a_{suffix}", f"saf_b_{suffix}"),
         "vault_import_sessions": (f"vlt_a_{suffix}", f"vlt_b_{suffix}"),
+        "vault_import_chunks": (f"vlc_a_{suffix}", f"vlc_b_{suffix}"),
+        "stored_attachments": (f"att_a_{suffix}", f"att_b_{suffix}"),
         "voice_assets": (f"voc_a_{suffix}", f"voc_b_{suffix}"),
         "llm_usage_events": (f"usg_a_{suffix}", f"usg_b_{suffix}"),
         "invite_requests": (f"inv_a_{suffix}", f"inv_b_{suffix}"),

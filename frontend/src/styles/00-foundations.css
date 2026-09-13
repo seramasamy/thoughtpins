@@ -36,6 +36,10 @@
   --tp-blue: #5454b8;
   --tp-blue-soft: #eeedfb;
   --tp-danger: #a83232;
+  --tp-danger-text: #a83232;
+  --tp-danger-soft: #fdf8f7;
+  --tp-warning: #6e4a04;
+  --tp-warning-soft: #fdf3dd;
 
   /* Dark band / sidebar */
   --tp-charcoal: #131b2b;

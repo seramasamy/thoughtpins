@@ -686,5 +686,7 @@ from thoughtpins.db_platform import (  # noqa: E402,F401
     MagicLinkToken,
     OperatorNotification,
 )
+from thoughtpins.db_storage import StoredAttachment  # noqa: E402,F401
+from thoughtpins.db_transfers import VaultImportChunk  # noqa: E402,F401
 
 __all__ = [name for name in globals() if not name.startswith("_")]

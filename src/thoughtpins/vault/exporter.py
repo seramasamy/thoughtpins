@@ -11,6 +11,7 @@ from loguru import logger
 from sqlalchemy.orm import Session
 
 from thoughtpins.config import config
+from thoughtpins.media.attachments import export_attachments
 from thoughtpins.crypto import maybe_decrypt_text
 from thoughtpins.db import DocumentSource, Entity, Event, Memory, RawEntry, Relationship
 from thoughtpins.source_policy import export_policy_for_source
@@ -122,6 +123,8 @@ class VaultExporter:
             clean_generated_vault(self._vault, self._root, self.user_id)
         self._vault.mkdir(parents=True, exist_ok=True)
         (self._vault / "Attachments").mkdir(parents=True, exist_ok=True)
+        if self.user_id:
+            export_attachments(self.user_id, self._vault / "Attachments")
         (self._vault / "_System").mkdir(parents=True, exist_ok=True)
 
         projection = VaultProjectionLoader(self._session, self.user_id).load()
@@ -347,7 +350,7 @@ class VaultExporter:
                 "- Open this folder with Obsidian's `Open folder as vault` flow.",
                 "- Start from `Vault Home.md`, then use `_Indexes` to browse by journal day, entity, or saved source.",
                 "- `_Views` contains native Bases and a Canvas memory map; no community plugins are required.",
-                "- The `Attachments` folder is reserved for future images, PDFs, and imports.",
+                "- The `Attachments` folder contains your original uploaded files.",
                 "",
                 "## System Boundary",
                 "The vault is the readable notes layer. SQL rows, vectors, and graph indexes remain internal retrieval infrastructure.",

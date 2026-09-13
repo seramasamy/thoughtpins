@@ -34,7 +34,9 @@ from thoughtpins.db import (
     Relationship,
     Report,
     SafetyReport,
+    StoredAttachment,
     User,
+    VaultImportChunk,
     VaultImportSession,
     VoiceAsset,
 )
@@ -122,6 +124,8 @@ def _is_internal_export_key(key: str) -> bool:
 
 
 def export_user_data(session: Session, user_id: str) -> dict[str, Any]:
+    from thoughtpins.media.attachments import attachment_manifest
+
     user = session.query(User).filter(User.id == user_id).first()
     if not user:
         raise ValueError("User not found")
@@ -179,6 +183,7 @@ def export_user_data(session: Session, user_id: str) -> dict[str, Any]:
             exported_rows.append(exported)
         payload["tables"][model.__tablename__] = exported_rows
 
+    payload["tables"]["stored_attachments"] = attachment_manifest(session, user_id)
     return payload
 
 
@@ -224,6 +229,12 @@ def _purge_user_files(session: Session, user_id: str, user: User | None) -> None
     import shutil
 
     from thoughtpins.config import config
+    from thoughtpins.media.attachments import purge_attachments
+
+    try:
+        purge_attachments(user_id)
+    except (OSError, RuntimeError) as exc:
+        raise DataDeletionUnavailable("Original upload cleanup failed; the account was not deleted.") from exc
 
     # Generated report files. The rows record where they were written.
     for report in session.query(Report).filter(Report.user_id == user_id).all():
@@ -346,6 +357,7 @@ def delete_user_data(session: Session, user_id: str) -> dict[str, int]:
         Event,
         Report,
         SafetyReport,
+        StoredAttachment,
         IngestionJob,
         AppDevice,
         OAuthCredential,
@@ -355,6 +367,7 @@ def delete_user_data(session: Session, user_id: str) -> dict[str, int]:
         AuditLog,
         LlmUsageEvent,
         InviteRequest,
+        VaultImportChunk,
         VaultImportSession,
     ]
 

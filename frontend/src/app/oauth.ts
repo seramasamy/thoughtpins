@@ -10,6 +10,8 @@
 // one at runtime means rotating it does not require rebuilding the bundle — a
 // build-only value silently yields an enabled-looking button that cannot work.
 
+import { loadProviderScript as loadScript } from "./providerScript";
+
 export type OAuthProvider = "google" | "apple";
 
 export class OAuthNotConfiguredError extends Error {
@@ -40,18 +42,10 @@ export function oauthClientConfigured(provider: OAuthProvider): boolean {
   return Boolean(clientIdFor(provider));
 }
 
-function loadScript(src: string, id: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (document.getElementById(id)) return resolve();
-    const script = document.createElement("script");
-    script.src = src;
-    script.id = id;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Could not reach the sign-in provider. Check your connection and try again."));
-    document.head.appendChild(script);
-  });
+const APPLE_SCRIPT = "https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js";
+
+export function prepareAppleSignIn(): void {
+  if (oauthClientConfigured("apple")) void loadScript(APPLE_SCRIPT, "tp-appleid").catch(() => {});
 }
 
 export type OAuthResult = {
@@ -89,7 +83,7 @@ async function signInWithGoogle(): Promise<OAuthResult> {
 async function signInWithApple(): Promise<OAuthResult> {
   const clientId = clientIdFor("apple");
   if (!clientId) throw new OAuthNotConfiguredError("apple");
-  await loadScript("https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js", "tp-appleid");
+  await loadScript(APPLE_SCRIPT, "tp-appleid");
   const AppleID = (window as unknown as { AppleID?: any }).AppleID;
   if (!AppleID?.auth) throw new Error("Apple sign-in is temporarily unavailable.");
   const redirectUri = window.location.origin + import.meta.env.BASE_URL;

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+
 
 def test_config_accepts_protocol_compatibility_env_fallbacks(monkeypatch):
     from thoughtpins import config as config_module
@@ -202,7 +204,8 @@ def test_llm_chat_retries_rate_limit_response(monkeypatch):
     assert calls == 2
 
 
-def test_llm_extract_json_disables_thinking_for_structured_calls(monkeypatch):
+@pytest.mark.parametrize("supports_thinking", [False, True])
+def test_llm_extract_json_disables_thinking_for_structured_calls(monkeypatch, supports_thinking):
     from thoughtpins.config import config
     from thoughtpins.llm.client import OpenAICompatibleLLMClient
 
@@ -224,13 +227,17 @@ def test_llm_extract_json_disables_thinking_for_structured_calls(monkeypatch):
     monkeypatch.setattr(config, "LLM_EXTRACTION_MAX_TOKENS", 1234)
     monkeypatch.setattr(type(config), "LLM_EXTRACTION_MAX_TOKENS", 1234)
 
+    monkeypatch.setattr(config, "LLM_SUPPORTS_THINKING", supports_thinking)
     result = client.extract_json("system", "user", "{}")
 
     assert result == {"ok": True}
     assert calls[0]["model"] == "fallback-chat"
     assert calls[0]["max_tokens"] == 1234
     assert calls[0]["response_format"] == {"type": "json_object"}
-    assert "extra_body" not in calls[0]
+    if supports_thinking:
+        assert calls[0]["extra_body"]["thinking"] == {"type": "disabled"}
+    else:
+        assert "extra_body" not in calls[0]
 
 
 def test_llm_chat_drops_unsupported_json_mode_without_provider_coupling(monkeypatch):

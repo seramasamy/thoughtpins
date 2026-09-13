@@ -682,6 +682,8 @@ def test_resumable_vault_upload_preview_apply_retry_and_cancel(isolated_db, monk
         user_id = user.id
     finally:
         session.close()
+    monkeypatch.setattr(config, "VAULT_IMPORT_PATH", tmp_path / "separate-worker")
+    monkeypatch.setattr(type(config), "VAULT_IMPORT_PATH", tmp_path / "separate-worker")
     transfers.run_vault_import_session(transfer_id, user_id)
 
     ready = client.get(f"/v1/import/obsidian/uploads/{transfer_id}")

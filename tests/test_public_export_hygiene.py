@@ -157,3 +157,20 @@ def test_public_export_only_includes_binary_images_from_product_asset_roots(tmp_
 
     assert "site/assets/brand.png" in paths
     assert "docs/private-screenshot.png" not in paths
+
+
+def test_review_service_disclosure_exception_cannot_hide_secrets_or_private_terms(tmp_path: Path) -> None:
+    mod = _load_script("forbidden_scan")
+    provider = "Deep" + "Seek"
+    directory = tmp_path / "apple-submission"
+    directory.mkdir()
+    note = directory / "REVIEW_NOTES.md"
+    note.write_text(provider, encoding="utf-8")
+    assert mod.main(tmp_path) == 0
+    note.write_text(provider + "\n" + "sk-" + "fictionalcredentialfixturelongenoughtodetect", encoding="utf-8")
+    assert mod.main(tmp_path) == 1
+    note.write_text(provider + "\n" + "founder" + "_memory_backup", encoding="utf-8")
+    assert mod.main(tmp_path) == 1
+    note.write_text(provider, encoding="utf-8")
+    (tmp_path / "unrelated.md").write_text(provider, encoding="utf-8")
+    assert mod.main(tmp_path) == 1

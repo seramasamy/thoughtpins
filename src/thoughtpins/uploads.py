@@ -20,6 +20,7 @@ from thoughtpins.media import (
     save_media_attachment,
     transcribe_audio,
 )
+from thoughtpins.users import lock_active_user_for_write
 from thoughtpins.voice_archive import VoiceRetentionOutcome, retain_voice_note_if_consented
 
 Destination = Literal["auto", "journal", "library"]
@@ -84,6 +85,7 @@ def ingest_upload(
     if len(content) > UPLOAD_MAX_BYTES:
         raise ValueError(f"Uploaded file is too large; limit is {UPLOAD_MAX_BYTES // (1024 * 1024)} MB")
 
+    lock_active_user_for_write(session, user_id)
     media_kind = detect_media_kind(clean_filename, media_type)
     # Voice is ephemeral unless the user has separately enabled the encrypted
     # personal archive. Other user-supplied files retain their existing vault flow.
@@ -94,6 +96,8 @@ def ingest_upload(
             content,
             category=media_kind,
             filename=clean_filename,
+            user_id=user_id,
+            session=session,
         )
     )
     extraction = _extract(content, filename=clean_filename, media_type=media_type, media_kind=media_kind)
@@ -201,6 +205,7 @@ def ingest_upload(
         title=result.title,
         entry_id=result.raw_entry_id,
         document_id=result.document_id,
+        job_id=result.job_id,
         error=result.error,
         metadata={
             "media_type": media_type,

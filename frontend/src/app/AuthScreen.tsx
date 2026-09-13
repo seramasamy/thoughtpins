@@ -5,7 +5,7 @@ import { api, type ApiSession } from "../api";
 import type { Notice } from "./types";
 import type { ClientConfigResponse } from "../types";
 import { BrandMark, IconButton, NoticeBanner, PrimaryButton } from "../components/ui";
-import { setOAuthClientIds, signInWithProvider, type OAuthProvider } from "./oauth";
+import { prepareAppleSignIn, setOAuthClientIds, signInWithProvider, type OAuthProvider } from "./oauth";
 import { toggleTheme, useResolvedTheme } from "../core/theme";
 import { PasswordField } from "../components/PasswordField";
 import { useAuthRequest } from "./useAuthRequest";
@@ -58,7 +58,7 @@ export function AuthScreen({
   const theme = useResolvedTheme();
   const registrationLocked = clientConfig?.registration_locked ?? true;
   const showGoogle = clientConfig?.oauth_google_enabled ?? false;
-  const showApple = clientConfig?.oauth_apple_enabled ?? false;
+  const showApple = Boolean(clientConfig?.oauth_apple_enabled && (clientConfig.oauth_apple_client_id || import.meta.env.VITE_APPLE_CLIENT_ID));
   const showOAuth = showGoogle || showApple;
   const magicLinkEnabled = clientConfig?.magic_link_enabled ?? false;
   const maintenanceMessage = clientConfig?.maintenance_mode
@@ -78,7 +78,8 @@ export function AuthScreen({
       google: clientConfig?.oauth_google_client_id,
       apple: clientConfig?.oauth_apple_client_id,
     });
-  }, [clientConfig?.oauth_google_client_id, clientConfig?.oauth_apple_client_id]);
+    if (clientConfig?.oauth_apple_enabled) prepareAppleSignIn();
+  }, [clientConfig?.oauth_google_client_id, clientConfig?.oauth_apple_client_id, clientConfig?.oauth_apple_enabled]);
 
   function selectMode(next: "login" | "register") {
     if (busy) return;

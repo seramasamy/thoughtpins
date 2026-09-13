@@ -56,6 +56,13 @@ FORBIDDEN_TERMS = [
     _term("c:", "\\users", "\\surya"),
     _term("c:/", "users", "/surya"),
 ]
+# App Review explicitly requests the names of external services. Permit the
+# configured provider name only in those two disclosures; private references
+# and every secret pattern still apply to the same files.
+ALLOWED_TERMS_BY_FILE = {
+    "apple-submission/GUIDELINE_2_1_RESPONSE.md": {_term("deep", "seek")},
+    "apple-submission/REVIEW_NOTES.md": {_term("deep", "seek")},
+}
 SECRET_PATTERNS = [
     re.compile(r"TELEGRAM_BOT_TOKEN\s*=\s*\d+:[A-Za-z0-9_-]{20,}"),
     re.compile(r"\b\d{8,12}:[A-Za-z0-9_-]{30,}\b"),
@@ -108,7 +115,7 @@ def main(root: Path = ROOT) -> int:
         rel = path.relative_to(root)
         lower = text.lower()
         for term in FORBIDDEN_TERMS:
-            if term in lower:
+            if term in lower and term not in ALLOWED_TERMS_BY_FILE.get(rel.as_posix(), set()):
                 findings.append(f"{rel}: forbidden term '{term}'")
         for pattern in SECRET_PATTERNS:
             if pattern.search(text):

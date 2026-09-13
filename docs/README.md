@@ -43,6 +43,7 @@ material grouped so each surface stays easy to audit.
 | [PRODUCTION_DECISION.md](operations/PRODUCTION_DECISION.md) | Hosting and infrastructure decisions, with reasoning |
 | [BACKEND_RELEASE_CHECKLIST.md](operations/BACKEND_RELEASE_CHECKLIST.md) | The backend release gate |
 | [WEB_APP_RELEASE_CHECKLIST.md](operations/WEB_APP_RELEASE_CHECKLIST.md) | The backend-served web app gate |
+| [SHARED_UPLOAD_STORAGE.md](operations/SHARED_UPLOAD_STORAGE.md) | Original-file ownership, encrypted resumable imports, migration and extraction checks |
 
 ## Product
 

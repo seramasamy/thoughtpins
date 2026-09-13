@@ -25,6 +25,7 @@ class LibraryIngestRequest(BaseModel):
 
 
 class LibraryIngestResponse(BaseModel):
+    job_id: str | None = None
     document_id: str
     raw_entry_id: str
     title: str

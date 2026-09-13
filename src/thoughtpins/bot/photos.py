@@ -7,7 +7,18 @@ from pathlib import Path
 from loguru import logger
 
 from thoughtpins.bot.commands import _e, _process_and_reply, ingest_library_message
+from thoughtpins.bot.utils import telegram_user_id
 from thoughtpins.media import extract_document_text, extract_image_text, save_media_attachment
+from thoughtpins.store import get_session
+from thoughtpins.users import lock_active_user_for_write
+
+
+def _save_attachment(update, content: bytes, *, category: str, filename: str) -> None:
+    with get_session() as session:
+        user_id = telegram_user_id(update, session)
+        lock_active_user_for_write(session, user_id)
+        save_media_attachment(content, category=category, filename=filename, user_id=user_id, session=session)
+        session.commit()
 
 
 async def handle_photo_message(update, context):
@@ -22,7 +33,7 @@ async def handle_photo_message(update, context):
     try:
         photo_file = await context.bot.get_file(photo.file_id)
         img_bytes = bytes(await photo_file.download_as_bytearray())
-        save_media_attachment(img_bytes, category="photos", filename=f"telegram_{photo.file_id}.jpg")
+        _save_attachment(update, img_bytes, category="photos", filename=f"telegram_{photo.file_id}.jpg")
         extracted_text = _ocr_extract(img_bytes)
 
         if caption:
@@ -65,7 +76,7 @@ async def handle_document_message(update, context):
     try:
         tg_file = await context.bot.get_file(document.file_id)
         content = bytes(await tg_file.download_as_bytearray())
-        save_media_attachment(content, category="documents", filename=filename)
+        _save_attachment(update, content, category="documents", filename=filename)
         text = _extract_document_text(content, suffix)
         caption = update.message.caption or ""
         if caption:

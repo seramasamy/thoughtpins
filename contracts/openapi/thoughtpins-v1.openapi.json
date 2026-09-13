@@ -1898,6 +1898,17 @@
             ],
             "title": "Error"
           },
+          "job_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Id"
+          },
           "memories": {
             "title": "Memories",
             "type": "integer"

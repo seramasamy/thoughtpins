@@ -86,9 +86,9 @@ Direct unit tests cover those races and rejected/transient refresh failures;
 
 ## OAuth Builds
 
-Google and Apple web client IDs are compile-time Vite values. Set
-`VITE_GOOGLE_CLIENT_ID` and `VITE_APPLE_CLIENT_ID` for a production build when
-the matching backend provider is enabled. The Dockerfile and Compose builds
-forward both values explicitly; changing either ID requires rebuilding the web
-bundle. Production validation rejects enabled providers whose web ID is absent
-or missing from the backend allowlist.
+Public provider IDs come from `/v1/client-config`, with Vite values retained as
+build-time fallbacks. Apple web sign-in uses `APPLE_OAUTH_WEB_CLIENT_ID`, an
+explicit Services ID in the backend audience allowlist; it does not assume that
+the first audience (which may be the iOS bundle ID) works in browsers. Its exact
+HTTPS return URI must also be configured. A native-only Apple deployment keeps
+the web Apple button hidden. See the [Apple setup and verification guide](../apple-submission/APPLE_SIGN_IN.md).

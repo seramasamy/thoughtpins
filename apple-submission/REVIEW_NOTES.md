@@ -21,6 +21,82 @@ CHECK
 
 ## ✂️ BEGIN — paste into App Store Connect
 
+Thought Pins — Guideline 2.1 information
+
+1. PHYSICAL-DEVICE RECORDING
+Before sending these notes, add the verified recording URL, physical device,
+latest OS version, app version and build here. The recording must begin with
+launch and show registration, login, the main flow, reporting and deletion.
+This draft does not claim that a recording is attached.
+
+2. PURPOSE AND AUDIENCE
+Thought Pins is a private journal and personal-memory app for people who want
+to revisit their experiences, ideas and reading. Save notes, voice transcripts
+and sources, then inspect people and places or ask questions about your record.
+References let users check the underlying material; AI answers can be wrong.
+
+3. REVIEW ACCESS AND FEATURES
+review@thoughtpins.com — current password in the Sign-In Information fields.
+Verify these credentials and the fictional demo content before submission.
+The backend must remain available throughout review. No sample file or purchase
+is required. Registration is open on the submission deployment; no invite code
+is required. Native provider buttons appear only when configured for that app.
+
+Try:
+- Sign in, or register a separate email/password account. A new account shows
+  the explicit AI-processing consent before saving or asking.
+- Chat: ask “What do you remember about Maya?” and inspect the cited record.
+- Open Recap, People, Places and Pins. Capture can save a note, source or file.
+- Tap the microphone, allow recording and speak an invented note. Ordinary
+  audio is discarded after transcription; the optional voice archive is disabled.
+- Use Report a reply beneath an answer. Notes and replies are private. There is
+  no public feed, social profile, following or user-to-user messaging, so
+  blocking other users is not applicable.
+- Open Account to change appearance and export account JSON or a vault ZIP.
+- On a separate disposable account, choose Delete account and confirm. The app
+  returns to sign-in after server-confirmed removal. Cleanup failures are shown
+  for retry. Do not delete the standing demo account used by other reviewers.
+
+4. EXTERNAL SERVICES AND PRIVACY
+Railway hosts the API, workers, PostgreSQL and Redis. Qdrant provides semantic
+search. Cloudflare provides domain
+and web routing. DeepSeek provides configured AI organization and responses;
+OpenAI provides embeddings and hosted voice transcription. Resend delivers
+account email and sign-in links. Image OCR uses Tesseract and PDF extraction
+uses pypdf on the server. Reconcile enabled identity providers with the
+selected build before sending this list.
+
+Users consent before AI processing. Journal content is not used for advertising
+or model training. No advertising/analytics SDK, IDFA or tracking prompt is
+included. Current provider details: https://thoughtpins.com/ai-disclosure
+
+5. REGIONS AND DEVICES
+The product has no intentional region-specific features or content. Its screens
+and image OCR are English; online features need provider access. Confirm the
+App Store territories and service availability for this submission.
+The app supports iPhone and iPad. Sign-in needs a connection; supported offline
+journal drafts are kept on-device and sent after reconnecting, with failures
+reported. Test the chosen signed build on physical devices before submission.
+
+6. REGULATED SERVICES AND MATERIAL
+Thought Pins is a note-taking tool, not a regulated financial or medical
+service. Review content is invented. Users deliberately supply documents;
+article capture respects access restrictions and does not bypass paywalls.
+No protected third-party publication is bundled as the review dataset.
+
+The release is free: no purchases, subscriptions, ads or external purchase links.
+Support: support@thoughtpins.com — https://thoughtpins.com/support
+Privacy: https://thoughtpins.com/privacy
+Terms: https://thoughtpins.com/terms
+
+## ✂️ END', 1)[0]
+print(len(block), 'characters')
+assert len(block) <= 4000
+CHECK
+```
+
+## ✂️ BEGIN — paste into App Store Connect
+
 Thought Pins is a private journaling and personal-memory app. Write or speak
 notes, then revisit people, places and saved sources or ask about your record.
 

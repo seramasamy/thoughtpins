@@ -15,12 +15,19 @@ export async function installMockApi(
     inviteAdmitted?: boolean;
     aiConsentAccepted?: boolean;
     magicLinkEnabled?: boolean;
+    appleClientId?: string;
   } = {},
 ) {
   if (mode === "offline") {
     await page.route("**/v1/client-config", async (route) => route.abort("failed"));
     return;
   }
+
+  // Authentication fixtures never need to contact Apple's live CDN. Provider
+  // workflow tests install their own later route with explicit SDK behavior.
+  await page.route("https://appleid.cdn-apple.com/**", route => route.fulfill({
+    contentType: "application/javascript", body: "/* fictional provider fixture */",
+  }));
 
   let inviteAdmitted = Boolean(options.inviteAdmitted);
   let chatPostCount = 0;
@@ -54,6 +61,7 @@ export async function installMockApi(
         invite_required: Boolean(options.inviteRequired),
         invite_request_email: "invite@thoughtpins.com",
         magic_link_enabled: Boolean(options.magicLinkEnabled),
+        oauth_apple_client_id: options.appleClientId ?? "com.thoughtpins.web.fixture",
       });
     }
     if (path === "/v1/invites/request" && method === "POST") {

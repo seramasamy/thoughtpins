@@ -138,7 +138,7 @@ select:focus {
 }
 
 .icon-button.danger {
-  color: var(--tp-danger);
+  color: var(--tp-danger-text);
 }
 
 /* Quiet text action: no fill, brand-ink label, soft tint on hover. Used for
@@ -165,7 +165,7 @@ select:focus {
 }
 
 .quiet-button.danger {
-  color: var(--tp-danger);
+  color: var(--tp-danger-text);
 }
 
 .quiet-button.danger:hover:not(:disabled) {

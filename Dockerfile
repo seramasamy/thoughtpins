@@ -27,6 +27,9 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 WORKDIR /app
 
 COPY requirements-prod.lock ./
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng \
+    && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir --require-hashes -r requirements-prod.lock
 
 COPY pyproject.toml README.md LICENSE NOTICE ./
@@ -37,6 +40,9 @@ COPY alembic.ini ./alembic.ini
 COPY alembic ./alembic
 COPY scripts ./scripts
 COPY site ./site
+
+# Fail the image build if advertised upload formats cannot actually be read.
+RUN python scripts/check_media_runtime.py
 
 RUN groupadd --gid 10001 thoughtpins \
     && useradd --uid 10001 --gid thoughtpins --create-home --shell /usr/sbin/nologin thoughtpins \

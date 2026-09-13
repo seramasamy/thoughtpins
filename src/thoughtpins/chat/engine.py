@@ -21,6 +21,7 @@ from thoughtpins.chat.actions import (
     _save_journal_turn as _save_journal_turn_action,
 )
 from thoughtpins.chat.conversation_state import CONVERSATION_CACHE, HISTORY_MAX_MESSAGES
+from thoughtpins.chat.edits import finalize_edited_branch, hold_replacement, prepare_edited_branch
 from thoughtpins.chat.memory_answer import answer_with_llm
 from thoughtpins.chat.models import ChatEngineResult, ChatRouteDecision
 from thoughtpins.chat.natural_commands import (
@@ -37,7 +38,7 @@ from thoughtpins.chat.store import (
     prompt_history,
     resolve_pending_action,
 )
-from thoughtpins.db import ChatConversation, PendingChatAction
+from thoughtpins.db import ChatConversation, ChatMessage, PendingChatAction
 from thoughtpins.ingestion.classify import classify_message
 from thoughtpins.ingestion.pipeline import process_message
 from thoughtpins.memory.context_package import (
@@ -134,6 +135,7 @@ def execute_chat_message(
     include_private: bool = False,
     confirm_action: bool = False,
     pending_action_id: str | None = None,
+    supersedes_message_id: str | None = None,
 ) -> ChatEngineResult:
     """Execute one natural message as chat, journal, document, or operation."""
     lock_active_user_for_write(session, user_id)
@@ -153,7 +155,18 @@ def execute_chat_message(
         surface=surface,
         title_hint=cleaned_text,
     )
-    durable_history = prompt_history(session, user_id=user_id, conversation_id=conversation.id)
+    edited_branch = prepare_edited_branch(
+        session,
+        user_id=user_id,
+        conversation_id=conversation.id,
+        message_id=supersedes_message_id,
+    )
+    durable_history = prompt_history(
+        session,
+        user_id=user_id,
+        conversation_id=conversation.id,
+        exclude_message_ids=tuple(str(row.id) for row in edited_branch),
+    )
 
     pending_result = _maybe_execute_pending_action(
         session,
@@ -166,7 +179,7 @@ def execute_chat_message(
         confirm_action=confirm_action,
     )
     if pending_result:
-        append_chat_message(
+        user_turn = append_chat_message(
             session,
             conversation,
             user_id=user_id,
@@ -176,10 +189,18 @@ def execute_chat_message(
             status=pending_result.status,
             metadata={"pending_action_id": pending_action_id},
         )
-        return _finalize_chat_result(session, conversation=conversation, user_id=user_id, result=pending_result)
+        hold_replacement(user_turn, edited_branch)
+        return _finalize_chat_result(
+            session,
+            conversation=conversation,
+            user_id=user_id,
+            user_message_id=user_turn.id,
+            edited_branch=edited_branch,
+            result=pending_result,
+        )
 
     decision = route_chat_message(cleaned_text)
-    append_chat_message(
+    user_turn = append_chat_message(
         session,
         conversation,
         user_id=user_id,
@@ -189,6 +210,8 @@ def execute_chat_message(
         status="received",
         metadata=_classification_meta(decision),
     )
+
+    hold_replacement(user_turn, edited_branch)
 
     if decision.natural_route:
         result = _execute_natural_route(
@@ -201,7 +224,14 @@ def execute_chat_message(
             source=source[:32],
             confirm_action=confirm_action,
         )
-        return _finalize_chat_result(session, conversation=conversation, user_id=user_id, result=result)
+        return _finalize_chat_result(
+            session,
+            conversation=conversation,
+            user_id=user_id,
+            user_message_id=user_turn.id,
+            edited_branch=edited_branch,
+            result=result,
+        )
 
     msg_type = decision.route_type
     routed_text = decision.routed_text
@@ -213,7 +243,14 @@ def execute_chat_message(
             reply="You can just say what you want naturally. Manual slash commands are optional.",
             metadata=_classification_meta(decision),
         )
-        return _finalize_chat_result(session, conversation=conversation, user_id=user_id, result=result)
+        return _finalize_chat_result(
+            session,
+            conversation=conversation,
+            user_id=user_id,
+            user_message_id=user_turn.id,
+            edited_branch=edited_branch,
+            result=result,
+        )
 
     if msg_type in {"conversation", "query", "ambiguous"}:
         _seed_prompt_history(key, durable_history)
@@ -237,7 +274,14 @@ def execute_chat_message(
             context_size_chars=len(ctx),
             metadata=_classification_meta(decision),
         )
-        return _finalize_chat_result(session, conversation=conversation, user_id=user_id, result=result)
+        return _finalize_chat_result(
+            session,
+            conversation=conversation,
+            user_id=user_id,
+            user_message_id=user_turn.id,
+            edited_branch=edited_branch,
+            result=result,
+        )
 
     if msg_type == "report_request":
         ctx = build_memory_context_package(
@@ -251,7 +295,14 @@ def execute_chat_message(
             context_size_chars=len(ctx),
             metadata=_classification_meta(decision),
         )
-        return _finalize_chat_result(session, conversation=conversation, user_id=user_id, result=result)
+        return _finalize_chat_result(
+            session,
+            conversation=conversation,
+            user_id=user_id,
+            user_message_id=user_turn.id,
+            edited_branch=edited_branch,
+            result=result,
+        )
 
     if msg_type in {"document_link", "document_text"}:
         result = _ingest_document(session, routed_text, user_id=user_id, conversation_key=key, msg_type=msg_type)
@@ -269,7 +320,14 @@ def execute_chat_message(
                 "duplicate": result.duplicate,
             },
         )
-        return _finalize_chat_result(session, conversation=conversation, user_id=user_id, result=chat_result)
+        return _finalize_chat_result(
+            session,
+            conversation=conversation,
+            user_id=user_id,
+            user_message_id=user_turn.id,
+            edited_branch=edited_branch,
+            result=chat_result,
+        )
 
     if msg_type == "correction":
         correction_result = store_and_apply_correction(
@@ -291,7 +349,14 @@ def execute_chat_message(
             reply=reply,
             metadata=_classification_meta(decision) | {"fixes": list(correction_result.fixes)},
         )
-        return _finalize_chat_result(session, conversation=conversation, user_id=user_id, result=chat_result)
+        return _finalize_chat_result(
+            session,
+            conversation=conversation,
+            user_id=user_id,
+            user_message_id=user_turn.id,
+            edited_branch=edited_branch,
+            result=chat_result,
+        )
 
     if msg_type == "mixed":
         stored = _save_journal_turn(
@@ -322,7 +387,14 @@ def execute_chat_message(
             job_id=stored.job_id,
             metadata=_classification_meta(decision) | stored.metadata,
         )
-        return _finalize_chat_result(session, conversation=conversation, user_id=user_id, result=result)
+        return _finalize_chat_result(
+            session,
+            conversation=conversation,
+            user_id=user_id,
+            user_message_id=user_turn.id,
+            edited_branch=edited_branch,
+            result=result,
+        )
 
     stored = _save_journal_turn(
         session,
@@ -341,7 +413,14 @@ def execute_chat_message(
         job_id=stored.job_id,
         metadata=_classification_meta(decision) | stored.metadata,
     )
-    return _finalize_chat_result(session, conversation=conversation, user_id=user_id, result=result)
+    return _finalize_chat_result(
+        session,
+        conversation=conversation,
+        user_id=user_id,
+        user_message_id=user_turn.id,
+        edited_branch=edited_branch,
+        result=result,
+    )
 
 
 def _maybe_execute_pending_action(
@@ -423,8 +502,14 @@ def _finalize_chat_result(
     conversation: ChatConversation,
     user_id: str,
     result: ChatEngineResult,
+    user_message_id: str,
+    edited_branch: list[ChatMessage],
 ) -> ChatEngineResult:
     result.metadata = dict(result.metadata or {})
+    result.metadata.update(
+        finalize_edited_branch(session, user_id=user_id, branch=edited_branch, replacement_id=user_message_id)
+    )
+    result.metadata["user_message_id"] = user_message_id
     result.metadata.setdefault("conversation_db_id", conversation.id)
     result.metadata.setdefault("conversation_key", conversation.conversation_key)
     append_chat_message(

@@ -95,6 +95,7 @@ def prompt_history(
     user_id: str,
     conversation_id: str,
     limit: int = PROMPT_HISTORY_LIMIT,
+    exclude_message_ids: tuple[str, ...] = (),
 ) -> list[dict[str, str]]:
     rows = (
         session.query(ChatMessage)
@@ -103,6 +104,7 @@ def prompt_history(
             ChatMessage.conversation_id == conversation_id,
             ChatMessage.role.in_(("user", "assistant")),
             ChatMessage.superseded_at_utc.is_(None),
+            ChatMessage.id.not_in(exclude_message_ids),
         )
         .order_by(ChatMessage.created_at_utc.desc(), ChatMessage.id.desc())
         .limit(limit)
@@ -133,6 +135,16 @@ def supersede_from(
     them. Returns empty when the target is not this user's own live user turn
     in this conversation, so a bad id is a no-op rather than an error.
     """
+    doomed = branch_from(session, user_id=user_id, conversation_id=conversation_id, message_id=message_id)
+    retired_at = datetime.now(UTC).replace(tzinfo=None)
+    for row in doomed:
+        row.superseded_at_utc = retired_at
+    orphaned = [str(row.raw_entry_id) for row in doomed if row.raw_entry_id]
+    return doomed, orphaned
+
+
+def branch_from(session: Session, *, user_id: str, conversation_id: str, message_id: str) -> list[ChatMessage]:
+    """Find an editable branch without retiring it before a reply succeeds."""
     target = (
         session.query(ChatMessage)
         .filter(
@@ -145,7 +157,7 @@ def supersede_from(
         .first()
     )
     if target is None:
-        return [], []
+        return []
 
     doomed = (
         session.query(ChatMessage)
@@ -161,11 +173,7 @@ def supersede_from(
         .order_by(ChatMessage.created_at_utc.asc(), ChatMessage.id.asc())
         .all()
     )
-    retired_at = datetime.now(UTC).replace(tzinfo=None)
-    for row in doomed:
-        row.superseded_at_utc = retired_at
-    orphaned = [str(row.raw_entry_id) for row in doomed if row.raw_entry_id]
-    return doomed, orphaned
+    return doomed
 
 
 def attribute_supersede(messages: list[ChatMessage], *, replacement_id: str) -> None:

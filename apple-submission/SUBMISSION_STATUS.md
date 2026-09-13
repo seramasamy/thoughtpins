@@ -1,10 +1,19 @@
 # Submission status — Thought Pins 1.0.0
 
-Updated 11 September 2026. Read this with the
+Updated 13 September 2026. Read this with the
 [release review](../docs/release/RELEASE_POLISH_CHANGELOG.md) and the
 [App Store preparation log](../docs/release/APP_STORE_PREPARATION.md).
 Evidence belongs to the linked commit and build; it does not automatically
 transfer to a later deployment or a signed distribution archive.
+
+Apple has requested additional information under Guideline 2.1 for the new
+submission. The [six-part response and physical-device walkthrough](GUIDELINE_2_1_RESPONSE.md)
+must be completed for the chosen signed build and included in both the reply
+and App Review Notes. The physical-device recording, current demo credentials,
+and console metadata have not been verified by the automated source checks.
+The [Apple sign-in guide](APPLE_SIGN_IN.md) distinguishes native and web setup,
+Sign in with Apple keys and App Store Connect keys, and real authorization from
+mock-provider coverage. These remain submission work, not inferred passes.
 
 ## Verified code revision
 

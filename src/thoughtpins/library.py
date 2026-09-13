@@ -24,6 +24,7 @@ from thoughtpins.config import config
 from thoughtpins.db import DocumentChunk, DocumentSource, Memory, RawEntry
 from thoughtpins.importance import normalize_user_importance
 from thoughtpins.ingestion.pipeline import _resolve_owner_user_id
+from thoughtpins.library_enrichment import dispatch_document_enrichment, prepare_document_enrichment
 from thoughtpins.library_text import (
     CHUNK_CHARS as _CHUNK_CHARS,
 )
@@ -49,6 +50,7 @@ from thoughtpins.library_text import (
     title_from_text as _title_from_text,
 )
 from thoughtpins.reading_analysis import reading_analysis_metadata
+from thoughtpins.users import lock_active_user_for_write
 from thoughtpins.utils import hash_text, local_today
 
 DEFAULT_RIGHTS_BASIS = "user_provided"
@@ -105,6 +107,7 @@ class LibraryIngestResult:
     rights_basis: str | None = None
     paywall_detected: bool = False
     user_importance: int | None = None
+    job_id: str | None = None
 
 
 def ingest_url(
@@ -199,6 +202,7 @@ def ingest_document_text(
         raise ValueError("Document text is empty")
 
     owner_user_id = _resolve_owner_user_id(session, user_id=user_id, telegram_chat_id=telegram_chat_id)
+    lock_active_user_for_write(session, owner_user_id)
     normalized_importance = normalize_user_importance(user_importance)
     now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
     today = local_today()
@@ -235,6 +239,7 @@ def ingest_document_text(
             source_url=existing.source_url,
             error=existing.processing_error,
             duplicate=True,
+            job_id=(existing.metadata_json or {}).get("enrichment_job_id"),
             access_method=existing.access_method,
             rights_basis=existing.rights_basis,
             paywall_detected=bool(existing.paywall_detected),
@@ -321,12 +326,19 @@ def ingest_document_text(
         )
 
     memories = _create_document_memories(session, document, raw, chunks, status=status)
-    graph_stats = _extract_document_graph(session, document, raw, clean_text, status=status)
-    if graph_stats:
-        document.metadata_json = (document.metadata_json or {}) | {"graph_extraction": graph_stats}
-    _mirror_document_to_graph_backend(session, document, raw, clean_text, status=status)
+    enrichment_job = prepare_document_enrichment(
+        session,
+        document,
+        raw,
+        clean_text,
+        status=status,
+        defer_vector_index=defer_vector_index,
+    )
+    lock_active_user_for_write(session, owner_user_id)
     session.commit()
-    if defer_vector_index:
+    if enrichment_job:
+        dispatch_document_enrichment(session, enrichment_job)
+    elif defer_vector_index:
         schedule_document_memory_indexing(memories)
     else:
         _index_document_memories(memories)
@@ -342,6 +354,7 @@ def ingest_document_text(
         source_url=document.source_url,
         error=document.processing_error,
         duplicate=False,
+        job_id=enrichment_job.id if enrichment_job else None,
         access_method=document.access_method,
         rights_basis=document.rights_basis,
         paywall_detected=bool(document.paywall_detected),
@@ -632,9 +645,9 @@ def _extract_document_graph(
         raw.processed_status = "completed"
         return stats
     except Exception as exc:
-        logger.warning("Document graph extraction skipped for {}: {}", document.id, str(exc)[:200])
-        raw.processing_error = raw.processing_error or f"Document graph extraction skipped: {str(exc)[:200]}"
-        return {"skipped": True, "error": str(exc)[:200]}
+        logger.warning("Document graph extraction failed ({})", type(exc).__name__)
+        raw.processing_error = "Source enrichment is temporarily unavailable"
+        return {"skipped": True, "error": "Source enrichment is temporarily unavailable"}
 
 
 def _refresh_document_entity_salience(session: Session, raw: RawEntry) -> None:

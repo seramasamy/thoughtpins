@@ -171,7 +171,7 @@
   margin-top: 8px;
   border-top: 1px solid var(--tp-line);
   border-radius: 0 0 var(--radius-button) var(--radius-button);
-  color: var(--tp-danger);
+  color: var(--tp-danger-text);
 }
 
 .utility-logout:hover {

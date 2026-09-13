@@ -5,7 +5,7 @@ import base from "./playwright.config";
 // independent Gecko engine, alongside Chromium and the iOS WebKit matrix.
 export default defineConfig({
   ...base,
-  testMatch: ["auth-recovery.spec.ts", "session-recovery.spec.ts", "robustness.spec.ts", "modern-ui.spec.ts"],
+  testMatch: ["auth-recovery.spec.ts", "session-recovery.spec.ts", "robustness.spec.ts", "modern-ui.spec.ts", "apple-signin.spec.ts", "account-accessibility.spec.ts"],
   workers: 1,
   reporter: [["list"], ["json", { outputFile: "../reports/playwright-firefox.json" }]],
   projects: [{ name: "firefox", use: { ...devices["Desktop Firefox"] } }],

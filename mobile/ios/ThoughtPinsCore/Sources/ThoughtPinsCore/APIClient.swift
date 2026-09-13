@@ -301,7 +301,10 @@ public actor ThoughtPinsAPIClient {
                 sourceType: sourceType,
                 surface: "ios",
                 conversationId: conversationId
-            )
+            ),
+            // Uploads include bounded OCR/transcription and mobile transfer time.
+            // Derived source enrichment now runs as a durable background job.
+            timeout: 120
         )
     }
 

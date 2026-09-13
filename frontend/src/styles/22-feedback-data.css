@@ -418,7 +418,7 @@ th {
 
 .inline-error {
   margin: 0;
-  color: var(--tp-danger);
+  color: var(--tp-danger-text);
   font-size: 13px;
 }
 

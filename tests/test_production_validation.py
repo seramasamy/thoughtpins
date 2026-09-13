@@ -24,7 +24,6 @@ def test_oauth_web_build_requires_enabled_provider_ids() -> None:
     problems = oauth_web_build_problems(["google-web"], ["apple-web"], {})
     assert problems == [
         "VITE_GOOGLE_CLIENT_ID is required when Google OAuth is enabled for the web app.",
-        "VITE_APPLE_CLIENT_ID is required when Apple OAuth is enabled for the web app.",
     ]
 
 
@@ -39,7 +38,7 @@ def test_oauth_web_build_rejects_ids_outside_backend_allowlists() -> None:
     )
     assert problems == [
         "VITE_GOOGLE_CLIENT_ID must be included in GOOGLE_OAUTH_CLIENT_IDS.",
-        "VITE_APPLE_CLIENT_ID must be included in APPLE_OAUTH_CLIENT_IDS.",
+        "Apple web client ID must be included in APPLE_OAUTH_CLIENT_IDS.",
     ]
 
 
@@ -101,3 +100,24 @@ def test_runtime_startup_requires_bounded_worker_recovery_interval(monkeypatch) 
     problems = Config.validate_startup()
 
     assert "WORKER_RECOVERY_INTERVAL_SECONDS must be between 10 and 3600." in problems
+
+
+def test_apple_native_only_and_runtime_services_id_are_supported():
+    assert oauth_web_build_problems([], ["com.thoughtpins.app"], {}) == []
+    assert (
+        oauth_web_build_problems(
+            [],
+            ["com.thoughtpins.app", "com.thoughtpins.web"],
+            {
+                "APPLE_OAUTH_WEB_CLIENT_ID": "com.thoughtpins.web",
+            },
+        )
+        == []
+    )
+    assert oauth_web_build_problems(
+        [],
+        ["com.thoughtpins.app"],
+        {
+            "APPLE_OAUTH_WEB_CLIENT_ID": "unlisted-web-client",
+        },
+    ) == ["Apple web client ID must be included in APPLE_OAUTH_CLIENT_IDS."]

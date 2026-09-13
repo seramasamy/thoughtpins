@@ -108,18 +108,20 @@ there is nothing to satisfy and nothing to explain.
 
 ### If you want the Google button back
 
-There is one practical route: **turn on Sign in with Apple.** It is the option
+Start by configuring **Sign in with Apple** using the
+[current setup and verification guide](APPLE_SIGN_IN.md). It is the option
 that meets the private-address requirement, and the app already implements it
 in full — the button, the nonce, the state check, the authorization code. What
 is missing is configuration, not code:
 
 1. The App ID capability (Stage 1 above) — needed for signing regardless.
-2. A Services ID, a key, and the team id, so the backend can verify the
-   identity token. `APPLE_OAUTH_TEAM_ID`, `APPLE_OAUTH_KEY_ID` and
-   `APPLE_OAUTH_PRIVATE_KEY` already exist in config for this.
+2. A Sign in with Apple key and Team ID for the backend's code exchange and
+   account-deletion revocation. Web sign-in additionally needs a Services ID
+   and registered return URL; native-only sign-in does not need a Services ID.
 3. `oauth_apple_enabled` true in client-config.
 
-Do those and the Apple button appears, with no app change.
+Verify real account sign-in and deletion on a signed device before enabling
+the native Apple button. An App Store Connect API key is a separate credential.
 
 ### Restoring the Google plist wiring
 

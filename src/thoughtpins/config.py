@@ -227,6 +227,7 @@ class Config:
     REFRESH_TOKEN_EXPIRE_DAYS: int = _env_int("REFRESH_TOKEN_EXPIRE_DAYS", 30)
     GOOGLE_OAUTH_CLIENT_IDS: list[str] = _env_str_list("GOOGLE_OAUTH_CLIENT_IDS")
     APPLE_OAUTH_CLIENT_IDS: list[str] = _env_str_list("APPLE_OAUTH_CLIENT_IDS")
+    APPLE_OAUTH_WEB_CLIENT_ID: str = _env("APPLE_OAUTH_WEB_CLIENT_ID", _env("VITE_APPLE_CLIENT_ID"))
     APPLE_OAUTH_TEAM_ID: str = _env("APPLE_OAUTH_TEAM_ID")
     APPLE_OAUTH_KEY_ID: str = _env("APPLE_OAUTH_KEY_ID")
     APPLE_OAUTH_PRIVATE_KEY: str = _env("APPLE_OAUTH_PRIVATE_KEY")
@@ -579,6 +580,10 @@ class Config:
         problems: list[str] = []
         if not cls.APPLE_OAUTH_TEAM_ID:
             problems.append("APPLE_OAUTH_TEAM_ID must be set when Apple sign-in is enabled.")
+        if cls.APPLE_OAUTH_WEB_CLIENT_ID and cls.APPLE_OAUTH_WEB_CLIENT_ID not in cls.APPLE_OAUTH_CLIENT_IDS:
+            problems.append("APPLE_OAUTH_WEB_CLIENT_ID must be included in APPLE_OAUTH_CLIENT_IDS.")
+        if cls.APPLE_OAUTH_WEB_CLIENT_ID and not cls.APPLE_OAUTH_REDIRECT_URIS:
+            problems.append("APPLE_OAUTH_REDIRECT_URIS must be set for Apple web sign-in.")
         if not cls.APPLE_OAUTH_KEY_ID:
             problems.append("APPLE_OAUTH_KEY_ID must be set when Apple sign-in is enabled.")
         apple_private_key = cls.apple_oauth_private_key()

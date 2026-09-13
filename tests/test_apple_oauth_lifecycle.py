@@ -37,6 +37,28 @@ def _configure_apple(monkeypatch, *, private_key: str, client_id: str = "com.tho
         monkeypatch.setattr(type(config), name, value)
 
 
+def test_web_configuration_selects_services_id_even_when_native_audience_is_first(isolated_db, monkeypatch):
+    from thoughtpins.api import app
+    from thoughtpins.config import config
+
+    monkeypatch.setattr(config, "APPLE_OAUTH_CLIENT_IDS", ["com.thoughtpins.app", "com.thoughtpins.web.test"])
+    monkeypatch.setattr(config, "APPLE_OAUTH_WEB_CLIENT_ID", "com.thoughtpins.web.test")
+    response = TestClient(app).get("/v1/client-config")
+    assert response.status_code == 200
+    assert response.json()["oauth_apple_client_id"] == "com.thoughtpins.web.test"
+
+
+def test_native_only_configuration_does_not_advertise_bundle_id_to_web(isolated_db, monkeypatch):
+    from thoughtpins.api import app
+    from thoughtpins.config import config
+
+    monkeypatch.setattr(config, "APPLE_OAUTH_CLIENT_IDS", ["com.thoughtpins.app"])
+    monkeypatch.setattr(config, "APPLE_OAUTH_WEB_CLIENT_ID", "")
+    body = TestClient(app).get("/v1/client-config").json()
+    assert body["oauth_apple_enabled"] is True
+    assert body["oauth_apple_client_id"] is None
+
+
 def test_apple_client_secret_is_short_lived_and_scoped(monkeypatch):
     from thoughtpins.apple_oauth import APPLE_AUDIENCE, create_apple_client_secret
 

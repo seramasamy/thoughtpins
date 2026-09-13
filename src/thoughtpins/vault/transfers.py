@@ -18,6 +18,8 @@ from thoughtpins.config import config
 from thoughtpins.db import User, VaultImportSession
 from thoughtpins.store import get_session
 from thoughtpins.tenancy import tenant_context
+from thoughtpins.users import lock_active_user_for_write
+from thoughtpins.vault import transfer_storage
 from thoughtpins.vault.importer import (
     MAX_ARCHIVE_BYTES,
     ConflictPolicy,
@@ -61,6 +63,7 @@ def create_vault_import_session(
     if conflict_policy not in {"skip", "append"}:
         raise ValueError("Invalid vault conflict policy")
 
+    lock_active_user_for_write(session, user_id)
     now = _utcnow()
     transfer = VaultImportSession(
         user_id=user_id,
@@ -83,7 +86,6 @@ def create_vault_import_session(
     session.add(transfer)
     session.commit()
     session.refresh(transfer)
-    _ensure_storage_root()
     return transfer
 
 
@@ -113,6 +115,7 @@ def append_vault_import_chunk(
     if not _SHA256.fullmatch(digest) or hashlib.sha256(content).hexdigest() != digest:
         raise ValueError("Upload chunk SHA-256 does not match its content")
 
+    lock_active_user_for_write(session, user_id)
     transfer = _locked_transfer(session, user_id=user_id, transfer_id=transfer_id)
     if not transfer:
         raise LookupError("Vault import session not found")
@@ -121,45 +124,44 @@ def append_vault_import_chunk(
     if offset < 0 or offset + len(content) > transfer.expected_bytes:
         raise ValueError("Upload chunk falls outside the declared archive size")
 
-    path = _archive_path(transfer.storage_key)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    current_size = path.stat().st_size if path.exists() else 0
-    if current_size > transfer.received_bytes:
-        with path.open("r+b") as handle:
-            handle.truncate(transfer.received_bytes)
-        current_size = transfer.received_bytes
-    if current_size < transfer.received_bytes:
-        raise VaultTransferStateError("Staged upload is incomplete on disk; start a new upload")
-
+    _adopt_legacy_archive(session, transfer)
     if offset < transfer.received_bytes:
         if offset + len(content) > transfer.received_bytes:
             raise VaultTransferStateError("Retried chunk overlaps the current upload boundary")
-        with path.open("rb") as handle:
-            handle.seek(offset)
-            existing = handle.read(len(content))
+        existing = transfer_storage.read_range(
+            session,
+            user_id=user_id,
+            transfer_id=transfer.id,
+            offset=offset,
+            size=len(content),
+        )
         if existing != content:
             raise VaultTransferStateError("Retried chunk differs from the bytes already accepted")
         return transfer
     if offset != transfer.received_bytes:
         raise VaultTransferStateError(f"Expected upload offset {transfer.received_bytes}")
-
-    with path.open("ab") as handle:
-        handle.write(content)
-        handle.flush()
-        os.fsync(handle.fileno())
-    try:
-        path.chmod(0o600)
-    except OSError as exc:
-        # The write already succeeded, so failing here is not worth losing the
-        # transfer over. It does mean the staged vault file kept the directory's
-        # default permissions instead of owner-only, which is worth knowing.
-        logger.warning("Could not restrict permissions on a staged vault file ({})", type(exc).__name__)
+    transfer_storage.store_chunk(
+        session,
+        user_id=user_id,
+        transfer_id=transfer.id,
+        offset=offset,
+        content=content,
+    )
     transfer.received_bytes += len(content)
     transfer.progress_current = transfer.received_bytes
     transfer.progress_total = transfer.expected_bytes
     transfer.updated_at_utc = _utcnow()
     if transfer.received_bytes == transfer.expected_bytes:
-        _verify_complete_archive(transfer, path)
+        _verify_complete_archive(
+            transfer,
+            transfer_storage.read_range(
+                session,
+                user_id=user_id,
+                transfer_id=transfer.id,
+                offset=0,
+                size=transfer.expected_bytes,
+            ),
+        )
         transfer.status = "upload_ready"
         transfer.progress_stage = "uploaded"
     session.commit()
@@ -189,6 +191,7 @@ def queue_vault_import_operation(
     if not transfer.verified_sha256:
         raise VaultTransferStateError("Uploaded archive has not passed integrity verification")
 
+    _adopt_legacy_archive(session, transfer)
     transfer.operation = operation
     transfer.status = "queued"
     transfer.cancel_requested = False
@@ -224,7 +227,7 @@ def cancel_vault_import_session(session: Session, *, user_id: str, transfer_id: 
         transfer.status = "canceled"
         transfer.progress_stage = "canceled"
         transfer.finished_at_utc = _utcnow()
-        _remove_archive(transfer.storage_key)
+        _remove_transfer_archive(session, transfer)
     else:
         transfer.status = "cancel_requested"
         transfer.progress_stage = "canceling"
@@ -268,10 +271,14 @@ def _run_vault_import_session(transfer_id: str, tenant_user_id: str | None) -> N
         transfer.updated_at_utc = _utcnow()
         session.commit()
 
-        path = _archive_path(transfer.storage_key)
-        if not path.is_file() or path.stat().st_size != transfer.expected_bytes:
-            raise RuntimeError("Staged vault archive is unavailable")
-        archive = path.read_bytes()
+        _adopt_legacy_archive(session, transfer)
+        archive = transfer_storage.read_range(
+            session,
+            user_id=transfer.user_id,
+            transfer_id=transfer.id,
+            offset=0,
+            size=transfer.expected_bytes,
+        )
         if hashlib.sha256(archive).hexdigest() != transfer.verified_sha256:
             raise RuntimeError("Staged vault archive failed integrity verification")
 
@@ -327,7 +334,7 @@ def _run_vault_import_session(transfer_id: str, tenant_user_id: str | None) -> N
             },
         )
         if transfer.operation == "apply":
-            _remove_archive(transfer.storage_key)
+            _remove_transfer_archive(session, transfer)
     except VaultImportCancelled:
         if transfer is not None:
             transfer.status = "canceled"
@@ -335,7 +342,7 @@ def _run_vault_import_session(transfer_id: str, tenant_user_id: str | None) -> N
             transfer.finished_at_utc = _utcnow()
             transfer.updated_at_utc = _utcnow()
             session.commit()
-            _remove_archive(transfer.storage_key)
+            _remove_transfer_archive(session, transfer)
     except Exception as exc:
         logger.exception("Background vault import failed")
         session.rollback()
@@ -400,7 +407,7 @@ def _cleanup_expired_in_context(user_id: str | None, limit: int) -> int:
     try:
         query = session.query(VaultImportSession).filter(
             VaultImportSession.expires_at_utc < _utcnow(),
-            VaultImportSession.status.in_(ACTIVE_STATUSES),
+            VaultImportSession.status.in_(ACTIVE_STATUSES | {"failed"}),
         )
         if user_id:
             query = query.filter(VaultImportSession.user_id == user_id)
@@ -411,7 +418,7 @@ def _cleanup_expired_in_context(user_id: str | None, limit: int) -> int:
             transfer.cancel_requested = True
             transfer.finished_at_utc = _utcnow()
             transfer.updated_at_utc = _utcnow()
-            _remove_archive(transfer.storage_key)
+            _remove_transfer_archive(session, transfer)
         session.commit()
         return len(rows)
     finally:
@@ -466,8 +473,8 @@ def _locked_transfer(session: Session, *, user_id: str, transfer_id: str) -> Vau
     )
 
 
-def _verify_complete_archive(transfer: VaultImportSession, path: Path) -> None:
-    digest = _hash_file(path)
+def _verify_complete_archive(transfer: VaultImportSession, archive: bytes) -> None:
+    digest = hashlib.sha256(archive).hexdigest()
     if transfer.archive_sha256 and digest != transfer.archive_sha256:
         raise ValueError("Completed vault archive SHA-256 does not match the declared digest")
     transfer.verified_sha256 = digest
@@ -497,12 +504,35 @@ def _remove_archive(storage_key: str) -> None:
         logger.warning("Could not remove staged vault archive for transfer {}", storage_key[:8])
 
 
-def _hash_file(path: Path) -> str:
-    digest = hashlib.sha256()
+def _remove_transfer_archive(session: Session, transfer: VaultImportSession) -> None:
+    transfer_storage.remove_chunks(session, user_id=transfer.user_id, transfer_id=transfer.id)
+    _remove_archive(transfer.storage_key)
+    session.commit()
+
+
+def _adopt_legacy_archive(session: Session, transfer: VaultImportSession) -> None:
+    if not transfer.received_bytes or transfer_storage.has_chunks(
+        session,
+        user_id=transfer.user_id,
+        transfer_id=transfer.id,
+    ):
+        return
+    path = _archive_path(transfer.storage_key)
+    if not path.is_file() or path.stat().st_size < transfer.received_bytes:
+        raise RuntimeError("Staged vault archive is unavailable; restart this older upload")
     with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+        offset = 0
+        while offset < transfer.received_bytes:
+            content = handle.read(min(MAX_CHUNK_BYTES, transfer.received_bytes - offset))
+            transfer_storage.store_chunk(
+                session,
+                user_id=transfer.user_id,
+                transfer_id=transfer.id,
+                offset=offset,
+                content=content,
+            )
+            offset += len(content)
+    session.flush()
 
 
 def _utcnow() -> datetime:

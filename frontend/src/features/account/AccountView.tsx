@@ -120,7 +120,8 @@ export function AccountView({ token, me, run, logout, localMode, legalVersion, v
           action={<IconButton onClick={loadSettings} aria-label="Refresh settings" title="Refresh settings"><RefreshCw size={17} /></IconButton>}
         >
           <Panel>
-            <div className="form-stack">
+            <fieldset className="form-stack preferences-fields" disabled={!prefs} aria-label="Account preferences">
+              {!prefs && <p role="status">Loading preferences…</p>}
               <div className="appearance-field">
                 <span>Appearance</span>
                 <div className="segmented appearance-segments" role="group" aria-label="Appearance">
@@ -156,7 +157,7 @@ export function AccountView({ token, me, run, logout, localMode, legalVersion, v
               <CheckToggle label="Product updates" checked={prefs?.product_updates_enabled || false} onChange={(checked) => updatePrefs({ product_updates_enabled: checked })} />
               <CheckToggle label="Use private memories in replies by default" checked={prefs?.private_entries_in_ask || false} onChange={(checked) => updatePrefs({ private_entries_in_ask: checked })} />
               <span className="field-help">Off by default. Private memories stay out of recall unless you explicitly enable them here or for a reply. This setting does not mark new messages private.</span>
-            </div>
+            </fieldset>
           </Panel>
         </AccountSection>
       </div>
@@ -257,7 +258,7 @@ export function AccountView({ token, me, run, logout, localMode, legalVersion, v
                 <SecondaryButton onClick={downloadVault}><Download size={16} /> Obsidian Vault</SecondaryButton>
               </div>
               <VaultTransferPanel token={token} />
-              {exported && <pre className="export-box">{JSON.stringify(exported, null, 2)}</pre>}
+              {exported && <pre className="export-box" tabIndex={0} aria-label="Exported account data">{JSON.stringify(exported, null, 2)}</pre>}
             </div>
           </Panel>
         </AccountSection>

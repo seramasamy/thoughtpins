@@ -8,6 +8,10 @@
   :root:not([data-theme="light"]) {
     --tp-brand-soft: #38271f;
     --tp-sage-soft: #19372f;
+    --tp-danger-text: #ffaaa6;
+    --tp-danger-soft: #322126;
+    --tp-warning: #ffd797;
+    --tp-warning-soft: #352b1c;
     --tp-blue-soft: #282849;
     --tp-blue: #aca8ff;
     --tp-action-text: #ffb291;
@@ -85,6 +89,10 @@
 :root[data-theme="dark"] {
     --tp-brand-soft: #38271f;
     --tp-sage-soft: #19372f;
+    --tp-danger-text: #ffaaa6;
+    --tp-danger-soft: #322126;
+    --tp-warning: #ffd797;
+    --tp-warning-soft: #352b1c;
     --tp-blue-soft: #282849;
     --tp-blue: #aca8ff;
     --tp-action-text: #ffb291;
