@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
-from threading import Lock
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -23,6 +21,7 @@ from thoughtpins.ingestion.postprocess import (
     _pick_max_sensitivity,
 )
 from thoughtpins.ingestion.storage import store_extraction
+from thoughtpins.ingestion.vault_export import maybe_export_vault as _maybe_export_vault
 from thoughtpins.llm import ExtractionResult
 from thoughtpins.memory.salience_store import update_salience_for_entry
 from thoughtpins.users import lock_active_user_for_write
@@ -31,9 +30,6 @@ from thoughtpins.utils import hash_text
 ClassifyMessage = Callable[[str], dict[str, Any]]
 ExtractMessage = Callable[[str, str], ExtractionResult]
 MirrorEntry = Callable[[Session, RawEntry, str], None]
-
-_EXPORT_LOCK = Lock()
-_last_export_time = 0.0
 
 
 @dataclass(frozen=True)
@@ -321,19 +317,3 @@ def _is_retryable_provider_failure(error: Exception) -> bool:
         marker in text
         for marker in ("connection", "timeout", "timed out", "refused", "unreachable", "rate limit", "overloaded")
     )
-
-
-def _maybe_export_vault(session: Session, user_id: str, entry_id: str) -> None:
-    global _last_export_time
-    now = time.time()
-    with _EXPORT_LOCK:
-        if now - _last_export_time <= 600:
-            return
-        try:
-            from thoughtpins.obsidian.exporter import ObsidianExporter
-
-            ObsidianExporter(session, user_id=user_id).export_all()
-            _last_export_time = now
-            logger.debug("Auto-exported Obsidian vault after entry {}", entry_id)
-        except Exception as exc:
-            logger.warning("Auto-export failed (non-critical): {}", type(exc).__name__)

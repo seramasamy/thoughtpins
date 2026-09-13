@@ -16,12 +16,24 @@ Encryption fails closed in production if the data key is unavailable. A failed
 original-file cleanup cannot produce a successful account-deletion response.
 Export also fails if original bytes cannot be decrypted or verified.
 
+Automatic vault projections run only during synchronous local processing.
+Production and asynchronous workers do not materialize them: the API cannot
+delete a different host's decrypted `Attachments/` copy. Explicit API vault
+exports remain available and their account-owned projection is covered by the
+API filesystem cleanup. Inventory those projections on every host during
+upgrades, including workers that ran earlier versions.
+
 ## Upgrading an existing deployment
 
 1. Back up PostgreSQL and the original API filesystem before replacing any
    container. Inventory every API replica and worker. The historical path is
    `vault/09_Attachments/<category>/<timestamp>_<filename>`; these files did not
    contain reliable tenant identity and could collide within a second.
+   Also inspect generated `vault/<user-id>/` projections and ZIPs on workers;
+   earlier journal processing regenerated them automatically, including
+   decrypted originals. Reconcile and remove obsolete generated copies before
+   declaring the old worker filesystem retired. Preserve separately owned local
+   vaults and user-edited material.
 2. Match a legacy file to its owning source's `metadata_json.upload.attachment_ref`.
    Verify the bytes against any known original before copying them through
    `media.attachments.save_media_attachment` under the confirmed user's tenant
@@ -62,4 +74,6 @@ that either format can actually be read.
 Regression coverage lives in `tests/test_attachment_ownership.py`,
 `tests/test_vault_chunk_storage.py`, `tests/test_vault_import.py`,
 `tests/test_shared_storage_migration.py`, and `tests/test_library_enrichment.py`.
+`tests/test_worker_vault_privacy.py` verifies the automatic-projection boundary,
+explicit export and deletion across separate API and worker filesystem roots.
 The live PostgreSQL isolation verifier also checks both storage tables.
