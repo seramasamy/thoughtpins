@@ -15,6 +15,9 @@ Inspired by [David Rockefeller's card file](https://www.wsj.com/articles/david-r
 
 </div>
 
+I originally built Thought Pins for my own use. I decided to open-source it
+in case anyone else found it useful and wanted to use or adapt it.
+
 ## A personal record you can return to
 
 Thought Pins turns journal notes, conversations, voice notes, and saved reading
