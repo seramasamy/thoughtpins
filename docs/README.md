@@ -39,6 +39,7 @@ material grouped so each surface stays easy to audit.
 | --- | --- |
 | [September 2026 retrieval study](research/2026-09-retrieval/README.md) | Results, negative controls, cost and no-paid-call reproduction |
 | [Study protocol](research/2026-09-retrieval/PROTOCOL.md) | Data exposure, frozen comparisons and statistical decision rules |
+| [Benchmark accuracy audit](research/2026-09-retrieval/AUDIT.md) | Independent arithmetic, raw-data checks, per-question changes and precise claim boundaries |
 | [Public artifact contract](research/2026-09-retrieval/ARTIFACTS.md) | Numeric features, fitted weights, predictions and dataset licenses |
 
 ## Operations

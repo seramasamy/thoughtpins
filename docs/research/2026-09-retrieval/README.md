@@ -12,6 +12,12 @@ superiority. The new local scorer did **not** pass all promotion criteria by
 itself. The study did **not** establish superiority over the previous GLM
 reranker or the simpler matched GLM-on-BM25 control.
 
+The [September 20 accuracy audit](AUDIT.md) independently reproduced the
+metrics, paired intervals and corrected p-values, and traced the published
+judgments and model decisions back to the original public-data files. This
+is a verification of the frozen backtest, not a new performance experiment.
+No reported score changed and no additional model calls were made.
+
 ## Reproduce without an API key
 
 From a checkout of this publication, with Python 3.13:
@@ -22,6 +28,7 @@ python -m venv .venv
 # Windows PowerShell: .venv/Scripts/Activate.ps1
 python -m pip install -r docs/research/2026-09-retrieval/replay-requirements.txt
 python scripts/replay_retrieval_study.py --output reports/retrieval-study-replay.json
+python scripts/audit_retrieval_metrics.py --output reports/retrieval-metric-audit.json
 ```
 
 The command disables network connections before replay, verifies SHA-256
@@ -48,6 +55,11 @@ The [artifact guide](ARTIFACTS.md), [protocol](PROTOCOL.md),
 explain the inputs. Use
 [`tests/test_research_publication.py`](../../../tests/test_research_publication.py)
 and the other `test_research_*` suites for invariant checks.
+
+The second command uses separate metric, model-decision and statistical
+implementations with no imports from the original evaluator. It checks all
+17 final arms on both memory corpora and 30 paired metric comparisons. See
+[the audit](AUDIT.md) for hand-worked tests and the separate raw-data audit.
 
 ## Final results
 
