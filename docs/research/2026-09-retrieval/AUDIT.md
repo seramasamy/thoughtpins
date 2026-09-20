@@ -57,6 +57,14 @@ Hit@1 effect. The registered noninferiority guardrail is satisfied.
 | Relevant first source | 13 | 6 | 163 |
 | All supporting sources within five | 26 | 1 | 155 |
 
+The aggregate gain does not hold in every question category. Descriptive
+nDCG differences versus tuned BM25 are +0.097554 on 50 multi-session questions
+and +0.055667 on 52 temporal-reasoning questions, but -0.027844 on 29
+single-session-user questions and -0.009607 on 29 knowledge-update questions.
+These are post-score slices of the same frozen predictions, not separately
+confirmed hypotheses. The [published diagnostics](artifacts/diagnostics.json)
+retain the case/category detail. Do not claim that every memory skill improved.
+
 The direction of the prior-model comparison is different. Relative to the
 exact previous GLM protocol, complete@5 gains 16 cases and loses one, while
 Hit@1 gains two and loses eight. A method can recover more of the evidence
