@@ -201,6 +201,18 @@ questions. On LongMemEval, the experimental scorer plus GLM reranking improves
 support within five sources increasing from **153/182 to 178/182**. The paired
 gain passes the registered decision rule (Holm-adjusted p=0.0016).
 
+| Same 182 LongMemEval questions | nDCG@10 | Relevant first source | All supporting sources within five |
+| --- | ---: | ---: | ---: |
+| Development-tuned BM25 | 0.926680 | 167/182 | 153/182 |
+| Previous GLM reranker | 0.966885 | 180/182 | 163/182 |
+| Experimental scorer plus GLM | 0.973263 | 174/182 | 178/182 |
+
+The [independent accuracy audit](docs/research/2026-09-retrieval/AUDIT.md)
+recalculates the scores and statistics without importing the original evaluator.
+Against tuned BM25, nDCG improves on 42 questions, declines on 16 and ties on
+124. These questions search their supplied histories of 38-62 sessions each.
+An nDCG score of 0.973 is a ranking measure, not 97.3% answer accuracy.
+
 The local scorer alone does not pass every guardrail, and superiority over the
 previous GLM reranker or the simpler matched GLM-on-BM25 control is unproven.
 EverMemBench has only five shared topics and insufficient independent groups
@@ -211,6 +223,7 @@ The report includes negative results, ablations, cost and a no-key replay:
 ```bash
 python -m pip install -r docs/research/2026-09-retrieval/replay-requirements.txt
 python scripts/replay_retrieval_study.py
+python scripts/audit_retrieval_metrics.py
 ```
 
 The [corrected July comparison](docs/architecture/EXTERNAL_MEMORY_BENCHMARKS.md#corrected-retrieval-metrics)

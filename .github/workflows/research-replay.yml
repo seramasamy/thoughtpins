@@ -6,12 +6,16 @@ on:
     paths:
       - 'docs/research/**'
       - 'scripts/replay_retrieval_study.py'
+      - 'scripts/audit_retrieval_metrics.py'
+      - 'tests/test_retrieval_metric_audit.py'
       - 'src/thoughtpins/memory/**'
       - '.github/workflows/research-replay.yml'
   pull_request:
     paths:
       - 'docs/research/**'
       - 'scripts/replay_retrieval_study.py'
+      - 'scripts/audit_retrieval_metrics.py'
+      - 'tests/test_retrieval_metric_audit.py'
       - 'src/thoughtpins/memory/**'
       - '.github/workflows/research-replay.yml'
   workflow_dispatch:
@@ -40,3 +44,5 @@ jobs:
         run: python -m pip install -r docs/research/2026-09-retrieval/replay-requirements.txt
       - name: Refit, validate model decisions and reproduce published tables offline
         run: python scripts/replay_retrieval_study.py --output reports/retrieval-study-replay.json
+      - name: Independently verify ranking metrics and paired statistics
+        run: python scripts/audit_retrieval_metrics.py --output reports/retrieval-metric-audit.json

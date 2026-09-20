@@ -87,6 +87,9 @@ as thin adapters.
   experiment scoring and cached-feature replication, including model-output
   validation and re-fitting. `scripts/replay_retrieval_study.py` disables network
   access and verifies the curated artifacts under `docs/research/`.
+- `scripts/audit_retrieval_metrics.py`: an independent publication auditor with
+  no imports from Thought Pins. It recalculates final memory metrics, model
+  decisions, paired uncertainty and per-question changes from public artifacts.
 - `scripts/research_fireworks.py`: experimental provider transport with a hidden
   credential prompt, persistent spending reservations, strict model allowlist,
   no automatic retries, and resumable request identities. Public corpus inputs

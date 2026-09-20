@@ -10,6 +10,15 @@ reports a supported model-assisted LME gain over tuned BM25, with explicit
 negative and inconclusive comparisons. The July record below is retained as
 history, with its abstention and metric-label corrections.
 
+The [September 20 accuracy audit](../research/2026-09-retrieval/AUDIT.md)
+independently reproduces the final memory metrics and paired statistics and
+validates their original public-data evidence mappings. On the same 182 LME
+questions, tuned BM25 / exact prior GLM / new scorer plus GLM reach nDCG@10
+0.926680 / 0.966885 / 0.973263, and complete@5 153 / 163 / 178 questions.
+Only the new model-assisted comparison against tuned BM25 passes all
+registered criteria. This audit verifies the frozen result; it adds no fresh
+evaluation cases and does not establish a win over the prior model.
+
 Thought Pins evaluates retrieval against independently labeled data in addition
 to its deterministic product fixtures. These benchmarks answer narrow,
 measurable questions: can the ranker recover the correct historical session,

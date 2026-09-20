@@ -7,6 +7,11 @@ Keep a Changelog, and the project uses semantic versioning for public releases.
 
 ### Added
 
+- An independent accuracy audit of the frozen September retrieval backtest,
+  with separate metric/statistical code, hand-worked tests, raw-data mapping
+  verification and clearer README comparisons against tuned BM25 and prior GLM.
+  Reported scores and frozen artifacts are unchanged.
+
 - A public, offline-replayable September retrieval study with numeric features,
   fitted weights, source-ID judgments, predictions, paired statistics and
   experimental ranking tests. The report distinguishes the supported
