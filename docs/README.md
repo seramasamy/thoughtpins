@@ -33,6 +33,14 @@ material grouped so each surface stays easy to audit.
 | [PLATFORM_CODEBASE_STRATEGY.md](architecture/PLATFORM_CODEBASE_STRATEGY.md) | Web, iOS, Android, and repository strategy |
 | [TECHNICAL_DEBT_REGISTER.md](architecture/TECHNICAL_DEBT_REGISTER.md) | Known debt, tracked rather than forgotten |
 
+## Research
+
+| | |
+| --- | --- |
+| [September 2026 retrieval study](research/2026-09-retrieval/README.md) | Results, negative controls, cost and no-paid-call reproduction |
+| [Study protocol](research/2026-09-retrieval/PROTOCOL.md) | Data exposure, frozen comparisons and statistical decision rules |
+| [Public artifact contract](research/2026-09-retrieval/ARTIFACTS.md) | Numeric features, fitted weights, predictions and dataset licenses |
+
 ## Operations
 
 | | |

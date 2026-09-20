@@ -2,6 +2,14 @@
 
 ## Purpose
 
+The [September 2026 public study](../research/2026-09-retrieval/README.md)
+extends this historical protocol with 182 held-out LongMemEval questions,
+200 additional EverMemBench questions, dense/learned and matched model controls,
+paired statistics, public numeric artifacts and a no-paid-call replay. It
+reports a supported model-assisted LME gain over tuned BM25, with explicit
+negative and inconclusive comparisons. The July record below is retained as
+history, with its abstention and metric-label corrections.
+
 Thought Pins evaluates retrieval against independently labeled data in addition
 to its deterministic product fixtures. These benchmarks answer narrow,
 measurable questions: can the ranker recover the correct historical session,
@@ -54,7 +62,9 @@ attests `holdout_accessed: false`.
 
 ## Results
 
-The July 21, 2026 holdout replay produced:
+The July 21, 2026 holdout replay produced the historical results below. Its
+`Recall@k` labels mean any-evidence Hit@k, and its 46 LongMemEval cases included
+three abstention questions. Use the corrected replay below for comparisons.
 
 | Benchmark | Cases | Metric | Baseline | Thought Pins |
 | --- | ---: | --- | ---: | ---: |
@@ -65,6 +75,38 @@ The July 21, 2026 holdout replay produced:
 | LitBank, all speakers | 25 | Recall@1 / MRR | n/a | 1.0000 |
 | LitBank, minor speakers | 16 | Recall@1 / MRR | n/a | 1.0000 |
 | Project Gutenberg | 300 books | Recall@1 / MRR | n/a | 1.0000 |
+
+### Corrected retrieval metrics
+
+The September 19, 2026 evaluator correction excludes questions whose IDs
+contain `_abs`, even when their original evidence-session IDs remain populated.
+This follows the abstention exclusion in the
+[upstream retrieval evaluator](https://github.com/xiaowu0162/LongMemEval/blob/main/src/retrieval/run_retrieval.py).
+It does not evaluate whether a model can correctly abstain when answering.
+
+Reports now expose `hit_at_1`, `hit_at_5`, and `hit_at_10`. The existing
+`recall_at_*` keys retain their any-evidence semantics for compatibility.
+`evidence_recall_at_k` averages the fraction of all labeled evidence sessions
+retrieved for each question. `all_evidence_at_k` counts questions for which
+every labeled session is retrieved. Duplicate source IDs count once.
+
+The corrected replay uses 43 answerable questions from the same historical
+holdout, with three abstention questions reported separately:
+
+| Metric | BM25 | Thought Pins |
+| --- | ---: | ---: |
+| Hit@1 | 37/43 (0.8605) | 38/43 (0.8837) |
+| MRR | 0.9186 | 0.9302 |
+| nDCG@10 | 0.9108 | 0.9160 |
+| Mean evidence recall@5 | 0.9167 | 0.9167 |
+| All evidence@5 | 36/43 (0.8372) | 36/43 (0.8372) |
+| Mean evidence recall@10 | 0.9593 | 0.9593 |
+| All evidence@10 | 40/43 (0.9302) | 40/43 (0.9302) |
+
+Both rankers still have Hit@5 and Hit@10 of 1.0. That means at least one
+supporting session is found for each answerable question; it does not mean
+all supporting evidence is recovered. The correction changes evaluation
+accounting, not the production ranking policy.
 
 The LongMemEval baseline is the benchmark adapter's dependency-free BM25
 ranking over the identical candidate sessions. Thought Pins applies the same
@@ -98,6 +140,27 @@ The preparation script downloads only sources permitted by the manifest. The
 Project Gutenberg evaluator validates official item headers, constrains
 redirect hosts, caps response bytes, normalizes its ignored cache atomically,
 and fails unless it reaches the requested evaluation sample.
+
+## Offline Model Reranking
+
+`memory/benchmark_model_ranking.py` provides a provider-neutral experimental
+protocol for ranking an existing pool of conversation sessions. It projects
+dates and complete session text with opaque candidate positions, without source
+identities or answer labels. Its output validator accepts only a complete
+permutation of the same candidate pool. Invalid, incomplete, or failed responses
+keep the original order once, without a retry or partial merge.
+
+This protocol makes no provider calls and is not wired into production search.
+The experiment driver owns credentials, request/context limits, cost accounting,
+timeouts, and fixed candidate selection. Keep prompts, model responses, and
+generated reports in ignored local experiment directories. The curated
+[publication artifacts](../research/2026-09-retrieval/ARTIFACTS.md) contain
+public IDs and derived numeric evidence, with their own provenance and license
+notices; raw run directories remain private and ignored. Select models and
+parameters on development/validation data before replaying the historical split;
+preserve failed cases in the reported denominator. Record provider cost and added
+latency alongside evidence metrics. A successful reranking experiment does not
+establish answer accuracy, abstention quality, or production readiness.
 
 ## Limits
 

@@ -83,6 +83,8 @@ graph = [
     "graphiti-core[kuzu]>=0.28.2",
 ]
 dev = [
+    # Offline retrieval fitting tests; never imported by product serving code.
+    "scipy>=1.17.1",
     "pytest>=8.0",
     "pytest-asyncio>=0.24",
     "pytest-cov>=5.0",

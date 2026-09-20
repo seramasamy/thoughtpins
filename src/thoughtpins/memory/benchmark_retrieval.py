@@ -50,15 +50,24 @@ class CaseRank:
 
 @dataclass(frozen=True)
 class AggregateRankMetrics:
+    """Session-ranking metrics; legacy recall_at_* fields mean any-evidence hit."""
+
     case_count: int
     recall_at_1: float
     recall_at_5: float
     recall_at_10: float
     mean_reciprocal_rank: float
     mean_ndcg_at_10: float
+    evidence_recall_at_5: float = 0.0
+    evidence_recall_at_10: float = 0.0
+    all_evidence_at_5: float = 0.0
+    all_evidence_at_10: float = 0.0
 
     def as_dict(self) -> dict[str, int | float]:
-        return asdict(self)
+        payload = asdict(self)
+        # Preserve existing report consumers while making the semantics explicit.
+        payload.update(hit_at_1=self.recall_at_1, hit_at_5=self.recall_at_5, hit_at_10=self.recall_at_10)
+        return payload
 
 
 def rank_documents_bm25(query: str, documents: list[str]) -> list[tuple[int, float]]:
@@ -84,6 +93,8 @@ def rank_documents_bm25(query: str, documents: list[str]) -> list[tuple[int, flo
 
 
 def aggregate_case_ranks(cases: list[CaseRank]) -> AggregateRankMetrics:
+    # Repeated retrieval paths to one source cannot earn additional credit.
+    cases = [CaseRank(case.relevant_ids, tuple(dict.fromkeys(case.ranked_ids))) for case in cases]
     if not cases:
         return AggregateRankMetrics(0, 0.0, 0.0, 0.0, 0.0, 0.0)
     ranks = [_first_relevant_rank(case) for case in cases]
@@ -94,6 +105,10 @@ def aggregate_case_ranks(cases: list[CaseRank]) -> AggregateRankMetrics:
         recall_at_10=_mean(1.0 if rank <= 10 else 0.0 for rank in ranks),
         mean_reciprocal_rank=_mean(1.0 / rank if math.isfinite(rank) else 0.0 for rank in ranks),
         mean_ndcg_at_10=_mean(_ndcg_at_10(case) for case in cases),
+        evidence_recall_at_5=_mean(_evidence_recall(case, 5) for case in cases),
+        evidence_recall_at_10=_mean(_evidence_recall(case, 10) for case in cases),
+        all_evidence_at_5=_mean(float(_evidence_recall(case, 5) == 1.0) for case in cases),
+        all_evidence_at_10=_mean(float(_evidence_recall(case, 10) == 1.0) for case in cases),
     )
 
 
@@ -123,6 +138,12 @@ def _first_relevant_rank(case: CaseRank) -> float:
         (float(rank) for rank, item_id in enumerate(case.ranked_ids, start=1) if item_id in case.relevant_ids),
         math.inf,
     )
+
+
+def _evidence_recall(case: CaseRank, cutoff: int) -> float:
+    if not case.relevant_ids:
+        return 0.0
+    return len(case.relevant_ids.intersection(case.ranked_ids[:cutoff])) / len(case.relevant_ids)
 
 
 def _ndcg_at_10(case: CaseRank) -> float:

@@ -60,7 +60,9 @@ def evaluate_longmemeval(
         case = _parse_case(raw)
         if partition and benchmark_partition(case.question_id) != partition:
             continue
-        if not case.answer_session_ids:
+        # Upstream marks abstention questions in the ID, even when the original
+        # answer_session_ids remain populated. Retrieval cannot score abstention.
+        if "_abs" in case.question_id or not case.answer_session_ids:
             abstentions += 1
             continue
         baseline, ranked = _evaluate_case(case, policy)

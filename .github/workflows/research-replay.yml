@@ -1,0 +1,42 @@
+name: research-replay
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/research/**'
+      - 'scripts/replay_retrieval_study.py'
+      - 'src/thoughtpins/memory/**'
+      - '.github/workflows/research-replay.yml'
+  pull_request:
+    paths:
+      - 'docs/research/**'
+      - 'scripts/replay_retrieval_study.py'
+      - 'src/thoughtpins/memory/**'
+      - '.github/workflows/research-replay.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-replay:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: docs/research/2026-09-retrieval/replay-requirements.txt
+      - name: Install numerical replay environment
+        run: python -m pip install -r docs/research/2026-09-retrieval/replay-requirements.txt
+      - name: Refit, validate model decisions and reproduce published tables offline
+        run: python scripts/replay_retrieval_study.py --output reports/retrieval-study-replay.json

@@ -89,10 +89,13 @@ facet coverage, 1.000 attribution retention, zero top-ranked orphan uncertain
 claims, and deterministic replay.
 
 Independent external evaluation uses pinned, license-checked LongMemEval and
-LitBank snapshots. On the 46-question LongMemEval holdout, the production
-policy improved a same-candidate BM25 baseline from 0.8478 to 0.8696 Recall@1,
-from 0.9065 to 0.9174 MRR, and from 0.9000 to 0.9049 nDCG@10 while retaining
-1.000 Recall@5. On LitBank holdout annotations, all 25 speaker queries and all
+LitBank snapshots. The corrected July LongMemEval replay excludes three
+abstentions, leaving 43 answerable questions: the production policy's Hit@1 is
+38/43 versus BM25 37/43. Both have Hit@5 of 1.000 and complete@5 of 36/43;
+the original "Recall@5" label meant any-evidence retrieval. The
+[September experimental study](../research/2026-09-retrieval/README.md) is a
+separate, larger source-ranking evaluation with learned and model controls.
+On LitBank holdout annotations, all 25 speaker queries and all
 16 minor-speaker queries reached 1.000 Recall@1 and MRR. Dataset governance,
 split discipline, and limitations are recorded in
 `EXTERNAL_MEMORY_BENCHMARKS.md`.

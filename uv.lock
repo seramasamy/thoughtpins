@@ -4128,6 +4128,8 @@ dev = [
     { name = "pytest-cov" },
     { name = "radon" },
     { name = "ruff" },
+    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "scipy", version = "1.18.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "uv" },
     { name = "vulture" },
 ]
@@ -4201,6 +4203,7 @@ requires-dist = [
     { name = "reportlab", marker = "extra == 'reports'", specifier = ">=4.0" },
     { name = "rich", specifier = ">=13.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8" },
+    { name = "scipy", marker = "extra == 'dev'", specifier = ">=1.17.1" },
     { name = "sentence-transformers", marker = "extra == 'ml'", specifier = ">=3.0" },
     { name = "sentry-sdk", specifier = ">=2.0" },
     { name = "sqlalchemy", specifier = ">=2.0" },

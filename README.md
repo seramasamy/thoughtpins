@@ -117,8 +117,10 @@ and evidence coverage. The
 [search recovery tests](tests/test_search_resilience.py),
 [recall tests](tests/test_search_recall.py) and
 [ranking regressions](tests/test_retrieval_robustness.py) cover concrete failure
-cases. Larger holdouts, dense/learned baselines and production latency/cost
-measurements remain the next evidence to establish.
+cases. The [September research study](docs/research/2026-09-retrieval/README.md)
+adds held-out query evaluation, dense and learned controls, paired uncertainty,
+and experimental cost measurements. Production latency and answer quality
+remain separate measurements.
 
 The [algorithm walkthrough](docs/architecture/RETRIEVAL_ARCHITECTURE.md) links
 the equations to their implementation. The
@@ -192,13 +194,30 @@ cover previews, keyboard control, appearance and accessibility. [Native UI tests
 exercise the production SwiftUI package against fictional fixtures. Passing
 these checks does not replace a signed distribution build or real-device review.
 
-The [documented July 2026 evaluation](docs/architecture/EXTERNAL_MEMORY_BENCHMARKS.md#results)
-uses 46 LongMemEval cases: Recall@1 is **0.8696 versus 0.8478** for BM25 on the
-same candidate sessions — one additional correct top result. This is a small,
-confirmatory reranking experiment, not a full benchmark or an end-to-end answer
-accuracy result. Both systems reach 1.0 Recall@5/10 on that sample. The full
-500-question run, modern dense/learned baselines, untouched larger holdouts,
-and live-model adversarial evaluation remain outstanding.
+The [September 2026 retrieval study](docs/research/2026-09-retrieval/README.md)
+evaluates 182 held-out LongMemEval questions and 200 additional EverMemBench
+questions. On LongMemEval, the experimental scorer plus GLM reranking improves
+**nDCG@10 from 0.927 to 0.973** versus development-tuned BM25, with complete
+support within five sources increasing from **153/182 to 178/182**. The paired
+gain passes the registered decision rule (Holm-adjusted p=0.0016).
+
+The local scorer alone does not pass every guardrail, and superiority over the
+previous GLM reranker or the simpler matched GLM-on-BM25 control is unproven.
+EverMemBench has only five shared topics and insufficient independent groups
+for a confirmed gain. These are offline source-retrieval experiments, not
+answer accuracy, a production algorithm change, or a general benchmark win.
+The report includes negative results, ablations, cost and a no-key replay:
+
+```bash
+python -m pip install -r docs/research/2026-09-retrieval/replay-requirements.txt
+python scripts/replay_retrieval_study.py
+```
+
+The [corrected July comparison](docs/architecture/EXTERNAL_MEMORY_BENCHMARKS.md#corrected-retrieval-metrics)
+has 43 answerable cases after excluding three abstentions: Hit@1 is 38/43 for
+the existing policy and 37/43 for BM25. Its old "Recall@5/10=1.0" label meant
+any-evidence Hit@k, not complete support. The full 500-question generated-answer
+evaluation, new-topic memory generalization and live-user quality remain open.
 
 The repository also includes deterministic regression suites and public-domain
 literary evaluations. Generated questions from the same passages test
@@ -214,7 +233,7 @@ readiness require their own recorded evidence.
 | Backend and memory engine | [src/thoughtpins/](src/thoughtpins/) |
 | Web app and public site | [frontend/](frontend/README.md) · [site/](site/README.md) |
 | Native apps | [mobile/](mobile/README.md) |
-| Algorithms and evaluation | [Retrieval architecture](docs/architecture/RETRIEVAL_ARCHITECTURE.md) · [Evaluation protocol](docs/architecture/EXTERNAL_MEMORY_BENCHMARKS.md) |
+| Algorithms and evaluation | [Retrieval architecture](docs/architecture/RETRIEVAL_ARCHITECTURE.md) · [Evaluation protocol](docs/architecture/EXTERNAL_MEMORY_BENCHMARKS.md) · [Results and offline replay](docs/research/2026-09-retrieval/README.md) |
 | Releases and operations | [Documentation index](docs/README.md) · [Production runbook](docs/operations/PRODUCTION_RUNBOOK.md) |
 
 ## Contribute
