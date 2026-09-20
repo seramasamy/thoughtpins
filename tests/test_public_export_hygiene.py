@@ -174,3 +174,26 @@ def test_review_service_disclosure_exception_cannot_hide_secrets_or_private_term
     note.write_text(provider, encoding="utf-8")
     (tmp_path / "unrelated.md").write_text(provider, encoding="utf-8")
     assert mod.main(tmp_path) == 1
+
+
+def test_research_model_ids_do_not_exempt_credentials_or_private_references(tmp_path: Path) -> None:
+    mod = _load_script("forbidden_scan")
+    provider = "deep" + "seek"
+    names = [
+        "scripts/research_fireworks.py",
+        "tests/test_research_fireworks.py",
+        "docs/research/2026-09-retrieval/artifacts/attempt-costs.jsonl",
+        "docs/research/2026-09-retrieval/artifacts/archived-prices.json",
+    ]
+    for name in names:
+        path = tmp_path / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(provider, encoding="utf-8")
+        assert mod.main(tmp_path) == 0
+        path.write_text(provider + "\n" + "fw_" + "fictionalcredentialfixture123456", encoding="utf-8")
+        assert mod.main(tmp_path) == 1
+        path.write_text(provider + "\n" + "founder" + "_memory_backup", encoding="utf-8")
+        assert mod.main(tmp_path) == 1
+        path.write_text(provider, encoding="utf-8")
+    (tmp_path / "unrelated.md").write_text(provider, encoding="utf-8")
+    assert mod.main(tmp_path) == 1

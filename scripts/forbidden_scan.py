@@ -57,11 +57,17 @@ FORBIDDEN_TERMS = [
     _term("c:/", "users", "/surya"),
 ]
 # App Review explicitly requests the names of external services. Permit the
-# configured provider name only in those two disclosures; private references
-# and every secret pattern still apply to the same files.
+# configured provider name in those disclosures and the four explicitly
+# published research adapter/usage files. Exact public model IDs are necessary
+# to reproduce the study; they are not credentials or deployment settings.
+# Private references and every secret pattern still apply to the same files.
 ALLOWED_TERMS_BY_FILE = {
     "apple-submission/GUIDELINE_2_1_RESPONSE.md": {_term("deep", "seek")},
     "apple-submission/REVIEW_NOTES.md": {_term("deep", "seek")},
+    "scripts/research_fireworks.py": {_term("deep", "seek")},
+    "tests/test_research_fireworks.py": {_term("deep", "seek")},
+    "docs/research/2026-09-retrieval/artifacts/attempt-costs.jsonl": {_term("deep", "seek")},
+    "docs/research/2026-09-retrieval/artifacts/archived-prices.json": {_term("deep", "seek")},
 }
 SECRET_PATTERNS = [
     re.compile(r"TELEGRAM_BOT_TOKEN\s*=\s*\d+:[A-Za-z0-9_-]{20,}"),
@@ -69,6 +75,7 @@ SECRET_PATTERNS = [
     re.compile(r"\bsk-(?:proj-)?[A-Za-z0-9_-]{24,}\b"),
     re.compile(r"\bjina_[A-Za-z0-9]{16,}\b"),
     re.compile(r"\bfc-[A-Za-z0-9]{16,}\b"),
+    re.compile(r"\bfw_[A-Za-z0-9]{16,}\b"),
     # A value that is nothing but a shell substitution or a workflow expression
     # cannot be a hardcoded secret -- it is resolved at run time from somewhere
     # else. `KEYCHAIN_PASSWORD="$(openssl rand -base64 24)"` is a randomly
