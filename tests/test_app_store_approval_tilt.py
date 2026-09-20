@@ -92,3 +92,21 @@ def test_approval_tilt_rejects_provider_specific_source_marker(tmp_path: Path) -
         mod.PROVIDER_NEUTRAL_DIRS = original_dirs
 
     assert any("provider-specific" in failure for failure in failures)
+
+
+def test_offline_research_exception_does_not_extend_to_product_source(tmp_path: Path, monkeypatch) -> None:
+    mod = _checker_module()
+    monkeypatch.setattr(mod, "ROOT", tmp_path)
+    provider = "deep" + "seek"
+    for name in mod.EXPERIMENTAL_PROVIDER_FILES:
+        path = tmp_path / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(provider, encoding="utf-8")
+    failures: list[str] = []
+    mod._check_provider_neutral_source(failures)
+    assert failures == []
+    product = tmp_path / "src" / "thoughtpins" / "llm" / "research_fireworks.py"
+    product.parent.mkdir(parents=True)
+    product.write_text(provider, encoding="utf-8")
+    mod._check_provider_neutral_source(failures)
+    assert len(failures) == 1 and "provider-specific" in failures[0]
