@@ -57,7 +57,7 @@ class LexicalIndex:
             frequency = len(indices)
             idf = math.log(1 + (self.count - frequency + 0.5) / (frequency + 0.5))
             scores[indices] += idf * counts * (k1 + 1) / (counts + norm[indices])
-        maximum = scores.max(initial=0)
+        maximum: float = float(scores.max(initial=0))
         return scores / maximum if maximum > 0 else scores
 
 

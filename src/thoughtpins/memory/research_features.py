@@ -24,7 +24,8 @@ def query_features(
     n = len(sources)
     if not all(len(values) == n for values in (sparse, dense, sparse_ranks, dense_ranks)):
         raise ValueError("Feature inputs must describe the same source pool")
-    lexical, semantic = np.asarray(sparse, dtype=float), np.asarray(dense, dtype=float)
+    lexical: np.ndarray = np.asarray(sparse, dtype=float)
+    semantic: np.ndarray = np.asarray(dense, dtype=float)
     if not np.isfinite(lexical).all() or not np.isfinite(semantic).all():
         raise ValueError("Missing channels require explicit zero evidence")
     # Fixed cosine transform retains meaningful scale, avoiding a fitted final-data normalizer.

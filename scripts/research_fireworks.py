@@ -171,7 +171,8 @@ def main() -> None:
             lock.write(b"0")
             lock.flush()
         lock.seek(0)
-        msvcrt.locking(lock.fileno(), msvcrt.LK_NBLCK, 1)
+        windows_lock: Any = msvcrt
+        windows_lock.locking(lock.fileno(), windows_lock.LK_NBLCK, 1)
     else:
         import fcntl
 

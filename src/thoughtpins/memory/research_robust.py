@@ -13,7 +13,7 @@ FEATURE_NAMES = ("whole_bm25", "passage_bm25", "dense", "idf_squared")
 
 
 def normalize(values: np.ndarray | list[float]) -> np.ndarray:
-    x = np.asarray(values, dtype=float)
+    x: np.ndarray = np.asarray(values, dtype=float)
     if not np.isfinite(x).all():
         raise ValueError("Nonfinite scores")
     lo = float(x.min(initial=0))
