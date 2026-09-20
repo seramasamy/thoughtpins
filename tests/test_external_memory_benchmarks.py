@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from thoughtpins.memory.benchmark_datasets import benchmark_partition, load_dataset_specs, verify_dataset_file
+from thoughtpins.memory.benchmark_retrieval import CaseRank, aggregate_case_ranks
 from thoughtpins.memory.litbank_benchmark import evaluate_litbank
 from thoughtpins.memory.longmemeval_benchmark import evaluate_longmemeval
 from thoughtpins.memory.ranking_evidence import build_ranking_evidence
@@ -96,6 +97,59 @@ def test_longmemeval_adapter_uses_session_evidence_labels(tmp_path: Path) -> Non
     assert report.evaluated_questions == 1
     assert report.baseline.recall_at_1 == 1.0
     assert report.thoughtpins.recall_at_1 == 1.0
+
+
+def test_longmemeval_excludes_abstention_with_retained_evidence_labels(tmp_path: Path) -> None:
+    dataset = tmp_path / "abstention.json"
+    dataset.write_text(
+        json.dumps(
+            [
+                {
+                    "question_id": "fixture_abs",
+                    "question_type": "single-session-user",
+                    "question": "What is my piano teacher's name?",
+                    "answer_session_ids": ["original-session"],
+                    "haystack_dates": ["2026/01/01"],
+                    "haystack_session_ids": ["original-session"],
+                    "haystack_sessions": [[{"role": "user", "content": "I practice the piano."}]],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = evaluate_longmemeval(dataset)
+
+    assert report.evaluated_questions == 0
+    assert report.abstention_questions == 1
+    assert report.thoughtpins.recall_at_1 == 0.0
+
+
+def test_evidence_metrics_distinguish_one_hit_from_complete_support() -> None:
+    metrics = aggregate_case_ranks(
+        [CaseRank(frozenset({"a", "b"}), ("a", "decoy1", "decoy2", "decoy3", "decoy4", "b"))]
+    ).as_dict()
+
+    assert metrics["hit_at_1"] == metrics["recall_at_1"] == 1.0
+    assert metrics["evidence_recall_at_5"] == 0.5
+    assert metrics["all_evidence_at_5"] == 0.0
+    assert metrics["evidence_recall_at_10"] == metrics["all_evidence_at_10"] == 1.0
+
+
+def test_duplicate_sources_cannot_inflate_ranking_credit() -> None:
+    repeated = aggregate_case_ranks([CaseRank(frozenset({"a", "b"}), ("a", "a", "a"))])
+    single = aggregate_case_ranks([CaseRank(frozenset({"a", "b"}), ("a",))])
+
+    assert repeated == single
+    assert repeated.evidence_recall_at_5 == 0.5
+    assert repeated.mean_ndcg_at_10 < 1.0
+
+
+def test_empty_gold_does_not_count_as_complete_evidence() -> None:
+    metrics = aggregate_case_ranks([CaseRank(frozenset(), ("a",))])
+
+    assert metrics.all_evidence_at_5 == metrics.all_evidence_at_10 == 0.0
+    assert metrics.evidence_recall_at_5 == 0.0
 
 
 def test_litbank_adapter_recalls_a_minor_speaker_from_human_attribution(tmp_path: Path) -> None:

@@ -1,0 +1,1 @@
+{"date":"2026-09-19","source":"https://docs.fireworks.ai/serverless/pricing","usd_per_million_input_output":{"accounts/fireworks/models/deepseek-v4-pro-0813":[1.32,3.96],"accounts/fireworks/models/glm-5p3-flash":[0.15,0.5],"fireworks/qwen3-embedding-8b":[0.1,0.0],"fireworks/qwen3-reranker-8b":[0.2,0.0]},"cache_discounts":false,"current_prices_verified_by_replay":false}

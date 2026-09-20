@@ -81,11 +81,14 @@ tests source-separated literary passages. The serving policy is
 `social-episodic-v2`, and all corpus-generation logic is excluded from
 request-time code.
 
-The external replay adds 46 LongMemEval questions and 25 LitBank speaker
-queries. On the same LongMemEval candidates, Recall@1 was 0.8478 for BM25 and
-0.8696 for Thought Pins: one additional correct top result. MRR was 0.9065 and
-0.9174 respectively, with
-1.000 Recall@5. LitBank reaches 1.000 Recall@1 and MRR for all speakers and for
+The corrected July external replay has 43 answerable LongMemEval questions
+(three abstentions excluded) and 25 LitBank speaker queries. Hit@1 is 37/43
+for BM25 and 38/43 for Thought Pins: one additional relevant first result.
+Both have any-evidence Hit@5 of 1.000 but complete@5 of 36/43. The
+[September study](../research/2026-09-retrieval/README.md) adds 182 held-out LME
+questions, dense/learned baselines and matched model controls. Its supported
+gain is model-assisted retrieval over tuned BM25; a general local-ranking
+advantage remains unproven. LitBank reaches 1.000 Recall@1 and MRR for all speakers and for
 the 16 minor-speaker cases. The compact fixture's saturated ablations are not
 used as evidence that every feature is necessary. The holdout was revisited,
 making this a confirmatory replay. Candidate-generation recall and live-model

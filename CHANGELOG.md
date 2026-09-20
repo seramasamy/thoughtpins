@@ -7,6 +7,12 @@ Keep a Changelog, and the project uses semantic versioning for public releases.
 
 ### Added
 
+- A public, offline-replayable September retrieval study with numeric features,
+  fitted weights, source-ID judgments, predictions, paired statistics and
+  experimental ranking tests. The report distinguishes the supported
+  model-assisted LongMemEval gain over tuned BM25 from inconclusive local and
+  prior-model comparisons. No serving ranker or deployment change.
+
 - The closed-beta invite gate in both native apps: status and redemption in each
   mobile core, a gate screen routed after the consent step, and account deletion
   reachable from behind the gate — an account that cannot use the product yet

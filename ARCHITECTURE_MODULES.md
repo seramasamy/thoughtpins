@@ -75,6 +75,22 @@ as thin adapters.
   deterministic partitions, and independently labeled retrieval evaluation.
 - `memory/benchmark_retrieval.py`: dependency-free BM25 baseline and aggregate
   IR metrics shared by external adapters.
+- `memory/benchmark_model_ranking.py`: provider-neutral session reranking
+  prompts and strict candidate-permutation validation for offline experiments.
+  Invalid or incomplete model output preserves the existing ranking once.
+- `memory/research_*.py`: offline public-data projections, lexical/dense
+  experiment interfaces, bounded pairwise fitting, fixed-facet coverage,
+  paired statistics, synthetic stress fixtures, and durable attempt accounting.
+  These modules do not access product databases or alter the serving ranker.
+  Scientific fitting imports its optional optimizer only at the fitting boundary.
+- `memory/research_replay.py` and `memory/research_replication.py`: public
+  experiment scoring and cached-feature replication, including model-output
+  validation and re-fitting. `scripts/replay_retrieval_study.py` disables network
+  access and verifies the curated artifacts under `docs/research/`.
+- `scripts/research_fireworks.py`: experimental provider transport with a hidden
+  credential prompt, persistent spending reservations, strict model allowlist,
+  no automatic retries, and resumable request identities. Public corpus inputs
+  and research outputs belong in an ignored local run directory.
 - `memory/context_scope.py`, `memory/context_sections.py`, and
   `memory/context_package.py`: tenant scoping, deterministic full/navigation
   sections, and bounded smart-context orchestration respectively.

@@ -160,16 +160,18 @@ stack.
 
 | Documented experiment | Sample | Result | What it supports |
 | --- | ---: | --- | --- |
-| LongMemEval session reranking | 46 cases | Recall@1: BM25 0.8478, Thought Pins 0.8696 | One additional correct top-ranked session on this sample |
-| LongMemEval coverage | Same 46 | Both reach 1.0 Recall@5/10 | Coverage of the supplied candidates on this sample |
+| Corrected July session reranking | 43 answerable cases | Hit@1: BM25 37/43, Thought Pins 38/43 | One additional relevant first session; three abstentions excluded |
+| Corrected July coverage | Same 43 | Both reach 1.0 Hit@5/10; complete@5 36/43 | At least one relevant source per question, not all support |
+| September experimental scorer plus GLM | 182 held-out LME questions | nDCG@10 .973263 vs tuned BM25 .926680 | Supported model-assisted retrieval gain under the registered protocol |
 | LitBank attribution ranking | 25 cases, including 16 minor-speaker cases | Recall@1/MRR 1.0 in the documented replay | A small controlled attribution regression |
 | Generated literary questions | 300 books | Saturated documented metrics | Broad regression coverage; labels share their source passages |
 
 The holdout was later revisited, so the recorded run is confirmatory rather
-than a new untouched estimate. The full 500-question LongMemEval run and a
-comparison against modern dense or learned rerankers are outstanding. Perfect
-Recall@10 on 46 supplied candidate sets does not establish that retrieval is
-solved, and none of these values measures live-model answer accuracy.
+than a new untouched estimate. The [September study](../research/2026-09-retrieval/README.md)
+adds dense and learned controls, fresh query splits and paired uncertainty,
+while retaining negative results. It does not prove that the local scorer is
+better than a simple matched model control. The full 500-question answer run
+remains outstanding. None of these retrieval values measures answer accuracy.
 
 The protocol records dataset pins, licenses, partition rules, calibration
 choices and reproduction commands. Benchmark corpora and generated reports stay
