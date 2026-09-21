@@ -188,6 +188,32 @@ then verifies graceful shutdown, port release, and temporary-data removal. Pass
 evidence, not a substitute for capacity testing against the deployed
 PostgreSQL/Redis topology.
 
+The API sets its shared AnyIO worker budget during application lifespan. With
+a finite PostgreSQL pool it uses the smaller of the existing thread limit and
+`floor((DB_POOL_SIZE + DB_MAX_OVERFLOW) / 2)`: for a 10 + 20 pool, 15 workers.
+At least two total connections are required. This leaves headroom because a
+request can retain its main SQL transaction while provider usage metering opens
+another. Matching 30 workers to 30 connections would not solve that case.
+The limiter is restored on shutdown or failed startup. SQLite keeps its existing
+thread budget because `DB_POOL_*` does not configure its local pool. Explicitly
+unbounded pools (`DB_POOL_SIZE=0` or `DB_MAX_OVERFLOW=-1`) retain the existing
+thread budget and provide no finite database admission guarantee.
+
+The budget is a conservative default, not a proven production throughput limit.
+AnyIO admission waits asynchronously, but it does not bound incoming request
+count. Background document indexing and vault imports use separate executors;
+Celery and additional API processes have separate connection pools. Load tests
+must include those writers, provider latency and database connection limits
+across all processes. `/health` remains independent of worker admission;
+`/ready` may report a timeout when its dependency checks cannot obtain a worker.
+
+`python -m pytest -q tests/test_api_worker_budget.py tests/test_api_concurrency.py`
+reproduces the offline regression proof: held request transactions, nested usage
+transactions, an occupied background connection, queued-request cancellation,
+tenant propagation, connection release and responsive health. It uses a real
+four-connection SQLAlchemy pool with synthetic SQLite queries, so it proves
+admission/lifecycle behavior rather than PostgreSQL capacity.
+
 
 On an elevated Windows shell or any host where Docker and Playwright can spawn
 browsers, run the full closed-beta proof bundle:

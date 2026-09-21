@@ -15,11 +15,11 @@ import time
 import uvicorn
 from loguru import logger
 
-from thoughtpins.api import _recover_orphaned_entries
 from thoughtpins.backup import create_backup
 from thoughtpins.branding import print_banner
 from thoughtpins.config import config
 from thoughtpins.logging_config import setup_logging
+from thoughtpins.startup_recovery import recover_orphaned_entries as _recover_orphaned_entries
 from thoughtpins.store import init_db
 
 

@@ -15,6 +15,11 @@ as thin adapters.
   Routes that call synchronous SQLAlchemy or providers use normal `def` so
   FastAPI offloads the entire handler. Tenant context propagates to workers.
   Nonblocking metadata and async response/body handling stay on the event loop.
+- `api_runtime.py`: API startup/shutdown and the shared AnyIO worker budget.
+  A finite PostgreSQL pool caps synchronous workers at half its configured
+  connection capacity, leaving room for a provider's nested usage transaction.
+  Independent background executors and total connections across processes still
+  need deployment load measurements. Startup/shutdown run outside the event loop.
 - `api_routes/`: split FastAPI routers. `metadata.py` owns health, client
   config, error catalog, metrics, and deep health routes. `public.py` owns
   public legal pages and backend-served web app files. `auth.py` owns
@@ -60,8 +65,10 @@ as thin adapters.
   is marked, never deleted — it may have written a journal entry, and a chat
   edit is not consent to destroy what someone wrote.
 - `memory/search.py`: candidate generation only. Each channel is a `_collect_*`
-  function that proposes into a shared map; the orchestrator absorbs any one of
-  them failing, because a channel is an optimisation and not a dependency.
+  function that proposes into a shared map; provider failures cost recall while
+  SQL failures propagate, because an aborted source-of-truth transaction must
+  not become a successful empty result. Collectors share one session and run
+  sequentially; parallelism requires independent sessions and candidate maps.
   Candidate identity must be deterministic across processes — derive it from
   content with a stable digest, never `hash()`, or replayable evaluation and
   any cache keyed on a candidate break silently.

@@ -1,6 +1,6 @@
 # Tests
 
-840 tests across 122 files, about seven minutes:
+Run the current backend suite (counts depend on installed extras and the selected database):
 
 ```bash
 PYTHONPATH=src python -m pytest tests/ -q
@@ -10,6 +10,18 @@ PYTHONPATH=src python -m pytest tests/ -q
 For a change touching one area, run the handful of files that cover it first —
 the six chat and Telegram files together take about a hundred seconds — and the
 full suite once before committing.
+
+CI and the release checker retain the repository-wide mypy gate and additionally
+run strict checks with normal import following on the three request-runtime
+modules:
+
+```bash
+python -m mypy --strict --follow-imports normal src/thoughtpins/api_runtime.py src/thoughtpins/api_request_auth.py src/thoughtpins/api_idempotency_http.py
+```
+
+This bounded check covers lifecycle, worker admission, immutable authorization
+and idempotency contracts. Legacy ORM annotations and test doubles still block
+claiming repository-wide strict typing.
 
 ## What is asserted
 
@@ -32,6 +44,14 @@ property is the thing that matters. A few that are easy to miss:
 - **Thread identity.** `test_telegram_event_loop.py` asserts the model call
   happens off the event loop. The reply is identical either way, so nothing else
   would notice.
+- **Admission under saturation.** `test_api_worker_budget.py` drives the actual
+  app lifespan with a four-connection SQLAlchemy pool. Held requests acquire
+  nested usage transactions while a background connection is occupied, health
+  stays responsive and a queued request is cancelled. Connections and limiter
+  tokens must be released. This is not a production throughput benchmark.
+- **Truthful retrieval failure.** `test_search_resilience.py` distinguishes
+  a failed optional provider from a failed SQL transaction. Provider errors can
+  reduce recall; database failure cannot be reported as an empty memory search.
 
 ## Writing one
 

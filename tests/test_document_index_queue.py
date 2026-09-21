@@ -33,7 +33,7 @@ def test_document_index_queue_flushes_deferred_payload(monkeypatch):
 
 
 def test_api_lifespan_drains_document_index_queue_on_shutdown(monkeypatch):
-    from thoughtpins import api
+    from thoughtpins import api, api_runtime
 
     calls: list[int] = []
     config_cls = type(api.config)
@@ -46,15 +46,15 @@ def test_api_lifespan_drains_document_index_queue_on_shutdown(monkeypatch):
         ),
     }
 
-    monkeypatch.setattr(api, "init_db", lambda: None)
-    monkeypatch.setattr(api, "_recover_orphaned_entries", lambda: None)
-    monkeypatch.setattr(api, "recover_pending_jobs", lambda: None)
+    monkeypatch.setattr(api_runtime, "init_db", lambda: None)
+    monkeypatch.setattr(api_runtime, "recover_orphaned_entries", lambda: None)
+    monkeypatch.setattr(api_runtime, "recover_pending_jobs", lambda: None)
 
     def flush(timeout_seconds: int) -> bool:
         calls.append(timeout_seconds)
         return True
 
-    monkeypatch.setattr(api, "flush_document_indexing", flush)
+    monkeypatch.setattr(api_runtime, "flush_document_indexing", flush)
     monkeypatch.setattr(api.config, "RUN_STARTUP_RECOVERY", False)
     monkeypatch.setattr(config_cls, "RUN_STARTUP_RECOVERY", False)
     monkeypatch.setattr(api.config, "PROCESS_ENTRIES_ASYNC", False)

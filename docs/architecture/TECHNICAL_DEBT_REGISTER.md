@@ -1,6 +1,6 @@
 # Technical Debt Register
 
-Last reviewed: 2026-08-09
+Last reviewed: 2026-09-21
 
 This register is intentionally candid. A production codebase with no technical
 debt is not a credible claim. Thought Pins uses tests and architecture fitness
@@ -269,7 +269,11 @@ test. Each is now covered by a test asserting the property, not the fix.
   under exactly the load that matters. Ownership is now a context manager.
 - **Failure isolation applied to one channel of eight.** Only vector retrieval
   was guarded; every other provider could fail the whole query. Each channel is
-  now individually absorbed, and fewer candidates is the worst case.
+  now guarded. Clarified 2026-09-21: optional provider failures reduce recall,
+  but SQLAlchemy failures surface as `SearchUnavailable` because the shared
+  transaction may be aborted. The error retains the class, excluding SQL
+  payloads and chained exceptions from formatted tracebacks. A failed source of truth must not look like a successful empty
+  search; the transaction owner decides whether to roll back.
 - **Unbounded resolution memo in a long-lived worker.** The entity-resolution
   cache keyed on a hash of the passage — correct, since "Apple" resolves
   differently per context, but it makes keys effectively unique per entry, so
@@ -732,6 +736,48 @@ directory's default permissions instead of owner-only is worth saying out loud.
   private founder state, and generated package metadata such as `*.egg-info`.
 - Account export/deletion, request IDs, error envelopes, rate limiting, async
   work, health checks, and maintenance behavior have release-gate coverage.
+
+## September 2026 capacity and evidence review
+
+The API's event-loop isolation is covered by held-dependency tests. Worker
+admission now also accounts for nested SQL sessions: a finite PostgreSQL pool
+caps shared AnyIO workers at half its connection capacity, never increasing a
+previously lower worker limit. The actual app lifespan is tested against a
+four-connection pool with held outer transactions, nested usage transactions,
+one background connection, queued cancellation and responsive health. Removing
+the limit makes that regression fail with connection-pool exhaustion. See
+`tests/test_api_worker_budget.py` and the operational limits in
+[`RUNNING.md`](../operations/RUNNING.md).
+
+Idempotency hashing and reservation share one worker call. Both ordinary and
+streaming response contracts are tested; completed responses still replay
+without repeating the mutation. Lifecycle extraction also shrank `api.py` to
+334 lines and tightened its architecture ratchet accordingly.
+
+The following debt remains explicit:
+
+- **Typing:** CI and release checks now additionally use `--strict` and normal
+  import following for the three request-runtime modules. A repository-wide
+  normal-import probe exposes legacy SQLAlchemy `Column` instance annotations
+  and test-double typing gaps. Retain the existing global gate while migrating
+  those boundaries; do not blanket-ignore diagnostics to claim full strictness.
+- **Retrieval concurrency:** collectors share a session and mutable candidate
+  map. Parallelizing them requires separate transactions/maps, tenant context,
+  deterministic merging, resource admission and a measured latency benefit.
+  Sequential execution is deliberate until that change earns its complexity.
+- **Exception boundaries:** retain best-effort provider/shutdown handling where
+  it has a defined contract. SQL failures now abort retrieval and provider
+  channel warnings exclude exception payloads. The number of broad catches
+  alone does not establish safety; further audit must examine what each one hides.
+- **Architecture evidence:** the frozen study does not establish that the
+  serving ranking heuristic beats simple fusion. A full-channel comparison and
+  end-to-end answer evaluation remain prerequisites for that claim. No scoring
+  weights or benchmark outcomes changed in this reliability work.
+- **Product evidence and scope:** prioritize observed tasks with consenting web
+  users and their failure/completion rates. More client surfaces or test counts
+  cannot establish adoption, usability or an overall product grade. Production
+  capacity still requires the deployed PostgreSQL/Redis topology and background
+  writers; the local pool test and loopback load rehearsal do not establish it.
 
 ## Review Cadence
 

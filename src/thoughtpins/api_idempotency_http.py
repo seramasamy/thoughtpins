@@ -23,20 +23,15 @@ async def call_with_idempotency(
         return await call_next(request)
 
     body = await request.body()
-    fingerprint = await run_in_threadpool(
-        request_hash,
+    claim = await run_in_threadpool(
+        _claim,
+        user_id=user_id,
+        key=raw_key,
         method=request.method,
         path=request.url.path,
         query=request.url.query,
         content_type=request.headers.get("Content-Type", ""),
         body=body,
-    )
-    claim = await run_in_threadpool(
-        _claim,
-        user_id=user_id,
-        scope=f"{request.method.upper()}:{request.url.path}",
-        key=raw_key,
-        fingerprint=fingerprint,
     )
 
     if claim.is_replay:
@@ -53,7 +48,12 @@ async def call_with_idempotency(
         await run_in_threadpool(_abandon, user_id=user_id, record_id=claim.record_id)
         raise
 
-    response_body = b"".join([chunk async for chunk in response.body_iterator])
+    # BaseHTTPMiddleware returns a streaming wrapper, while an ordinary ASGI
+    # adapter can return a concrete Response. Both are valid call_next results.
+    if hasattr(response, "body_iterator"):
+        response_body = b"".join([chunk async for chunk in response.body_iterator])
+    else:
+        response_body = bytes(response.body)
     content_type = response.headers.get("Content-Type", "")
     replayable = (
         200 <= response.status_code < 400
@@ -79,10 +79,17 @@ async def call_with_idempotency(
     )
 
 
-def _claim(*, user_id: str, scope: str, key: str, fingerprint: str) -> IdempotencyClaim:
+def _claim(
+    *, user_id: str, key: str, method: str, path: str, query: str, content_type: str, body: bytes
+) -> IdempotencyClaim:
+    # Hash before opening the session, in the same worker as the claim. This
+    # avoids a separate scheduling hop without holding a connection during hashing.
+    fingerprint = request_hash(method=method, path=path, query=query, content_type=content_type, body=body)
     session = get_session()
     try:
-        return claim_request(session, user_id=user_id, scope=scope, key=key, fingerprint=fingerprint)
+        return claim_request(
+            session, user_id=user_id, scope=f"{method.upper()}:{path}", key=key, fingerprint=fingerprint
+        )
     finally:
         session.close()
 

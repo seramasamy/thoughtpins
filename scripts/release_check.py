@@ -241,6 +241,21 @@ def _quality_checks(step, skip, py: str, *, strict: bool) -> bool:
 
     if _module_available("mypy"):
         ok &= step("mypy type check", [py, "-m", "mypy", "src", "scripts", "tests"], timeout=180)
+        ok &= step(
+            "strict request-runtime type check",
+            [
+                py,
+                "-m",
+                "mypy",
+                "--strict",
+                "--follow-imports",
+                "normal",
+                "src/thoughtpins/api_runtime.py",
+                "src/thoughtpins/api_request_auth.py",
+                "src/thoughtpins/api_idempotency_http.py",
+            ],
+            timeout=300,
+        )
     else:
         ok &= skip("mypy type check", "mypy is not installed in the active Python environment", strict=strict)
 

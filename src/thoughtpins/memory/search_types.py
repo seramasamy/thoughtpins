@@ -7,6 +7,10 @@ from dataclasses import dataclass, field
 from typing import Any
 
 
+class SearchUnavailable(RuntimeError):
+    """The source of truth failed; this is not an empty search result."""
+
+
 @dataclass
 class SearchResult:
     memory_id: str

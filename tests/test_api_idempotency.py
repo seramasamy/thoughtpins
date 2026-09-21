@@ -1,5 +1,6 @@
 """HTTP idempotency behavior for mobile retries and offline outboxes."""
 
+import pytest
 from fastapi.testclient import TestClient
 
 
@@ -68,3 +69,44 @@ def test_invalid_idempotency_key_uses_error_envelope(isolated_db) -> None:
     assert response.status_code == 400
     assert response.json()["error"]["code"] == "invalid_idempotency_key"
     assert response.json()["error"]["request_id"]
+
+
+@pytest.mark.parametrize("streamed", [False, True])
+async def test_idempotency_accepts_both_response_contracts(monkeypatch, streamed):
+    from starlette.requests import Request
+    from starlette.responses import Response, StreamingResponse
+
+    from thoughtpins import api_idempotency_http
+    from thoughtpins.idempotency import IdempotencyClaim
+
+    saved = []
+    monkeypatch.setattr(api_idempotency_http, "_claim", lambda **kwargs: IdempotencyClaim("synthetic-record"))
+    monkeypatch.setattr(api_idempotency_http, "_persist", lambda **kwargs: saved.append(kwargs))
+
+    async def receive():
+        return {"type": "http.request", "body": b"{}", "more_body": False}
+
+    expected = b'{"saved":true}'
+
+    async def next_response(request):
+        if streamed:
+            return StreamingResponse(iter([expected[:4], expected[4:]]), media_type="application/json")
+        return Response(expected, media_type="application/json")
+
+    request = Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": "/synthetic",
+            "query_string": b"",
+            "headers": [(b"idempotency-key", b"synthetic-retry-001")],
+        },
+        receive,
+    )
+    response = await api_idempotency_http.call_with_idempotency(request, next_response, user_id="synthetic-owner")
+    assert response.status_code == 200
+    assert response.body == expected
+    assert len(saved) == 1
+    assert saved[0]["response_body"] == expected
+    assert saved[0]["user_id"] == "synthetic-owner"
+    assert saved[0]["replayable"] is True

@@ -124,6 +124,66 @@ def test_one_failing_channel_does_not_hide_the_others(owned_session, monkeypatch
     assert [r.memory_id for r in results] == ["m1"]
 
 
+def test_database_failure_is_not_reported_as_empty_memory(owned_session, monkeypatch):
+    import traceback
+
+    from sqlalchemy.exc import OperationalError
+
+    from thoughtpins.memory.search_types import SearchUnavailable
+
+    reached_later_channel = []
+
+    def database_failure(*args, **kwargs):
+        raise OperationalError("SELECT synthetic private text", {}, RuntimeError("database unavailable"))
+
+    monkeypatch.setattr(search_module, "_collect_exact_phrase", database_failure)
+    monkeypatch.setattr(search_module, "_collect_keyword", lambda *a, **k: reached_later_channel.append(True))
+    with pytest.raises(SearchUnavailable, match="OperationalError") as failure:
+        search("lantern")
+    assert "SELECT synthetic private text" not in "".join(traceback.format_exception(failure.value))
+    assert not reached_later_channel
+    assert owned_session.closed
+
+
+def test_failed_database_transaction_is_left_for_its_owner(isolated_db, monkeypatch):
+    from sqlalchemy import text
+
+    from thoughtpins.memory.search_types import SearchUnavailable
+    from thoughtpins.store import get_session
+
+    def bad_statement(session, *args, **kwargs):
+        session.execute(text("SELECT * FROM synthetic_table_that_does_not_exist"))
+
+    monkeypatch.setattr(search_module, "_collect_exact_phrase", bad_statement)
+    with get_session() as session:
+        with pytest.raises(SearchUnavailable):
+            search("lantern", session=session)
+        # Search must not silently commit, roll back or close a caller's unit
+        # of work, even when PostgreSQL marks that transaction as aborted.
+        assert session.in_transaction()
+        session.rollback()
+        assert session.scalar(text("SELECT 1")) == 1
+
+
+def test_provider_failure_warning_does_not_include_source_text(owned_session, monkeypatch):
+    from loguru import logger
+
+    messages = []
+
+    def private_exception(*args, **kwargs):
+        raise RuntimeError("synthetic private journal sentence")
+
+    _break_every_channel(monkeypatch)
+    monkeypatch.setattr(search_module, "get_vector_store", private_exception)
+    sink = logger.add(lambda message: messages.append(str(message)))
+    try:
+        assert search("lantern") == []
+    finally:
+        logger.remove(sink)
+    assert any("vector unavailable: RuntimeError" in message for message in messages)
+    assert all("synthetic private journal sentence" not in message for message in messages)
+
+
 # ---------------------------------------------------------------- determinism
 
 

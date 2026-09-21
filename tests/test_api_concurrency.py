@@ -11,7 +11,7 @@ import httpx
 import pytest
 
 
-@pytest.mark.parametrize("boundary", ["identity", "rate_limit", "idempotency", "database_route"])
+@pytest.mark.parametrize("boundary", ["identity", "rate_limit", "idempotency_hash", "idempotency", "database_route"])
 async def test_blocking_request_keeps_health_responsive(isolated_db, monkeypatch, boundary):
     from thoughtpins import api, api_idempotency_http
     from thoughtpins.api_routes import account
@@ -23,6 +23,7 @@ async def test_blocking_request_keeps_health_responsive(isolated_db, monkeypatch
     target, name = {
         "identity": (api, "_resolve_request_user"),
         "rate_limit": (api, "check_rate_limit"),
+        "idempotency_hash": (api_idempotency_http, "request_hash"),
         "idempotency": (api_idempotency_http, "claim_request"),
         "database_route": (account, "get_session"),
     }[boundary]
@@ -38,7 +39,7 @@ async def test_blocking_request_keeps_health_responsive(isolated_db, monkeypatch
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=api.app), base_url="http://test") as client:
         identity = (await client.get("/v1/me")).json()
         monkeypatch.setattr(target, name, held)
-        if boundary == "idempotency":
+        if boundary in {"idempotency_hash", "idempotency"}:
             task = asyncio.create_task(
                 client.post(
                     "/v1/devices",
@@ -51,7 +52,7 @@ async def test_blocking_request_keeps_health_responsive(isolated_db, monkeypatch
         try:
             assert await asyncio.to_thread(entered.wait, 2)
             assert observed[0][0] != loop_thread
-            if boundary in {"idempotency", "database_route"}:
+            if boundary in {"idempotency_hash", "idempotency", "database_route"}:
                 assert observed[0][1] == identity["id"]
             health = await asyncio.wait_for(client.get("/health"), timeout=1)
             assert health.status_code == 200

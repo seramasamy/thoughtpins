@@ -9,9 +9,9 @@ Two properties this module is responsible for:
 
 *Degradation.* A channel is an optimisation, not a dependency. Any one of them
 failing — an unreachable vector service, a graph query that times out — costs
-recall for that query and nothing else. The alternative, which this file used
-to implement, was that a single unavailable provider raised through the whole
-search.
+recall for that query and nothing else. SQL failures propagate: a broken source
+of truth must not look like a successful search with no memories. Previously,
+a single unavailable provider raised through the whole search.
 
 *Determinism.* The same corpus and query must produce the same candidate
 identities on every process and every run, or an evaluation cannot compare two
@@ -25,6 +25,7 @@ from contextlib import contextmanager
 from hashlib import blake2b
 
 from loguru import logger
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from thoughtpins.config import config
@@ -43,7 +44,7 @@ from thoughtpins.memory.search_support import (
     _token_search_memories,
     graph_search_hits,
 )
-from thoughtpins.memory.search_types import SearchResult
+from thoughtpins.memory.search_types import SearchResult, SearchUnavailable
 from thoughtpins.memory.store import MemoryStore
 from thoughtpins.memory.vector_store import get_vector_store
 from thoughtpins.store import get_session
@@ -87,28 +88,39 @@ def _search_session(session: Session | None) -> Iterator[Session]:
     raising leaked the connection. Searches run per request and per background
     job, so a leak here exhausts the pool under exactly the load that matters.
     """
-    if session is not None:
-        yield session
-        return
-    owned = get_session()
     try:
-        yield owned
-    finally:
-        owned.close()
+        if session is not None:
+            yield session
+            return
+        owned = get_session()
+        try:
+            yield owned
+        finally:
+            owned.close()
+    except SQLAlchemyError as exc:
+        # SQL exceptions can print bound journal values. Surface an explicit
+        # failure with its class, never its payload or a chained SQL traceback.
+        raise SearchUnavailable(f"Memory search temporarily unavailable ({type(exc).__name__})") from None
 
 
 def _channel(name: str) -> Callable[[Callable[[], None]], None]:
-    """Run one candidate channel, absorbing its failure.
+    """Absorb provider failures; a failed SQL transaction must stop the search.
 
-    Returning fewer candidates is a worse answer. Raising is no answer at all,
-    and a hybrid retriever that cannot lose a channel is not really hybrid.
+    Losing an optional provider reduces recall. The shared SQL transaction is
+    required; its failure is translated by _search_session without its payload.
     """
 
     def run(collect: Callable[[], None]) -> None:
         try:
             collect()
-        except Exception as exc:  # noqa: BLE001 - a channel must not fail the query
-            logger.warning("Retrieval channel {} unavailable: {}", name, exc)
+        except SQLAlchemyError:
+            # PostgreSQL may have aborted the caller's transaction. Continuing
+            # would hide a database outage; rolling it back here could discard
+            # the caller's writes. Session ownership remains with the caller.
+            raise
+        except Exception as exc:  # noqa: BLE001 - external adapters fail independently
+            # SQL/provider exception messages can embed journal text or queries.
+            logger.warning("Retrieval channel {} unavailable: {}", name, type(exc).__name__)
 
     return run
 

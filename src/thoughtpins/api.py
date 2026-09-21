@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import time
-from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
@@ -40,20 +39,19 @@ from thoughtpins.api_routes.memory import create_memory_router
 from thoughtpins.api_routes.metadata import create_metadata_router
 from thoughtpins.api_routes.public import create_public_router
 from thoughtpins.api_routes.voice import create_voice_router
+from thoughtpins.api_runtime import lifespan
 from thoughtpins.apple_oauth import exchange_apple_authorization_code, revoke_apple_refresh_token
 from thoughtpins.chat.engine import execute_chat_message
 from thoughtpins.chat.memory_answer import answer_with_llm
 from thoughtpins.config import config
 from thoughtpins.idempotency import IdempotencyConflict, InvalidIdempotencyKey
 from thoughtpins.ingestion.pipeline import process_message
-from thoughtpins.jobs import enqueue_ingestion_job, recover_pending_jobs
-from thoughtpins.library import flush_document_indexing
+from thoughtpins.jobs import enqueue_ingestion_job
 from thoughtpins.logging_policy import apply_logging_policy
 from thoughtpins.memory.context_package import build_memory_context_package
 from thoughtpins.oauth import verify_oauth_id_token
 from thoughtpins.rate_limit import RateLimitBackendUnavailable, check_rate_limit
-from thoughtpins.startup_recovery import recover_orphaned_entries as _recover_orphaned_entries
-from thoughtpins.store import get_session, init_db
+from thoughtpins.store import get_session
 from thoughtpins.tenancy import tenant_context
 from thoughtpins.usage import UsageBudgetExceeded
 
@@ -82,27 +80,6 @@ def _record_metric(method: str, path: str, status_code: int, duration_seconds: f
     _REQUEST_DURATIONS.append(duration_seconds)
     if len(_REQUEST_DURATIONS) > 1000:
         del _REQUEST_DURATIONS[:-1000]
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    init_db()
-    if config.RUN_STARTUP_RECOVERY:
-        _recover_orphaned_entries()
-    if config.PROCESS_ENTRIES_ASYNC:
-        recover_pending_jobs()
-    logger.info("Thought Pins API started")
-    try:
-        yield
-    finally:
-        if not flush_document_indexing(timeout_seconds=config.DOCUMENT_INDEX_DRAIN_TIMEOUT_SECONDS):
-            logger.warning("Document vector indexing queue did not drain before shutdown")
-        try:
-            from thoughtpins.memory.vector_store import close_vector_store
-
-            close_vector_store()
-        except Exception as exc:
-            logger.debug("Vector store close skipped during shutdown: {}", exc)
 
 
 apply_logging_policy()  # before any provider client exists; see logging_policy

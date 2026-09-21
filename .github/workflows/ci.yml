@@ -93,6 +93,9 @@ jobs:
           ruff format --check .
           ruff check .
           mypy src scripts tests
+          # Expand strict typing at the request-runtime boundary without hiding
+          # legacy ORM typing debt behind a claim that the whole project is strict.
+          mypy --strict --follow-imports normal src/thoughtpins/api_runtime.py src/thoughtpins/api_request_auth.py src/thoughtpins/api_idempotency_http.py
 
       - name: Security and publication hygiene
         run: |

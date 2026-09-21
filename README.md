@@ -112,7 +112,8 @@ a static SVG, with the channel and ranking contracts described in the text below
 The channel groups show complementary mechanisms, not parallel execution or
 independent votes. The current collectors run sequentially; `entity_filter`
 runs only when supplied. Each collector has an exception boundary, and losing
-a channel can reduce recall. Vector hits are checked against scoped SQL
+an external provider can reduce recall. SQL failures stop retrieval rather than
+appearing as an empty memory search. Vector hits are checked against scoped SQL
 records before admission. The lexical channels use the project's token/phrase
 scoring; BM25 is a separate evaluation baseline.
 
