@@ -32,6 +32,7 @@ def test_public_export_check_passes_current_tree() -> None:
 
 def test_public_export_ignores_generated_local_state(tmp_path: Path) -> None:
     mod = _load_script("check_public_export")
+    (tmp_path / ".git").write_text("gitdir: /private/workspace/.git/worktrees/fixture\n", encoding="utf-8")
     for dirname in ["pytest-basetemp", "pytest-cache-files-example", "tmp-test-write-check", "write_probe_abc123"]:
         path = tmp_path / dirname
         path.mkdir()
@@ -47,13 +48,21 @@ def test_public_export_ignores_generated_local_state(tmp_path: Path) -> None:
 
     files = list(mod._candidate_files(tmp_path))
     assert files == []
+    assert mod.build_public_export_manifest(tmp_path)["files"] == []
 
 
 def test_forbidden_scan_ignores_generated_local_state_and_catches_provider_keys(tmp_path: Path) -> None:
     mod = _load_script("forbidden_scan")
+    (tmp_path / ".git").write_text("gitdir: /private/workspace/.git/worktrees/fixture\n", encoding="utf-8")
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "safe.py").write_text('NAME = "Thought Pins"\n', encoding="utf-8")
-    for dirname in ["pytest-basetemp", "pytest-cache-files-example", "tmp-test-write-check", "write_probe_abc123"]:
+    for dirname in [
+        "pytest-basetemp",
+        "pytest-cache-files-example",
+        "tmp-test-write-check",
+        "write_probe_abc123",
+        "test-results",
+    ]:
         path = tmp_path / dirname
         path.mkdir()
         (path / "local.txt").write_text("jina_" + "thislocalvalueisnotpartofthepublictree", encoding="utf-8")

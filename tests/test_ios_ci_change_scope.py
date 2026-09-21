@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -26,23 +27,36 @@ def commit(repo: Path, name: str) -> str:
 
 
 @pytest.fixture
-def repo(tmp_path: Path) -> Path:
-    git(tmp_path, "init", "-qb", "main")
-    git(tmp_path, "config", "user.name", "Fixture")
-    git(tmp_path, "config", "user.email", "fixture@example.com")
-    commit(tmp_path, "README.md")
-    return tmp_path
+def repo(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    # A full parametrized node ID exceeds Git/Win32's working-directory limit.
+    directory = tmp_path_factory.mktemp("git")
+    git(directory, "init", "-qb", "main")
+    git(directory, "config", "user.name", "Fixture")
+    git(directory, "config", "user.email", "fixture@example.com")
+    commit(directory, "README.md")
+    return directory
 
 
-def touched(repo: Path, base: str, tmp_path: Path) -> bool:
+def touched(repo: Path, base: str) -> bool:
     workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
     step = next(s for s in workflow["jobs"]["ios-changes"]["steps"] if s.get("id") == "check")
-    output = tmp_path / "ci-output"
+    output = repo / "ci-output"
+    bash = shutil.which("bash") or "bash"
+    if os.name == "nt":
+        # Use the Bash shipped with Git instead of the Windows WSL launcher.
+        git_bash = Path(shutil.which("git") or "git").resolve().parent.parent / "bin" / "bash.exe"
+        if git_bash.is_file():
+            bash = str(git_bash)
     subprocess.run(
-        ["bash", "-euo", "pipefail", "-c", step["run"]],
+        [bash, "-euo", "pipefail", "-c", step["run"]],
         cwd=repo,
         check=True,
-        env={**os.environ, "THOUGHTPINS_PUSH_BASE": base, "GITHUB_OUTPUT": str(output), "RUNNER_TEMP": str(tmp_path)},
+        env={
+            **os.environ,
+            "THOUGHTPINS_PUSH_BASE": base,
+            "GITHUB_OUTPUT": output.as_posix(),
+            "RUNNER_TEMP": repo.as_posix(),
+        },
     )
     return output.read_text().strip() == "touched=true"
 
@@ -55,14 +69,14 @@ def touched(repo: Path, base: str, tmp_path: Path) -> bool:
         ".github/workflows/ios-native-review.yml",
     ],
 )
-def test_whole_push_includes_changes_before_last_commit(repo: Path, tmp_path: Path, path: str) -> None:
+def test_whole_push_includes_changes_before_last_commit(repo: Path, path: str) -> None:
     base = git(repo, "rev-parse", "HEAD")
     commit(repo, path)
     commit(repo, "docs/final-note.md")
-    assert touched(repo, base, tmp_path)
+    assert touched(repo, base)
 
 
-def test_merge_promotion_compares_previous_main_not_first_parent(repo: Path, tmp_path: Path) -> None:
+def test_merge_promotion_compares_previous_main_not_first_parent(repo: Path) -> None:
     git(repo, "checkout", "-qb", "feature")
     commit(repo, "mobile/ios/Feature.swift")
     git(repo, "checkout", "-q", "main")
@@ -71,13 +85,13 @@ def test_merge_promotion_compares_previous_main_not_first_parent(repo: Path, tmp
     git(repo, "checkout", "-q", "feature")
     git(repo, "merge", "--no-ff", "-qm", "promote", "main")
     assert not git(repo, "diff", "--name-only", "HEAD~1", "HEAD")
-    assert touched(repo, previous_main, tmp_path)
+    assert touched(repo, previous_main)
 
 
-def test_docs_only_push_does_not_schedule_native(repo: Path, tmp_path: Path) -> None:
+def test_docs_only_push_does_not_schedule_native(repo: Path) -> None:
     base = git(repo, "rev-parse", "HEAD")
     commit(repo, "docs/note.md")
-    assert not touched(repo, base, tmp_path)
+    assert not touched(repo, base)
 
 
 def test_archive_requires_both_isolated_device_reviews() -> None:
@@ -91,5 +105,5 @@ def test_archive_requires_both_isolated_device_reviews() -> None:
     assert archive["if"] == "always() && needs.ios-native.result == 'success'"
 
 
-def test_new_branch_without_previous_commit_requires_native(repo: Path, tmp_path: Path) -> None:
-    assert touched(repo, "0" * 40, tmp_path)
+def test_new_branch_without_previous_commit_requires_native(repo: Path) -> None:
+    assert touched(repo, "0" * 40)

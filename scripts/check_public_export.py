@@ -83,6 +83,9 @@ EXCLUDED_DIRS = {
 EXCLUDED_DIR_PREFIXES = ("pytest-cache-files-", "tmp-test-write-check", "write_probe_")
 EXCLUDED_DIR_SUFFIXES = (".egg-info",)
 EXCLUDED_FILES = {
+    # In a linked worktree Git stores a private absolute-path pointer as a file.
+    # Exclude that metadata from both the checked tree and the export archive.
+    ".git",
     ".env",
     ".coverage",
     "local.properties",

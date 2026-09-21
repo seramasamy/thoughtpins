@@ -37,6 +37,7 @@ EXCLUDED_DIRS = {
     "logs",
     "vault",
     "reports",
+    "test-results",
     "backups",
     "dist",
     "build",
@@ -44,7 +45,8 @@ EXCLUDED_DIRS = {
 }
 EXCLUDED_DIR_PREFIXES = ("pytest-cache-files-", "tmp-test-write-check", "write_probe_")
 EXCLUDED_DIR_SUFFIXES = (".egg-info",)
-EXCLUDED_FILES = {".env"}
+# Git worktrees use a file containing a private path instead of a .git directory.
+EXCLUDED_FILES = {".env", ".git"}
 EXCLUDED_SUFFIXES = {".pyc", ".sqlite3", ".zip", ".png", ".jpg", ".jpeg", ".gif", ".pdf"}
 FORBIDDEN_TERMS = [
     _term("dark", "boy"),

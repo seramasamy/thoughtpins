@@ -29,4 +29,3 @@ export async function installVoiceFixture(page: Page, delayedPermission = false)
     Object.defineProperty(window, "MediaRecorder", { configurable: true, value: Recorder });
   }, { delayedPermission });
 }
-
