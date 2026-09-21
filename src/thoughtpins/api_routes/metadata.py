@@ -194,16 +194,17 @@ def create_metadata_router(
         return str(int(value)) if isinstance(value, (int, float)) else "-1"
 
     @router.get("/v1/metrics", response_class=PlainTextResponse)
-    async def metrics(user_id: str = Depends(current_user_dependency)) -> str:
+    def metrics(user_id: str = Depends(current_user_dependency)) -> str:
         del user_id
-        total = sum(request_counts.values())
+        counts = request_counts.copy()
+        total = sum(counts.values())
         durations = sorted(request_durations)
         p95 = durations[int(len(durations) * 0.95) - 1] if durations else 0.0
         lines = [
             "# HELP thoughtpins_requests_total Total HTTP requests by method, path, and status.",
             "# TYPE thoughtpins_requests_total counter",
         ]
-        for (method, path, status_code), count in sorted(request_counts.items()):
+        for (method, path, status_code), count in sorted(counts.items()):
             safe_path = path.replace("\\", "\\\\").replace('"', '\\"')
             lines.append(
                 f'thoughtpins_requests_total{{method="{method}",path="{safe_path}",status="{status_code}"}} {count}'
@@ -242,7 +243,7 @@ def create_metadata_router(
         return "\n".join(lines) + "\n"
 
     @router.get("/v1/health/deep")
-    async def deep_health(user_id: str = Depends(current_user_dependency)) -> dict[str, Any]:
+    def deep_health(user_id: str = Depends(current_user_dependency)) -> dict[str, Any]:
         checks = build_deep_health_checks(user_id)
         return {
             "status": deep_health_status(checks),

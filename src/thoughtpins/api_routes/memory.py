@@ -39,7 +39,7 @@ def create_memory_router(
     router = APIRouter()
 
     @router.get("/v1/memory/audit")
-    async def memory_audit(user_id: str = Depends(current_user_dependency)) -> dict[str, Any]:
+    def memory_audit(user_id: str = Depends(current_user_dependency)) -> dict[str, Any]:
         session = get_session()
         try:
             return audit_memory_system(session, user_id=user_id).as_dict()
@@ -48,7 +48,7 @@ def create_memory_router(
 
     @router.get("/status", response_model=StatsResponse)
     @router.get("/v1/status", response_model=StatsResponse)
-    async def status(user_id: str = Depends(current_user_dependency)) -> StatsResponse:
+    def status(user_id: str = Depends(current_user_dependency)) -> StatsResponse:
         session = get_session()
         try:
             stats = MemoryStore(session, user_id=user_id).get_stats()
@@ -63,7 +63,7 @@ def create_memory_router(
             session.close()
 
     @router.get("/v1/memory/cards", response_model=MemoryCardsResponse)
-    async def memory_cards(
+    def memory_cards(
         section: str = Query("people", pattern="^(people|places|projects|organizations|concepts|events|things|all)$"),
         q: str = Query(
             "",
@@ -127,7 +127,7 @@ def create_memory_router(
             session.close()
 
     @router.get("/v1/memory/cards/{entity_id}", response_model=MemoryCardDetailResponse)
-    async def get_memory_card(
+    def get_memory_card(
         entity_id: str,
         user_id: str = Depends(current_user_dependency),
     ) -> MemoryCardDetailResponse:
@@ -153,7 +153,7 @@ def create_memory_router(
 
     @router.get("/person/{name}")
     @router.get("/v1/people/{name}")
-    async def person(
+    def person(
         name: str,
         user_id: str = Depends(current_user_dependency),
     ) -> dict[str, Any]:
@@ -206,7 +206,7 @@ def create_memory_router(
 
     @router.get("/place/{name}")
     @router.get("/v1/places/{name}")
-    async def place(name: str, user_id: str = Depends(current_user_dependency)) -> dict[str, Any]:
+    def place(name: str, user_id: str = Depends(current_user_dependency)) -> dict[str, Any]:
         name = name.strip()
         if not name:
             raise HTTPException(status_code=400, detail="Name cannot be empty")
@@ -236,7 +236,7 @@ def create_memory_router(
 
     @router.get("/personality")
     @router.get("/v1/personality")
-    async def get_personality(user_id: str = Depends(current_user_dependency)) -> dict[str, Any]:
+    def get_personality(user_id: str = Depends(current_user_dependency)) -> dict[str, Any]:
         profile = get_active_profile()
         return {
             "user_id": user_id,
@@ -253,7 +253,7 @@ def create_memory_router(
 
     @router.get("/context")
     @router.get("/v1/context")
-    async def get_context(user_id: str = Depends(current_user_dependency)) -> dict[str, Any]:
+    def get_context(user_id: str = Depends(current_user_dependency)) -> dict[str, Any]:
         session = get_session()
         try:
             navigation = build_navigational_map(session, user_id=user_id)

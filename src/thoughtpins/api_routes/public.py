@@ -88,7 +88,7 @@ def create_public_router() -> APIRouter:
         return decorate
 
     @page_route("/", include_in_schema=True)
-    async def root():
+    def root():
         return site_page_or_fallback(
             "index.html",
             "Thought Pins",
@@ -99,7 +99,7 @@ def create_public_router() -> APIRouter:
         )
 
     @public_page("/privacy")
-    async def privacy_page():
+    def privacy_page():
         return site_page_or_fallback(
             "privacy.html",
             "Privacy Policy",
@@ -113,7 +113,7 @@ def create_public_router() -> APIRouter:
         )
 
     @public_page("/terms")
-    async def terms_page():
+    def terms_page():
         return site_page_or_fallback(
             "terms.html",
             "Terms",
@@ -125,7 +125,7 @@ def create_public_router() -> APIRouter:
         )
 
     @public_page("/support")
-    async def support_page():
+    def support_page():
         return site_page_or_fallback(
             "support.html",
             "Support",
@@ -136,7 +136,7 @@ def create_public_router() -> APIRouter:
         )
 
     @public_page("/account/delete", "/delete-account")
-    async def account_delete_page():
+    def account_delete_page():
         return site_page_or_fallback(
             Path("account") / "delete" / "index.html",
             "Account Deletion",
@@ -148,7 +148,7 @@ def create_public_router() -> APIRouter:
         )
 
     @public_page("/ai-disclosure")
-    async def ai_disclosure_page():
+    def ai_disclosure_page():
         return site_page_or_fallback(
             "ai-disclosure.html",
             "AI Disclosure",
@@ -159,7 +159,7 @@ def create_public_router() -> APIRouter:
         )
 
     @public_page("/security")
-    async def security_page():
+    def security_page():
         return site_page_or_fallback(
             "security.html",
             "Security",
@@ -170,7 +170,7 @@ def create_public_router() -> APIRouter:
         )
 
     @page_route("/classic", "/classic/")
-    async def classic_home():
+    def classic_home():
         """The alternate landing page linked from the homepage header and footer.
 
         Needs its own route: unlisted paths fall through to the authenticated
@@ -186,28 +186,28 @@ def create_public_router() -> APIRouter:
         )
 
     @page_route("/robots.txt")
-    async def robots_txt():
+    def robots_txt():
         file_path = safe_site_file("robots.txt")
         if file_path is None:
             raise HTTPException(status_code=404, detail="robots.txt not found")
         return _file_response(file_path, cache_control="public, max-age=300")
 
     @page_route("/sitemap.xml")
-    async def sitemap_xml():
+    def sitemap_xml():
         file_path = safe_site_file("sitemap.xml")
         if file_path is None:
             raise HTTPException(status_code=404, detail="sitemap.xml not found")
         return _file_response(file_path, cache_control="public, max-age=300")
 
     @page_route("/assets/{path:path}")
-    async def site_asset(path: str):
+    def site_asset(path: str):
         file_path = safe_site_file(Path("assets") / path)
         if file_path is None:
             raise HTTPException(status_code=404, detail="Public asset not found")
         return _file_response(file_path, cache_control="public, max-age=86400")
 
     @page_route("/app", "/app/", "/app/{path:path}")
-    async def web_app(path: str = ""):
+    def web_app(path: str = ""):
         file_path = safe_frontend_file(path)
         if file_path is None:
             asset_like = "." in Path(path).name

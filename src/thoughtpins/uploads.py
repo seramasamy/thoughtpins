@@ -145,7 +145,7 @@ def ingest_upload(
             filename=clean_filename,
             media_kind=media_kind,
             destination=resolved_destination,
-            extraction_status=extraction.error or "processed",
+            extraction_status=_extraction_status(extraction),
             extracted_chars=len(text),
             attachment_saved=retention.retained if media_kind == "audio" else attachment is not None,
             attachment_ref=attachment_ref,
@@ -197,7 +197,7 @@ def ingest_upload(
         filename=clean_filename,
         media_kind=media_kind,
         destination=resolved_destination,
-        extraction_status=extraction.error or "processed",
+        extraction_status=_extraction_status(extraction),
         extracted_chars=len(text),
         attachment_saved=retention.retained if media_kind == "audio" else attachment is not None,
         attachment_ref=attachment_ref,
@@ -232,6 +232,10 @@ def detect_media_kind(filename: str, media_type: str = "") -> str:
     if lowered_type.startswith("text/") or suffix in TEXT_SUFFIXES:
         return "document"
     return "document"
+
+
+def _extraction_status(extraction: MediaExtraction) -> str:
+    return extraction.error or ("partial" if extraction.metadata.get("partial") else "processed")
 
 
 def resolve_destination(destination: Destination, media_kind: str) -> str:
@@ -276,6 +280,8 @@ def _attachment_ref(path: Path) -> str:
 
 
 def _human_extraction_error(extraction: MediaExtraction, media_kind: str) -> str:
+    if extraction.error == "pdf_needs_ocr":
+        return "This PDF has no selectable text. Upload clear images of its pages for OCR, or paste the text."
     if media_kind == "audio":
         return "I could not transcribe this audio yet. Type or paste the transcript to save it."
     if media_kind == "image":

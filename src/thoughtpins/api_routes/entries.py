@@ -205,7 +205,7 @@ def create_entries_router(
             }
         },
     )
-    async def ingest(
+    def ingest(
         req: IngestRequest,
         response: Response,
         user_id: str = Depends(current_user_dependency),
@@ -306,7 +306,7 @@ def create_entries_router(
             }
         },
     )
-    async def ingest_async(req: IngestRequest, user_id: str = Depends(current_user_dependency)) -> JobResponse:
+    def ingest_async(req: IngestRequest, user_id: str = Depends(current_user_dependency)) -> JobResponse:
         session = get_session()
         try:
             dedup_key = f"api:{req.message_id}" if req.message_id else None
@@ -337,7 +337,7 @@ def create_entries_router(
             session.close()
 
     @router.get("/v1/jobs/{job_id}", response_model=JobResponse)
-    async def job_status(job_id: str, user_id: str = Depends(current_user_dependency)) -> JobResponse:
+    def job_status(job_id: str, user_id: str = Depends(current_user_dependency)) -> JobResponse:
         session = get_session()
         try:
             job = get_job(session, user_id=user_id, job_id=job_id)
@@ -348,7 +348,7 @@ def create_entries_router(
             session.close()
 
     @router.get("/v1/jobs", response_model=JobsPageResponse)
-    async def list_jobs(
+    def list_jobs(
         page: int = Query(1, ge=1),
         limit: int = Query(50, ge=1, le=200),
         status: str | None = Query(
@@ -400,7 +400,7 @@ def create_entries_router(
             session.close()
 
     @router.post("/v1/jobs/{job_id}/retry", response_model=JobResponse, status_code=202)
-    async def retry_job(job_id: str, user_id: str = Depends(current_user_dependency)) -> JobResponse:
+    def retry_job(job_id: str, user_id: str = Depends(current_user_dependency)) -> JobResponse:
         session = get_session()
         try:
             job = get_job(session, user_id=user_id, job_id=job_id)
@@ -429,7 +429,7 @@ def create_entries_router(
             session.close()
 
     @router.post("/v1/jobs/{job_id}/cancel", response_model=JobResponse)
-    async def cancel_job(job_id: str, user_id: str = Depends(current_user_dependency)) -> JobResponse:
+    def cancel_job(job_id: str, user_id: str = Depends(current_user_dependency)) -> JobResponse:
         session = get_session()
         try:
             job = get_job(session, user_id=user_id, job_id=job_id)
@@ -446,7 +446,7 @@ def create_entries_router(
             session.close()
 
     @router.get("/v1/entries", response_model=EntriesPageResponse)
-    async def list_entries(
+    def list_entries(
         page: int = Query(1, ge=1),
         limit: int = Query(50, ge=1, le=200),
         include_private: bool = Query(False),
@@ -491,7 +491,7 @@ def create_entries_router(
             session.close()
 
     @router.get("/v1/entries/{entry_id}/status", response_model=EntryStatusResponse)
-    async def entry_status(entry_id: str, user_id: str = Depends(current_user_dependency)) -> EntryStatusResponse:
+    def entry_status(entry_id: str, user_id: str = Depends(current_user_dependency)) -> EntryStatusResponse:
         session = get_session()
         try:
             entry = (
@@ -529,7 +529,7 @@ def create_entries_router(
             session.close()
 
     @router.get("/v1/entries/{entry_id}", response_model=EntryResponse)
-    async def get_entry(entry_id: str, user_id: str = Depends(current_user_dependency)) -> EntryResponse:
+    def get_entry(entry_id: str, user_id: str = Depends(current_user_dependency)) -> EntryResponse:
         session = get_session()
         try:
             entry = (
@@ -547,7 +547,7 @@ def create_entries_router(
             session.close()
 
     @router.patch("/v1/entries/{entry_id}/importance", response_model=EntryResponse)
-    async def update_entry_importance(
+    def update_entry_importance(
         entry_id: str,
         req: EntryImportanceRequest,
         user_id: str = Depends(current_user_dependency),
@@ -577,7 +577,7 @@ def create_entries_router(
             session.close()
 
     @router.delete("/v1/entries/{entry_id}")
-    async def delete_entry(entry_id: str, user_id: str = Depends(current_user_dependency)) -> dict[str, str]:
+    def delete_entry(entry_id: str, user_id: str = Depends(current_user_dependency)) -> dict[str, str]:
         session = get_session()
         try:
             entry = (

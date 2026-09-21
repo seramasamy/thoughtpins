@@ -9,6 +9,12 @@ as thin adapters.
 - `api.py`: FastAPI app wiring, middleware, auth dependencies, and legacy
   route adapters that have not yet been split. Keep business logic out of this
   file; route handlers should delegate.
+- `api_request_auth.py` and `api_idempotency_http.py`: blocking authorization
+  and idempotency transactions run in workers. Each session is created, used,
+  and closed within one worker call; authorization returns a plain identity.
+  Routes that call synchronous SQLAlchemy or providers use normal `def` so
+  FastAPI offloads the entire handler. Tenant context propagates to workers.
+  Nonblocking metadata and async response/body handling stay on the event loop.
 - `api_routes/`: split FastAPI routers. `metadata.py` owns health, client
   config, error catalog, metrics, and deep health routes. `public.py` owns
   public legal pages and backend-served web app files. `auth.py` owns
@@ -112,6 +118,9 @@ as thin adapters.
 - `library.py`: document/source persistence and conversion into memories.
   `library_text.py` owns pure cleaning, chunking, title, summary, and raw-entry
   rendering primitives so transport and persistence code do not duplicate them.
+- `library_catalog.py`: tenant-scoped, stable date/ID ordering and literal
+  title/author/domain search with offset pagination. It does not alter retrieval
+  ranking or claim full-text search.
 - `article_fetch.py`: URL validation, local/Jina/Firecrawl/Apify provider
   fallbacks, fetch diagnostics, and provider compliance behavior.
 - `reading_analysis.py`: deterministic publisher, topic, concept, and word-count

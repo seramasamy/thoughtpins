@@ -18,7 +18,7 @@ def create_admin_router(*, current_user_dependency: Callable) -> APIRouter:
     router = APIRouter()
 
     @router.get("/v1/admin/usage")
-    async def admin_usage(request: Request, user_id: str = Depends(current_user_dependency)) -> dict[str, Any]:
+    def admin_usage(request: Request, user_id: str = Depends(current_user_dependency)) -> dict[str, Any]:
         if not getattr(request.state, "user_is_admin", False):
             raise HTTPException(status_code=403, detail="Admin access required")
         session = get_session()
@@ -28,9 +28,7 @@ def create_admin_router(*, current_user_dependency: Callable) -> APIRouter:
             session.close()
 
     @router.get("/v1/admin/invite-requests")
-    async def admin_invite_requests(
-        request: Request, user_id: str = Depends(current_user_dependency)
-    ) -> dict[str, Any]:
+    def admin_invite_requests(request: Request, user_id: str = Depends(current_user_dependency)) -> dict[str, Any]:
         if not getattr(request.state, "user_is_admin", False):
             raise HTTPException(status_code=403, detail="Admin access required")
         session = get_session()

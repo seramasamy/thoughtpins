@@ -34,7 +34,7 @@ def create_voice_router(*, current_user_dependency: Callable[..., str]) -> APIRo
             raise HTTPException(status_code=404, detail="Personal voice archive is unavailable")
 
     @router.get("/v1/voice-archive", response_model=VoiceArchiveStatusResponse)
-    async def get_voice_archive(user_id: str = Depends(current_user_dependency)) -> VoiceArchiveStatusResponse:
+    def get_voice_archive(user_id: str = Depends(current_user_dependency)) -> VoiceArchiveStatusResponse:
         require_voice_archive()
         session = get_session()
         try:
@@ -43,7 +43,7 @@ def create_voice_router(*, current_user_dependency: Callable[..., str]) -> APIRo
             session.close()
 
     @router.post("/v1/voice-archive/consent", response_model=VoiceArchiveStatusResponse)
-    async def consent_to_voice_archive(
+    def consent_to_voice_archive(
         payload: VoiceArchiveConsentRequest,
         user_id: str = Depends(current_user_dependency),
     ) -> VoiceArchiveStatusResponse:
@@ -78,7 +78,7 @@ def create_voice_router(*, current_user_dependency: Callable[..., str]) -> APIRo
             session.close()
 
     @router.delete("/v1/voice-archive/consent", response_model=VoiceArchiveStatusResponse)
-    async def withdraw_voice_archive_consent(
+    def withdraw_voice_archive_consent(
         user_id: str = Depends(current_user_dependency),
     ) -> VoiceArchiveStatusResponse:
         require_voice_archive()
@@ -95,7 +95,7 @@ def create_voice_router(*, current_user_dependency: Callable[..., str]) -> APIRo
             session.close()
 
     @router.delete("/v1/voice-archive", response_model=VoiceArchiveDeleteResponse)
-    async def delete_retained_voice(
+    def delete_retained_voice(
         payload: VoiceArchiveDeleteRequest,
         user_id: str = Depends(current_user_dependency),
     ) -> VoiceArchiveDeleteResponse:

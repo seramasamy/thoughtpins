@@ -42,7 +42,7 @@ def create_chat_router(
 
     @router.get("/ask", response_model=AskResponse)
     @router.get("/v1/ask", response_model=AskResponse)
-    async def ask(
+    def ask(
         q: str = Query(..., min_length=1, max_length=2_000, description="Question about the journal"),
         user_id: str = Depends(current_user_dependency),
     ) -> AskResponse:
@@ -67,7 +67,7 @@ def create_chat_router(
             session.close()
 
     @router.post("/v1/chat", response_model=ChatResponse)
-    async def chat(
+    def chat(
         payload: ChatRequest,
         user_id: str = Depends(current_user_dependency),
     ) -> ChatResponse:
@@ -133,7 +133,7 @@ def create_chat_router(
             session.close()
 
     @router.get("/v1/chat/conversations", response_model=ChatConversationsPageResponse)
-    async def get_conversations(
+    def get_conversations(
         page: int = Query(1, ge=1),
         limit: int = Query(50, ge=1, le=100),
         surface: str | None = Query(None, max_length=32, pattern=r"^[A-Za-z0-9_-]+$"),
@@ -169,7 +169,7 @@ def create_chat_router(
             session.close()
 
     @router.get("/v1/chat/conversations/{conversation_id}/messages", response_model=ChatMessagesPageResponse)
-    async def get_conversation_messages(
+    def get_conversation_messages(
         conversation_id: str,
         page: int = Query(1, ge=1),
         limit: int = Query(100, ge=1, le=200),

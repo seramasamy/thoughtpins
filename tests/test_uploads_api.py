@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import base64
 
+import pytest
+
 from thoughtpins.media import extraction as media_extraction
 
 
@@ -55,7 +57,8 @@ def test_upload_text_file_to_library_creates_source(isolated_db, monkeypatch, tm
         session.close()
 
 
-def test_upload_pdf_uses_shared_extraction_contract(isolated_db, monkeypatch, tmp_path):
+@pytest.mark.parametrize("partial", [False, True])
+def test_upload_pdf_uses_shared_extraction_contract(isolated_db, monkeypatch, tmp_path, partial):
     from fastapi.testclient import TestClient
 
     from thoughtpins import library, uploads
@@ -71,7 +74,7 @@ def test_upload_pdf_uses_shared_extraction_contract(isolated_db, monkeypatch, tm
         lambda content, suffix: MediaExtraction(
             text="PDF upload text mentions the blue margin ritual and document recall.",
             kind="document",
-            metadata={"suffix": suffix, "engine": "pypdf"},
+            metadata={"suffix": suffix, "engine": "pypdf", "partial": partial},
         ),
     )
 
@@ -91,6 +94,7 @@ def test_upload_pdf_uses_shared_extraction_contract(isolated_db, monkeypatch, tm
     assert body["media_kind"] == "document"
     assert body["route_type"] == "library_upload"
     assert body["metadata"]["extraction"]["engine"] == "pypdf"
+    assert body["extraction_status"] == ("partial" if partial else "processed")
     assert body["document_id"]
 
 

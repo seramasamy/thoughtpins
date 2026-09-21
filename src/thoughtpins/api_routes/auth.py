@@ -247,7 +247,7 @@ def create_auth_router(
     apple_code_exchange = exchange_apple_code_fn or exchange_apple_authorization_code
 
     @router.post("/v1/auth/login", response_model=TokenResponse)
-    async def login(req: LoginRequest, request: Request) -> TokenResponse:
+    def login(req: LoginRequest, request: Request) -> TokenResponse:
         lookup = req.lookup()
         if not lookup:
             raise HTTPException(status_code=422, detail="Provide email, phone, or identifier")
@@ -280,7 +280,7 @@ def create_auth_router(
             session.close()
 
     @router.post("/v1/auth/oauth", response_model=TokenResponse)
-    async def oauth_login(req: OAuthRequest, request: Request) -> TokenResponse:
+    def oauth_login(req: OAuthRequest, request: Request) -> TokenResponse:
         session = get_session()
         try:
             try:
@@ -366,7 +366,7 @@ def create_auth_router(
             session.close()
 
     @router.post("/v1/auth/email/verify")
-    async def verify_email(req: EmailVerifyRequest) -> dict[str, str]:
+    def verify_email(req: EmailVerifyRequest) -> dict[str, str]:
         session = get_session()
         try:
             user = get_user_by_email(req.email, session=session)
@@ -379,7 +379,7 @@ def create_auth_router(
             session.close()
 
     @router.post("/v1/auth/magic-link/request")
-    async def request_magic_link(req: MagicLinkRequest, request: Request) -> dict[str, str]:
+    def request_magic_link(req: MagicLinkRequest, request: Request) -> dict[str, str]:
         if not config.MAGIC_LINK_ENABLED:
             raise HTTPException(status_code=404, detail="Passwordless sign-in is not enabled")
 
@@ -454,7 +454,7 @@ def create_auth_router(
         return TokenResponse(**tokens)
 
     @router.post("/v1/auth/magic-link/consume", response_model=TokenResponse)
-    async def consume_magic_link_route(req: MagicLinkConsumeRequest, request: Request) -> TokenResponse:
+    def consume_magic_link_route(req: MagicLinkConsumeRequest, request: Request) -> TokenResponse:
         if not config.MAGIC_LINK_ENABLED:
             raise HTTPException(status_code=404, detail="Passwordless sign-in is not enabled")
         session = get_session()
@@ -468,7 +468,7 @@ def create_auth_router(
             session.close()
 
     @router.post("/v1/auth/magic-code/consume", response_model=TokenResponse)
-    async def consume_magic_code_route(req: MagicCodeConsumeRequest, request: Request) -> TokenResponse:
+    def consume_magic_code_route(req: MagicCodeConsumeRequest, request: Request) -> TokenResponse:
         if not config.MAGIC_LINK_ENABLED:
             raise HTTPException(status_code=404, detail="Passwordless sign-in is not enabled")
         session = get_session()
@@ -485,7 +485,7 @@ def create_auth_router(
             session.close()
 
     @router.post("/v1/auth/refresh", response_model=TokenResponse)
-    async def refresh(req: RefreshRequest, request: Request) -> TokenResponse:
+    def refresh(req: RefreshRequest, request: Request) -> TokenResponse:
         session = get_session()
         try:
             tokens = refresh_token_pair(
@@ -501,7 +501,7 @@ def create_auth_router(
             session.close()
 
     @router.post("/v1/auth/logout")
-    async def logout(req: LogoutRequest) -> dict[str, str]:
+    def logout(req: LogoutRequest) -> dict[str, str]:
         session = get_session()
         try:
             revoke_refresh_token(session, req.refresh_token)
@@ -511,7 +511,7 @@ def create_auth_router(
 
     @router.post("/register", response_model=RegisterResponse)
     @router.post("/v1/auth/register", response_model=RegisterResponse)
-    async def register_user(req: RegisterRequest, request: Request) -> RegisterResponse:
+    def register_user(req: RegisterRequest, request: Request) -> RegisterResponse:
         if config.SYSTEM_LOCKED:
             raise HTTPException(
                 status_code=403,

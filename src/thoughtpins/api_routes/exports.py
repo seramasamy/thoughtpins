@@ -25,7 +25,7 @@ def create_exports_router(*, current_user_dependency: Callable[..., str]) -> API
 
     @router.get("/report")
     @router.get("/v1/reports")
-    async def report(
+    def report(
         type: str = Query("weekly", max_length=64, description="daily, weekly, monthly, person, place, or topic"),
         query: str = Query("", max_length=255, description="Name or topic for person/place/topic reports"),
         user_id: str = Depends(current_user_dependency),
@@ -56,7 +56,7 @@ def create_exports_router(*, current_user_dependency: Callable[..., str]) -> API
 
     @router.get("/graph")
     @router.get("/v1/graph")
-    async def graph(user_id: str = Depends(current_user_dependency)) -> dict[str, Any]:
+    def graph(user_id: str = Depends(current_user_dependency)) -> dict[str, Any]:
         try:
             results = export_all_graphs(user_id=user_id)
             return {
@@ -69,7 +69,7 @@ def create_exports_router(*, current_user_dependency: Callable[..., str]) -> API
 
     @router.get("/graph/html")
     @router.get("/v1/graph/html")
-    async def graph_html(user_id: str = Depends(current_user_dependency)) -> HTMLResponse:
+    def graph_html(user_id: str = Depends(current_user_dependency)) -> HTMLResponse:
         html_path = config.vault_path() / "_system" / "graph_exports" / user_id / "memory_graph.html"
         if not html_path.exists():
             results = export_all_graphs(user_id=user_id)
@@ -81,7 +81,7 @@ def create_exports_router(*, current_user_dependency: Callable[..., str]) -> API
     @router.post("/export")
     @router.post("/v1/export/obsidian")
     @router.post("/v1/export/vault")
-    async def export_obsidian(
+    def export_obsidian(
         package_zip: bool = Query(False, alias="zip"),
         obsidian_defaults: bool = Query(False),
         incremental: bool = Query(False, description="Preserve user-edited files in the server-side vault projection."),
@@ -112,7 +112,7 @@ def create_exports_router(*, current_user_dependency: Callable[..., str]) -> API
         response_class=FileResponse,
         summary="Download an Obsidian-compatible vault",
     )
-    async def download_obsidian_vault(
+    def download_obsidian_vault(
         obsidian_defaults: bool = Query(True),
         user_id: str = Depends(current_user_dependency),
     ) -> FileResponse:

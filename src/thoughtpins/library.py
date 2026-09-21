@@ -24,6 +24,7 @@ from thoughtpins.config import config
 from thoughtpins.db import DocumentChunk, DocumentSource, Memory, RawEntry
 from thoughtpins.importance import normalize_user_importance
 from thoughtpins.ingestion.pipeline import _resolve_owner_user_id
+from thoughtpins.library_catalog import list_documents as list_documents
 from thoughtpins.library_enrichment import dispatch_document_enrichment, prepare_document_enrichment
 from thoughtpins.library_text import (
     CHUNK_CHARS as _CHUNK_CHARS,
@@ -359,16 +360,6 @@ def ingest_document_text(
         rights_basis=document.rights_basis,
         paywall_detected=bool(document.paywall_detected),
         user_importance=raw.user_importance,
-    )
-
-
-def list_documents(session: Session, user_id: str, *, limit: int = 20) -> list[DocumentSource]:
-    return (
-        session.query(DocumentSource)
-        .filter(DocumentSource.user_id == user_id)
-        .order_by(DocumentSource.created_at_utc.desc())
-        .limit(limit)
-        .all()
     )
 
 

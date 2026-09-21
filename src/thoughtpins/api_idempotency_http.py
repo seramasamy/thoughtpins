@@ -5,9 +5,10 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 
 from fastapi import Request, Response
+from starlette.concurrency import run_in_threadpool
 
 from thoughtpins.config import config
-from thoughtpins.idempotency import abandon_request, claim_request, complete_request, request_hash
+from thoughtpins.idempotency import IdempotencyClaim, abandon_request, claim_request, complete_request, request_hash
 from thoughtpins.store import get_session
 
 
@@ -22,24 +23,21 @@ async def call_with_idempotency(
         return await call_next(request)
 
     body = await request.body()
-    fingerprint = request_hash(
+    fingerprint = await run_in_threadpool(
+        request_hash,
         method=request.method,
         path=request.url.path,
         query=request.url.query,
         content_type=request.headers.get("Content-Type", ""),
         body=body,
     )
-    session = get_session()
-    try:
-        claim = claim_request(
-            session,
-            user_id=user_id,
-            scope=f"{request.method.upper()}:{request.url.path}",
-            key=raw_key,
-            fingerprint=fingerprint,
-        )
-    finally:
-        session.close()
+    claim = await run_in_threadpool(
+        _claim,
+        user_id=user_id,
+        scope=f"{request.method.upper()}:{request.url.path}",
+        key=raw_key,
+        fingerprint=fingerprint,
+    )
 
     if claim.is_replay:
         return Response(
@@ -52,7 +50,7 @@ async def call_with_idempotency(
     try:
         response = await call_next(request)
     except Exception:
-        _abandon(user_id=user_id, record_id=claim.record_id)
+        await run_in_threadpool(_abandon, user_id=user_id, record_id=claim.record_id)
         raise
 
     response_body = b"".join([chunk async for chunk in response.body_iterator])
@@ -63,20 +61,14 @@ async def call_with_idempotency(
         and len(response_body) <= config.IDEMPOTENCY_MAX_RESPONSE_BYTES
     )
     if claim.record_id:
-        persistence_session = get_session()
-        try:
-            if replayable:
-                complete_request(
-                    persistence_session,
-                    user_id=user_id,
-                    record_id=claim.record_id,
-                    response_status=response.status_code,
-                    response_body=response_body,
-                )
-            else:
-                abandon_request(persistence_session, user_id=user_id, record_id=claim.record_id)
-        finally:
-            persistence_session.close()
+        await run_in_threadpool(
+            _persist,
+            user_id=user_id,
+            record_id=claim.record_id,
+            replayable=replayable,
+            response_status=response.status_code,
+            response_body=response_body,
+        )
 
     headers = {key: value for key, value in response.headers.items() if key.lower() != "content-length"}
     return Response(
@@ -85,6 +77,31 @@ async def call_with_idempotency(
         headers=headers,
         background=response.background,
     )
+
+
+def _claim(*, user_id: str, scope: str, key: str, fingerprint: str) -> IdempotencyClaim:
+    session = get_session()
+    try:
+        return claim_request(session, user_id=user_id, scope=scope, key=key, fingerprint=fingerprint)
+    finally:
+        session.close()
+
+
+def _persist(*, user_id: str, record_id: str, replayable: bool, response_status: int, response_body: bytes) -> None:
+    session = get_session()
+    try:
+        if replayable:
+            complete_request(
+                session,
+                user_id=user_id,
+                record_id=record_id,
+                response_status=response_status,
+                response_body=response_body,
+            )
+        else:
+            abandon_request(session, user_id=user_id, record_id=record_id)
+    finally:
+        session.close()
 
 
 def _abandon(*, user_id: str, record_id: str | None) -> None:

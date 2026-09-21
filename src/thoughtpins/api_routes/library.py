@@ -7,7 +7,6 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from loguru import logger
-from starlette.concurrency import run_in_threadpool
 
 from thoughtpins.api_contracts import (
     LibraryIngestRequest,
@@ -43,14 +42,14 @@ def create_library_router(*, current_user_dependency: Callable[..., str]) -> API
     router = APIRouter()
 
     @router.post("/v1/library", response_model=LibraryIngestResponse)
-    async def create_library_source(
+    def create_library_source(
         payload: LibraryIngestRequest,
         user_id: str = Depends(current_user_dependency),
     ) -> LibraryIngestResponse:
-        return await run_in_threadpool(_create_library_source_sync, payload, user_id)
+        return _create_library_source_sync(payload, user_id)
 
     @router.post("/v1/uploads", response_model=UploadIngestResponse)
-    async def create_upload(
+    def create_upload(
         payload: UploadIngestRequest,
         user_id: str = Depends(current_user_dependency),
     ) -> UploadIngestResponse:
@@ -58,7 +57,7 @@ def create_library_router(*, current_user_dependency: Callable[..., str]) -> API
             content = decode_upload_content(payload.content_base64)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
-        return await run_in_threadpool(_create_upload_sync, payload, user_id, content)
+        return _create_upload_sync(payload, user_id, content)
 
     @router.post(
         "/v1/import/obsidian",
@@ -70,7 +69,7 @@ def create_library_router(*, current_user_dependency: Callable[..., str]) -> API
             "derived index/entity notes are not duplicated."
         ),
     )
-    async def import_obsidian(
+    def import_obsidian(
         payload: VaultImportRequest,
         user_id: str = Depends(current_user_dependency),
     ) -> VaultImportResponse:
@@ -83,7 +82,7 @@ def create_library_router(*, current_user_dependency: Callable[..., str]) -> API
                 status_code=413,
                 detail=f"Vault archive exceeds the {MAX_ARCHIVE_BYTES // (1024 * 1024)} MB compressed limit",
             )
-        return await run_in_threadpool(_import_obsidian_vault_sync, payload, user_id, content)
+        return _import_obsidian_vault_sync(payload, user_id, content)
 
     @router.post(
         "/v1/import/obsidian/uploads",
@@ -91,18 +90,18 @@ def create_library_router(*, current_user_dependency: Callable[..., str]) -> API
         status_code=201,
         summary="Begin a resumable Obsidian vault upload",
     )
-    async def create_obsidian_upload(
+    def create_obsidian_upload(
         payload: VaultUploadCreateRequest,
         user_id: str = Depends(current_user_dependency),
     ) -> VaultImportSessionResponse:
-        return await run_in_threadpool(_create_vault_upload_sync, payload, user_id)
+        return _create_vault_upload_sync(payload, user_id)
 
     @router.put(
         "/v1/import/obsidian/uploads/{transfer_id}/chunks",
         response_model=VaultImportSessionResponse,
         summary="Append an integrity-checked vault upload chunk",
     )
-    async def append_obsidian_upload_chunk(
+    def append_obsidian_upload_chunk(
         transfer_id: str,
         payload: VaultUploadChunkRequest,
         user_id: str = Depends(current_user_dependency),
@@ -111,18 +110,18 @@ def create_library_router(*, current_user_dependency: Callable[..., str]) -> API
             content = decode_upload_content(payload.content_base64)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
-        return await run_in_threadpool(_append_vault_upload_chunk_sync, transfer_id, payload, content, user_id)
+        return _append_vault_upload_chunk_sync(transfer_id, payload, content, user_id)
 
     @router.get(
         "/v1/import/obsidian/uploads/{transfer_id}",
         response_model=VaultImportSessionResponse,
         summary="Read vault upload or import progress",
     )
-    async def get_obsidian_upload(
+    def get_obsidian_upload(
         transfer_id: str,
         user_id: str = Depends(current_user_dependency),
     ) -> VaultImportSessionResponse:
-        return await run_in_threadpool(_get_vault_upload_sync, transfer_id, user_id)
+        return _get_vault_upload_sync(transfer_id, user_id)
 
     @router.post(
         "/v1/import/obsidian/uploads/{transfer_id}/preview",
@@ -130,12 +129,12 @@ def create_library_router(*, current_user_dependency: Callable[..., str]) -> API
         status_code=202,
         summary="Queue a read-only vault import preview",
     )
-    async def preview_obsidian_upload(
+    def preview_obsidian_upload(
         transfer_id: str,
         payload: VaultImportOperationRequest,
         user_id: str = Depends(current_user_dependency),
     ) -> VaultImportSessionResponse:
-        return await run_in_threadpool(_queue_vault_operation_sync, transfer_id, "preview", payload, user_id)
+        return _queue_vault_operation_sync(transfer_id, "preview", payload, user_id)
 
     @router.post(
         "/v1/import/obsidian/uploads/{transfer_id}/apply",
@@ -143,37 +142,41 @@ def create_library_router(*, current_user_dependency: Callable[..., str]) -> API
         status_code=202,
         summary="Apply a reviewed vault import",
     )
-    async def apply_obsidian_upload(
+    def apply_obsidian_upload(
         transfer_id: str,
         payload: VaultImportOperationRequest,
         user_id: str = Depends(current_user_dependency),
     ) -> VaultImportSessionResponse:
-        return await run_in_threadpool(_queue_vault_operation_sync, transfer_id, "apply", payload, user_id)
+        return _queue_vault_operation_sync(transfer_id, "apply", payload, user_id)
 
     @router.post(
         "/v1/import/obsidian/uploads/{transfer_id}/cancel",
         response_model=VaultImportSessionResponse,
         summary="Cancel and remove a staged vault import",
     )
-    async def cancel_obsidian_upload(
+    def cancel_obsidian_upload(
         transfer_id: str,
         user_id: str = Depends(current_user_dependency),
     ) -> VaultImportSessionResponse:
-        return await run_in_threadpool(_cancel_vault_upload_sync, transfer_id, user_id)
+        return _cancel_vault_upload_sync(transfer_id, user_id)
 
     @router.get("/v1/library", response_model=list[LibrarySourceResponse])
-    async def get_library_sources(
+    def get_library_sources(
         limit: int = Query(20, ge=1, le=100),
+        offset: int = Query(0, ge=0),
+        q: str = Query("", max_length=500),
         user_id: str = Depends(current_user_dependency),
     ) -> list[LibrarySourceResponse]:
         session = get_session()
         try:
-            return [source_response(doc) for doc in list_documents(session, user_id, limit=limit)]
+            return [
+                source_response(doc) for doc in list_documents(session, user_id, limit=limit, offset=offset, query=q)
+            ]
         finally:
             session.close()
 
     @router.get("/v1/library/{source_ref}", response_model=LibrarySourceResponse)
-    async def get_library_source(
+    def get_library_source(
         source_ref: str,
         user_id: str = Depends(current_user_dependency),
     ) -> LibrarySourceResponse:

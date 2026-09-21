@@ -23,13 +23,13 @@ def extract_image_text(content: bytes, *, suffix: str = ".jpg") -> MediaExtracti
     if not content:
         return MediaExtraction(kind="image", error="empty_image")
     try:
-        from PIL import Image
+        from PIL import Image, ImageOps
 
         reader = _get_ocr_reader()
         with Image.open(io.BytesIO(content)) as original:
             if original.width * original.height > 25_000_000:
                 return MediaExtraction(kind="image", error="image_too_large")
-            image = original.convert("RGB")
+            image = ImageOps.exif_transpose(original).convert("RGB")
         with tempfile.TemporaryDirectory(prefix="thoughtpins-ocr-") as directory:
             tmp_path = Path(directory) / "image.png"
             image.save(tmp_path, format="PNG")
@@ -67,6 +67,13 @@ def extract_document_text(content: bytes, suffix: str) -> MediaExtraction:
         try:
             reader = PdfReader(io.BytesIO(content))
             pages = [(page.extract_text() or "") for page in reader.pages[:PDF_PAGE_LIMIT]]
+            missing = sum(not page.strip() for page in pages)
+            truncated = len(reader.pages) > PDF_PAGE_LIMIT
+            warnings = []
+            if truncated:
+                warnings.append(f"Only the first {PDF_PAGE_LIMIT} of {len(reader.pages)} pages were read.")
+            if missing:
+                warnings.append(f"{missing} pages had no readable text. Scanned pages need image OCR.")
             return MediaExtraction(
                 text="\n\n".join(pages).strip(),
                 kind="document",
@@ -74,7 +81,12 @@ def extract_document_text(content: bytes, suffix: str) -> MediaExtraction:
                     "suffix": normalized_suffix,
                     "engine": "pypdf",
                     "pages_read": min(len(reader.pages), PDF_PAGE_LIMIT),
+                    "pages_total": len(reader.pages),
+                    "pages_without_text": missing,
+                    "partial": bool(missing or truncated),
+                    "warnings": warnings,
                 },
+                error="pdf_needs_ocr" if not any(page.strip() for page in pages) else None,
             )
         except Exception as exc:
             logger.warning("PDF text extraction failed ({})", type(exc).__name__)

@@ -10,6 +10,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from loguru import logger
+from starlette.concurrency import run_in_threadpool
 
 from thoughtpins.api_contracts import COMMON_ERROR_RESPONSES
 from thoughtpins.api_gateway import (
@@ -27,6 +28,7 @@ from thoughtpins.api_gateway import (
 )
 from thoughtpins.api_idempotency_http import call_with_idempotency
 from thoughtpins.api_openapi import install_openapi_contract
+from thoughtpins.api_request_auth import resolve_identity
 from thoughtpins.api_routes.account import create_account_router
 from thoughtpins.api_routes.admin import create_admin_router
 from thoughtpins.api_routes.auth import create_auth_router
@@ -213,7 +215,9 @@ async def api_auth_middleware(request: Request, call_next):
         if request.method == "OPTIONS" or _is_public_path(request.url.path):
             if is_public_auth_path(request.url.path):
                 key = f"public:{_client_ip(request) or 'unknown'}:{request.url.path}"
-                allowed, retry_after = check_rate_limit(key, limit=_rate_limit_for_path(request.url.path))
+                allowed, retry_after = await run_in_threadpool(
+                    check_rate_limit, key, limit=_rate_limit_for_path(request.url.path)
+                )
                 if not allowed:
                     return await finish(
                         _error_response(
@@ -227,54 +231,47 @@ async def api_auth_middleware(request: Request, call_next):
             return await finish(await call_next(request))
 
         key = _extract_api_key(request)
-        session = get_session()
-        try:
-            user = _resolve_request_user(request, session, key)
-
-            if not user:
-                return await finish(
-                    _error_response(
-                        401,
-                        "unauthorized",
-                        "Missing or invalid API credentials",
-                        request_id,
-                    )
+        identity = await run_in_threadpool(
+            resolve_identity,
+            request,
+            key,
+            session_factory=get_session,
+            resolve_user=_resolve_request_user,
+            invite_blocked=_is_invite_blocked,
+        )
+        if identity is None:
+            return await finish(_error_response(401, "unauthorized", "Missing or invalid API credentials", request_id))
+        request.state.user_id = identity.user_id
+        request.state.user_is_admin = identity.is_admin
+        if identity.invite_blocked:
+            return await finish(
+                _error_response(
+                    403,
+                    "invite_required",
+                    "Thought Pins is in private testing. Enter an invite code to start.",
+                    request_id,
+                    details={"contact_email": config.INVITE_REQUEST_EMAIL},
                 )
-
-            request.state.user_id = user.id
-            request.state.user_is_admin = bool(user.is_admin)
-
-            # Private launch. Enforced here rather than per route so a new
-            # endpoint is closed until it is deliberately exempted.
-            if _is_invite_blocked(user, request.url.path):
-                return await finish(
-                    _error_response(
-                        403,
-                        "invite_required",
-                        "Thought Pins is in private testing. Enter an invite code to start.",
-                        request_id,
-                        details={"contact_email": config.INVITE_REQUEST_EMAIL},
-                    )
+            )
+        allowed, retry_after = await run_in_threadpool(
+            check_rate_limit,
+            f"user:{identity.user_id}:{request.url.path}",
+            limit=_rate_limit_for_path(request.url.path),
+        )
+        if not allowed:
+            return await finish(
+                _error_response(
+                    429,
+                    "rate_limit_exceeded",
+                    "Rate limit exceeded",
+                    request_id,
+                    retry_after=retry_after,
                 )
+            )
 
-            rate_key = f"user:{user.id}:{request.url.path}"
-            allowed, retry_after = check_rate_limit(rate_key, limit=_rate_limit_for_path(request.url.path))
-            if not allowed:
-                return await finish(
-                    _error_response(
-                        429,
-                        "rate_limit_exceeded",
-                        "Rate limit exceeded",
-                        request_id,
-                        retry_after=retry_after,
-                    )
-                )
-        finally:
-            session.close()
-
-        with tenant_context(user.id):
+        with tenant_context(identity.user_id):
             try:
-                response = await call_with_idempotency(request, call_next, user_id=user.id)
+                response = await call_with_idempotency(request, call_next, user_id=identity.user_id)
             except InvalidIdempotencyKey as exc:
                 response = _error_response(400, "invalid_idempotency_key", str(exc), request_id)
             except IdempotencyConflict as exc:

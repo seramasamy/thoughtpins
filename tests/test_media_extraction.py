@@ -22,6 +22,30 @@ def test_binary_document_without_reader_fails_closed():
     assert result.error == "unsupported_binary_document"
 
 
+def test_phone_photo_orientation_is_applied_before_ocr(monkeypatch):
+    import io
+
+    from PIL import Image
+
+    observed = []
+
+    class Reader:
+        def readtext(self, path, **kwargs):
+            with Image.open(path) as image:
+                observed.append(image.size)
+            return ["Synthetic upright note"]
+
+    original = Image.new("RGB", (40, 20), "white")
+    exif = original.getexif()
+    exif[274] = 6  # A phone photo stored sideways, displayed rotated clockwise.
+    buffer = io.BytesIO()
+    original.save(buffer, format="JPEG", exif=exif)
+    monkeypatch.setattr(media_extraction, "_get_ocr_reader", lambda: Reader())
+    result = extract_image_text(buffer.getvalue())
+    assert result.text == "Synthetic upright note"
+    assert observed == [(20, 40)]
+
+
 def test_missing_optional_media_dependencies_are_scoped(monkeypatch):
     def missing_dependency():
         raise ImportError("optional dependency unavailable")

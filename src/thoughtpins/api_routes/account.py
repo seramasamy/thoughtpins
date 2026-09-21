@@ -62,7 +62,7 @@ def create_account_router(
 
     @router.get("/v1/export")
     @router.get("/v1/account/export")
-    async def export_account(user_id: str = Depends(current_user_dependency)) -> dict[str, Any]:
+    def export_account(user_id: str = Depends(current_user_dependency)) -> dict[str, Any]:
         session = get_session()
         try:
             payload = export_user_data(session, user_id)
@@ -72,7 +72,7 @@ def create_account_router(
             session.close()
 
     @router.get("/v1/me")
-    async def me(user_id: str = Depends(current_user_dependency)) -> dict[str, Any]:
+    def me(user_id: str = Depends(current_user_dependency)) -> dict[str, Any]:
         session = get_session()
         try:
             user = session.query(User).filter(User.id == user_id).first()
@@ -92,7 +92,7 @@ def create_account_router(
             session.close()
 
     @router.get("/v1/invites/status", response_model=InviteStatusResponse)
-    async def invite_status(user_id: str = Depends(current_user_dependency)) -> InviteStatusResponse:
+    def invite_status(user_id: str = Depends(current_user_dependency)) -> InviteStatusResponse:
         session = get_session()
         try:
             user = session.query(User).filter(User.id == user_id).first()
@@ -103,7 +103,7 @@ def create_account_router(
             session.close()
 
     @router.post("/v1/invites/redeem", response_model=InviteStatusResponse)
-    async def redeem_invite(
+    def redeem_invite(
         request_model: InviteRedeemRequest,
         user_id: str = Depends(current_user_dependency),
     ) -> InviteStatusResponse:
@@ -131,7 +131,7 @@ def create_account_router(
             session.close()
 
     @router.post("/v1/invites/request", response_model=InviteRequestResponse)
-    async def request_invite(
+    def request_invite(
         request_model: InviteRequestSubmission,
         user_id: str = Depends(current_user_dependency),
     ) -> InviteRequestResponse:
@@ -157,7 +157,7 @@ def create_account_router(
             session.close()
 
     @router.get("/v1/account/sign-in-methods", response_model=SignInMethodsResponse)
-    async def get_sign_in_methods(user_id: str = Depends(current_user_dependency)) -> SignInMethodsResponse:
+    def get_sign_in_methods(user_id: str = Depends(current_user_dependency)) -> SignInMethodsResponse:
         session = get_session()
         try:
             user = session.query(User).filter(User.id == user_id).first()
@@ -168,7 +168,7 @@ def create_account_router(
             session.close()
 
     @router.post("/v1/account/password", response_model=PasswordSetResponse)
-    async def set_account_password(
+    def set_account_password(
         request_model: PasswordSetRequest,
         user_id: str = Depends(current_user_dependency),
         current_session_id: str | None = Depends(current_session_dependency),
@@ -209,7 +209,7 @@ def create_account_router(
             session.close()
 
     @router.get("/v1/preferences", response_model=PreferencesResponse)
-    async def get_preferences(user_id: str = Depends(current_user_dependency)) -> PreferencesResponse:
+    def get_preferences(user_id: str = Depends(current_user_dependency)) -> PreferencesResponse:
         session = get_session()
         try:
             user = session.query(User).filter(User.id == user_id).first()
@@ -220,7 +220,7 @@ def create_account_router(
             session.close()
 
     @router.patch("/v1/preferences", response_model=PreferencesResponse)
-    async def update_preferences(
+    def update_preferences(
         request_model: PreferencesUpdateRequest,
         user_id: str = Depends(current_user_dependency),
     ) -> PreferencesResponse:
@@ -249,7 +249,7 @@ def create_account_router(
             session.close()
 
     @router.post("/v1/legal/acceptances", response_model=PreferencesResponse)
-    async def accept_legal_document(
+    def accept_legal_document(
         request_model: LegalAcceptanceRequest,
         user_id: str = Depends(current_user_dependency),
     ) -> PreferencesResponse:
@@ -278,7 +278,7 @@ def create_account_router(
             session.close()
 
     @router.post("/v1/safety/reports", response_model=SafetyReportResponse, status_code=201)
-    async def create_safety_report(
+    def create_safety_report(
         request_model: SafetyReportRequest,
         request: Request,
         user_id: str = Depends(current_user_dependency),
@@ -325,7 +325,7 @@ def create_account_router(
             session.close()
 
     @router.get("/v1/devices", response_model=DevicesPageResponse)
-    async def list_devices(user_id: str = Depends(current_user_dependency)) -> DevicesPageResponse:
+    def list_devices(user_id: str = Depends(current_user_dependency)) -> DevicesPageResponse:
         session = get_session()
         try:
             devices = (
@@ -339,7 +339,7 @@ def create_account_router(
             session.close()
 
     @router.post("/v1/devices", response_model=DeviceResponse)
-    async def register_device(
+    def register_device(
         request_model: DeviceRegistrationRequest,
         user_id: str = Depends(current_user_dependency),
     ) -> DeviceResponse:
@@ -395,7 +395,7 @@ def create_account_router(
             session.close()
 
     @router.get("/v1/sessions", response_model=SessionsPageResponse)
-    async def list_auth_sessions(
+    def list_auth_sessions(
         user_id: str = Depends(current_user_dependency),
         current_session_id: str | None = Depends(current_session_dependency),
     ) -> SessionsPageResponse:
@@ -419,7 +419,7 @@ def create_account_router(
             session.close()
 
     @router.delete("/v1/sessions/{session_id}", response_model=SessionResponse)
-    async def revoke_auth_session(
+    def revoke_auth_session(
         session_id: str,
         user_id: str = Depends(current_user_dependency),
         current_session_id: str | None = Depends(current_session_dependency),
@@ -445,7 +445,7 @@ def create_account_router(
             session.close()
 
     @router.post("/v1/sessions/revoke-others")
-    async def revoke_other_auth_sessions(
+    def revoke_other_auth_sessions(
         user_id: str = Depends(current_user_dependency),
         current_session_id: str | None = Depends(current_session_dependency),
     ) -> dict[str, int | str]:
@@ -474,7 +474,7 @@ def create_account_router(
             session.close()
 
     @router.delete("/v1/devices/{installation_id}", response_model=DeviceResponse)
-    async def revoke_device(
+    def revoke_device(
         installation_id: str,
         user_id: str = Depends(current_user_dependency),
     ) -> DeviceResponse:
@@ -507,7 +507,7 @@ def create_account_router(
 
     @router.delete("/v1/me")
     @router.delete("/v1/account")
-    async def delete_account(
+    def delete_account(
         request_model: AccountDeleteRequest,
         user_id: str = Depends(current_user_dependency),
     ) -> dict[str, Any]:
