@@ -170,8 +170,10 @@ for (const appearance of ["light", "dark"] as const) {
         await password.fill("fictional password phrase");
         const toggle = page.getByRole("button", { name: "Show password", exact: true });
         const box = await toggle.boundingBox();
-        expect(box?.width).toBeGreaterThanOrEqual(44);
-        expect(box?.height).toBeGreaterThanOrEqual(44);
+        // Firefox can report a 44px control as 43.999969px on a fractional grid.
+        // Keep the 44px contract, measuring to one hundredth of a CSS pixel.
+        expect(Math.round((box?.width || 0) * 100) / 100).toBeGreaterThanOrEqual(44);
+        expect(Math.round((box?.height || 0) * 100) / 100).toBeGreaterThanOrEqual(44);
         await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
         const result = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
         expect(result.violations, JSON.stringify(result.violations)).toEqual([]);
