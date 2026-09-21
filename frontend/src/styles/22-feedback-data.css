@@ -635,3 +635,9 @@ th {
 .search-field input {
   padding-left: 38px;
 }
+
+/* Capture status describes extraction, not only successful HTTP delivery. */
+.upload-feedback { margin: 12px 0; padding: 14px 16px; border: 1px solid var(--tp-line); border-radius: 14px; background: var(--tp-sage-soft); overflow-wrap: anywhere; }
+.upload-feedback p { margin: 6px 0 0; line-height: 1.5; }
+.upload-feedback.warn { background: var(--tp-warning-soft); color: var(--tp-warning); }
+.upload-feedback.error { background: var(--tp-danger-soft); color: var(--tp-danger-text); }

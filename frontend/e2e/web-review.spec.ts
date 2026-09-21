@@ -386,7 +386,7 @@ test.describe("Thought Pins web review smoke", () => {
       buffer: Buffer.from("Uploaded review note for article memory provenance."),
     });
     await page.getByRole("button", { name: /Upload File/i }).click();
-    await expect(page.getByText("Last Upload")).toBeVisible();
+    await expect(page.getByText("Read 48 characters and saved to your source library.", { exact: true })).toBeVisible();
     await expect(page.getByText("review.txt").first()).toBeVisible();
     expect(api?.getUploadPostCount()).toBe(1);
     await expectNoHorizontalOverflow(page);
@@ -501,6 +501,9 @@ test.describe("Thought Pins web review smoke", () => {
     await disclosure.getByRole("button", { name: "Continue" }).click();
     await expect(page.getByRole("button", { name: "Stop voice note" })).toBeVisible();
     await page.getByRole("button", { name: "Stop voice note" }).click();
+    await expect(page.getByRole("region", { name: "Review voice note" })).toBeVisible();
+    expect(api?.getUploadPostCount()).toBe(0);
+    await page.getByRole("button", { name: "Save recording" }).click();
     await expect(page.getByText("Shared a voice note", { exact: true })).toBeVisible();
     await expect.poll(() => api?.getUploadPostCount()).toBe(1);
     await expectNoHorizontalOverflow(page);

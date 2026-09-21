@@ -3,7 +3,7 @@ import type { ChangeEvent, FormEvent } from "react";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../../api";
 import type { ScreenProps } from "../../app/types";
-import type { ChatMessageResponse, ChatResponse, UploadIngestResponse } from "../../types";
+import type { ChatMessageResponse, ChatResponse } from "../../types";
 import { formatConversationDay, formatConversationTime } from "../../components/format";
 import { ChatGlyph, IconButton, PrimaryButton, SecondaryButton } from "../../components/ui";
 import { useChatSubmission, type ThreadMessage } from "./useChatSubmission";
@@ -12,14 +12,18 @@ import { KeptEntryNotice } from "./KeptEntryNotice";
 import { ChatWelcome } from "./ChatWelcome";
 import { MessageEditor } from "./MessageEditor";
 import { submitFormOnEnter } from "../../components/keyboard";
+import { UPLOAD_ACCEPT, uploadOutcome } from "../../core/upload";
+import { useVoiceRecorder, MAX_RECORDING_MS } from "./useVoiceRecorder";
+import { VoiceDraft } from "./VoiceDraft";
+import { useChatScroll } from "./useChatScroll";
 
 const CONVERSATION_ID = "main";
 const VOICE_DISCLOSURE_KEY = "thoughtpins.voice-disclosure.2026-07-13";
-const MAX_RECORDING_MS = 10 * 60 * 1000;
 
 
 export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEnabled = false }: ScreenProps & { maintenanceMessage?: string | null; voiceArchiveEnabled?: boolean }) {
   const [text, setText] = useState("");
+  const [attachmentDestination, setAttachmentDestination] = useState<"library" | "journal">("library");
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [lastResponse, setLastResponse] = useState<ChatResponse | null>(null);
   const [includePrivate, setIncludePrivate] = usePrivateRecall(token, run);
@@ -35,19 +39,13 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
   const [editDraft, setEditDraft] = useState("");
   const [keptEntryCount, setKeptEntryCount] = useState(0);
   const [sendPulse, setSendPulse] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingElapsed, setRecordingElapsed] = useState(0);
-  const [voiceError, setVoiceError] = useState<string | null>(null);
   const [showVoiceDisclosure, setShowVoiceDisclosure] = useState(false);
-  const bottomRef = useRef<HTMLDivElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const wasBusyRef = useRef(false);
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const recordingStreamRef = useRef<MediaStream | null>(null);
-  const recordingChunksRef = useRef<Blob[]>([]);
-  const recordingTimeoutRef = useRef<number | null>(null);
-  const recordingStartRef = useRef(0);
   const compactComposer = useCompactComposer();
+  const voice = useVoiceRecorder();
+  const { isRecording, elapsed: recordingElapsed, error: voiceError } = voice;
+  const chatScroll = useChatScroll(messages.length, busy);
 
   const loadThread = useCallback(async () => {
     const conversations = await run(() => api.chatConversations(token, 1, 50));
@@ -60,11 +58,6 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
   useEffect(() => {
     void loadThread();
   }, [loadThread]);
-
-  useEffect(() => {
-    if (!messages.length && !busy) return;
-    bottomRef.current?.scrollIntoView({ block: "end", behavior: messages.length > 1 ? "smooth" : "auto" });
-  }, [messages.length, busy]);
 
   /* When the wait ends, the thinking dots linger for a 160ms fade-out while
      the arriving message rises, so the handoff reads as one exchange. */
@@ -99,8 +92,8 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
     void sendMessage(text);
   };
 
-  const uploadFile = async (file: File, displayText = `Shared ${file.name}`) => {
-    if (busy) return;
+  const uploadFile = async (file: File, displayText = `Shared ${file.name}`, destination = attachmentDestination, idempotencyKey?: string) => {
+    if (busy) return false;
     setMessages((current) => [...current, {
       id: `upload-${crypto.randomUUID()}`,
       role: "user",
@@ -113,21 +106,18 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
     setBusy(true);
     try {
       const result = await run(
-        () => api.uploadFile(token, file, { destination: "auto", conversation_id: CONVERSATION_ID }),
-        isVoice ? "Voice note processed" : "File added to memory",
+        () => api.uploadFile(token, file, { destination, conversation_id: CONVERSATION_ID, idempotency_key: idempotencyKey }),
+        "",
       );
       if (result) setMessages((current) => [...current, {
         id: `upload-result-${crypto.randomUUID()}`,
         role: "assistant",
-        text: isVoice
-          ? voiceUploadReply(result)
-          : result.destination === "journal"
-            ? `I saved ${file.name} with your journal memories.`
-            : `I read ${file.name} and pinned it to your source memory. You can ask me about it whenever it is relevant.`,
-        routeType: result.destination,
+        text: uploadOutcome(result).text,
+        routeType: uploadOutcome(result).saved ? result.destination : "upload",
         status: result.status,
         createdAt: new Date().toISOString(),
       }]);
+      return Boolean(result && uploadOutcome(result).saved && uploadOutcome(result).tone !== "error");
     } finally {
       setBusy(false);
     }
@@ -139,59 +129,8 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
     event.target.value = "";
   };
 
-  const startVoiceRecording = async () => {
-    if (busy || isRecording) return;
-    setVoiceError(null);
-    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-      setVoiceError("Voice notes are not supported in this browser. You can attach an audio file instead.");
-      return;
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].find((type) => MediaRecorder.isTypeSupported(type)) || "";
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-      recordingChunksRef.current = [];
-      recordingStreamRef.current = stream;
-      recorderRef.current = recorder;
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) recordingChunksRef.current.push(event.data);
-      };
-      recorder.onstop = () => {
-        if (recordingTimeoutRef.current !== null) window.clearTimeout(recordingTimeoutRef.current);
-        recordingTimeoutRef.current = null;
-        const type = recorder.mimeType || "audio/webm";
-        const extension = type.includes("mp4") ? "m4a" : "webm";
-        const file = new File(recordingChunksRef.current, `voice-note-${new Date().toISOString().replace(/[:.]/g, "-")}.${extension}`, { type });
-        recordingStreamRef.current?.getTracks().forEach((track) => track.stop());
-        recordingStreamRef.current = null;
-        recorderRef.current = null;
-        recordingChunksRef.current = [];
-        setIsRecording(false);
-        if (file.size > 0) {
-          void uploadFile(file, "Shared a voice note");
-        } else {
-          setVoiceError("No audio was captured. Please try recording again.");
-        }
-      };
-      recorder.onerror = () => {
-        setVoiceError("The recording stopped unexpectedly. Please try again.");
-        if (recorder.state === "recording") recorder.stop();
-      };
-      recorder.start(1000);
-      setIsRecording(true);
-      recordingTimeoutRef.current = window.setTimeout(() => {
-        if (recorderRef.current?.state === "recording") recorderRef.current.stop();
-      }, MAX_RECORDING_MS);
-    } catch {
-      recordingStreamRef.current?.getTracks().forEach((track) => track.stop());
-      recordingStreamRef.current = null;
-      setVoiceError("Microphone access was not granted. You can attach an audio file instead.");
-    }
-  };
-
-  const stopVoiceRecording = () => {
-    if (recorderRef.current?.state === "recording") recorderRef.current.stop();
-  };
+  const startVoiceRecording = () => { if (!busy) void voice.start(); };
+  const stopVoiceRecording = voice.stop;
 
   const requestVoiceRecording = () => {
     try {
@@ -215,24 +154,6 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
     void startVoiceRecording();
   };
 
-  useEffect(() => () => {
-    recorderRef.current?.stop();
-    recordingStreamRef.current?.getTracks().forEach((track) => track.stop());
-    if (recordingTimeoutRef.current !== null) window.clearTimeout(recordingTimeoutRef.current);
-  }, []);
-
-  /* Elapsed clock for the recording state: ticks once a second while capture
-     is active and drives both the mm:ss readout and the 10-minute hairline. */
-  useEffect(() => {
-    if (!isRecording) return undefined;
-    recordingStartRef.current = Date.now();
-    setRecordingElapsed(0);
-    const timer = window.setInterval(() => {
-      setRecordingElapsed(Math.floor((Date.now() - recordingStartRef.current) / 1000));
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [isRecording]);
-
   return (
     <section className="chat-view">
       <header className="chat-header">
@@ -252,7 +173,7 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
         </div>
       </header>
 
-      <div className="chat-stream" role="log" aria-label="Conversation history" aria-live="polite" tabIndex={0}>
+      <div ref={chatScroll.streamRef} onScroll={chatScroll.onScroll} className="chat-stream" role="log" aria-label="Conversation history" aria-live="polite" tabIndex={0}>
         {!messages.length && (
           <ChatWelcome onChoose={(starter) => void sendMessage(starter)} />
         )}
@@ -310,22 +231,26 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
             <div className="thinking-indicator"><span className="thinking-dots" aria-hidden="true"><i /><i /><i /></span><span>{busyLabel}</span></div>
           </div>
         )}
-        <div ref={bottomRef} />
       </div>
 
       <div className="chat-composer-wrap">
+        {chatScroll.unread && <SecondaryButton type="button" onClick={chatScroll.jump}>Jump to latest messages</SecondaryButton>}
         {showVoiceDisclosure && (
           <div className="voice-disclosure" role="dialog" aria-modal="true" aria-labelledby="voice-disclosure-title">
             <strong id="voice-disclosure-title">Record a voice note</strong>
             <p>{voiceArchiveEnabled
               ? "Thought Pins will send this recording for transcription. Audio is discarded after processing unless you separately enable Personal voice archive in Account."
-              : "Thought Pins will send this recording for transcription and discard the audio after processing. The transcript is saved as a journal entry."}</p>
+              : "When you save, Thought Pins will send this recording for transcription and discard the audio after processing. You can review or discard before saving."}</p>
             <div>
               <SecondaryButton type="button" onClick={() => setShowVoiceDisclosure(false)}>Cancel</SecondaryButton>
               <PrimaryButton type="button" onClick={acceptVoiceDisclosure}>Continue</PrimaryButton>
             </div>
           </div>
         )}
+        {voice.draft && <VoiceDraft file={voice.draft} busy={busy} onDiscard={voice.clearDraft}
+          onSave={async (destination, key) => {
+            if (voice.draft && await uploadFile(voice.draft, "Shared a voice note", destination, key)) voice.clearDraft();
+          }} />}
         {pendingActionId && (
           <div className="pending-action-bar" role="group" aria-label="Pending confirmation">
             <span>This action needs your confirmation.</span>
@@ -335,39 +260,47 @@ export function ChatView({ token, run, maintenanceMessage = null, voiceArchiveEn
             </div>
           </div>
         )}
-        <form className={isRecording ? "chat-composer is-recording" : "chat-composer"} onSubmit={submit}>
-          <input ref={fileRef} className="visually-hidden" type="file" onChange={upload} aria-label="Choose a file to attach" />
-          <IconButton type="button" onClick={() => fileRef.current?.click()} disabled={busy} aria-label="Attach a file" title="Attach a file"><Paperclip size={18} /></IconButton>
-          <IconButton className={isRecording ? "voice-recording" : ""} type="button" onClick={isRecording ? stopVoiceRecording : requestVoiceRecording} disabled={busy} aria-label={isRecording ? "Stop voice note" : "Record a voice note"} title={isRecording ? "Stop voice note" : "Record a voice note"}>
-            {isRecording ? <Square size={16} fill="currentColor" /> : <Mic size={18} />}
-          </IconButton>
-          <div className="composer-field">
-            <textarea value={text} onChange={(event) => setText(event.target.value)} onKeyDown={submitFormOnEnter} placeholder={placeholder} aria-label="Message Thought Pins" enterKeyHint="send" rows={1} maxLength={50000} />
-            {isRecording && (
-              <span className="voice-live" aria-hidden="true">
-                <span className="voice-bars"><i /><i /><i /><i /><i /></span>
-                <span className="voice-timer">{formatRecordingTime(recordingElapsed)}</span>
-              </span>
+        {!voice.draft && <>
+          <form className={isRecording ? "chat-composer is-recording" : "chat-composer"} onSubmit={submit}>
+            <input ref={fileRef} className="visually-hidden" type="file" accept={UPLOAD_ACCEPT} onChange={upload} aria-label="Choose a file to attach" />
+            <IconButton type="button" onClick={() => fileRef.current?.click()} disabled={busy || isRecording || Boolean(voice.draft)} aria-label="Attach a file" title="Attach a file"><Paperclip size={18} /></IconButton>
+            <IconButton className={isRecording ? "voice-recording" : ""} type="button" onClick={isRecording ? stopVoiceRecording : requestVoiceRecording} disabled={busy || Boolean(voice.draft)} aria-label={isRecording ? "Stop voice note" : "Record a voice note"} title={isRecording ? "Stop voice note" : "Record a voice note"}>
+              {isRecording ? <Square size={16} fill="currentColor" /> : <Mic size={18} />}
+            </IconButton>
+            <div className="composer-field">
+              <textarea value={text} onChange={(event) => setText(event.target.value)} onKeyDown={submitFormOnEnter} placeholder={placeholder} aria-label="Message Thought Pins" enterKeyHint="send" rows={1} maxLength={50000} />
+              {isRecording && (
+                <span className="voice-live" aria-hidden="true">
+                  <span className="voice-bars"><i /><i /><i /><i /><i /></span>
+                  <span className="voice-timer">{formatRecordingTime(recordingElapsed)}</span>
+                </span>
+              )}
+            </div>
+            {busy ? (
+              // Only an active chat request supports cancellation.
+              <PrimaryButton type="button" disabled={!canStop} onClick={stopReply} aria-label={canStop ? "Stop reply" : "Processing attachment"} title={canStop ? "Stop reply" : "Processing attachment"}>
+                {canStop ? <Square size={16} fill="currentColor" /> : <LoaderCircle size={18} />}
+              </PrimaryButton>
+            ) : (
+              <PrimaryButton className={sendPulse ? "send-pulse" : ""} disabled={!text.trim()} aria-label="Send message"><ArrowUp size={19} /></PrimaryButton>
             )}
-          </div>
-          {busy ? (
-            // Only an active chat request supports cancellation.
-            <PrimaryButton type="button" disabled={!canStop} onClick={stopReply} aria-label={canStop ? "Stop reply" : "Processing attachment"} title={canStop ? "Stop reply" : "Processing attachment"}>
-              {canStop ? <Square size={16} fill="currentColor" /> : <LoaderCircle size={18} />}
-            </PrimaryButton>
-          ) : (
-            <PrimaryButton className={sendPulse ? "send-pulse" : ""} disabled={!text.trim()} aria-label="Send message"><ArrowUp size={19} /></PrimaryButton>
+          </form>
+          {isRecording && <SecondaryButton type="button" onClick={voice.discard}>Discard recording</SecondaryButton>}
+          {isRecording && (
+            <div className="voice-progress" role="progressbar" aria-label="Recording time used" aria-valuemin={0} aria-valuemax={600} aria-valuenow={Math.min(600, recordingElapsed)}>
+              <span style={{ width: `${Math.min(100, ((recordingElapsed * 1000) / MAX_RECORDING_MS) * 100)}%` }} />
+            </div>
           )}
-        </form>
-        {isRecording && (
-          <div className="voice-progress" role="progressbar" aria-label="Recording time used" aria-valuemin={0} aria-valuemax={600} aria-valuenow={Math.min(600, recordingElapsed)}>
-            <span style={{ width: `${Math.min(100, ((recordingElapsed * 1000) / MAX_RECORDING_MS) * 100)}%` }} />
+          <div className="composer-caption">
+            <span role={voiceError ? "status" : undefined}>{voiceError || (isRecording ? "Recording voice note..." : routingCaption(lastResponse))}</span>
+            <span>{includePrivate ? "Private memories may inform this reply" : "Private memories stay out of replies"}</span>
           </div>
-        )}
-        <div className="composer-caption">
-          <span role={voiceError ? "status" : undefined}>{voiceError || (isRecording ? "Recording voice note..." : routingCaption(lastResponse))}</span>
-          <span>{includePrivate ? "Private memories may inform this reply" : "Private memories stay out of replies"}</span>
-        </div>
+          <label className="attachment-destination">Save attachments as
+            <select value={attachmentDestination} onChange={event => setAttachmentDestination(event.target.value as "library" | "journal")} disabled={busy || isRecording}>
+              <option value="library">Reference sources</option><option value="journal">Personal journal</option>
+            </select>
+          </label>
+        </>}
       </div>
     </section>
   );
@@ -377,11 +310,6 @@ function formatRecordingTime(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
-}
-
-function voiceUploadReply(result: UploadIngestResponse) {  if (result.status === "needs_text") return result.error || "I could not hear enough speech to create a journal entry.";
-  if (result.voice_asset_id) return "I transcribed this voice note, saved the journal memory, and retained the encrypted recording in your personal voice archive.";
-  return "I transcribed this voice note and saved the journal memory. The recording was discarded after processing.";
 }
 
 function mapServerMessage(message: ChatMessageResponse): ThreadMessage {

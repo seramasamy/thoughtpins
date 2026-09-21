@@ -260,12 +260,23 @@ def main() -> int:
             _req("thinking state", "Thinking with your memory"),
             _req("classification transparency", "classification-label", "friendlyRoute", all_required=True),
             _req("file attachment", "api.uploadFile", "Attach a file", all_required=True),
-            _req("voice note capture", "MediaRecorder", "Record a voice note", all_required=True),
+            _req("voice note capture", "useVoiceRecorder", "VoiceDraft", "Record a voice note", all_required=True),
             _req("50k chat max", "maxLength={50000}"),
         ],
     )
     # Submission and rollback are owned by the hook, while controls remain in
     # ChatView. Check both owners so extracting the lifecycle preserves the gate.
+    for relative, markers in [
+        ("chat/useVoiceRecorder.ts", ("MediaRecorder", "getUserMedia", "stopTracks", "setDraft")),
+        ("chat/VoiceDraft.tsx", ("<audio controls", "Save recording", "Discard recording", "onSave")),
+        ("library/useLibrarySources.ts", ("api.librarySources", "offset", "query", "AbortController")),
+    ]:
+        _check_file_markers(
+            FRONTEND / "src" / "features" / relative,
+            failures,
+            cache,
+            [_req("capture and catalog lifecycle", *markers, all_required=True)],
+        )
     _check_file_markers(
         FRONTEND / "src" / "features" / "chat" / "useChatSubmission.ts",
         failures,
@@ -376,7 +387,7 @@ def main() -> int:
             ),
             _req("library API", "api.createLibrarySource"),
             _req("file API", "api.uploadFile"),
-            _req("source list", "api.librarySources"),
+            _req("source list", "useLibrarySources"),
             _req("source detail", "api.librarySource"),
             _req(
                 "reader-facing source details",

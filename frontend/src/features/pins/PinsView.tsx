@@ -1,33 +1,26 @@
 import { ArrowUpRight, BookOpen, FileUp, Link2, Pin, Plus, RefreshCw, Search, Sparkles, X } from "lucide-react";
 import type { ChangeEvent, FormEvent } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { api } from "../../api";
 import type { ScreenProps } from "../../app/types";
-import type { LibrarySourceResponse } from "../../types";
+import type { LibrarySourceResponse, UploadIngestResponse } from "../../types";
 import { cleanDisplayText, displayStatus, formatShortDate, humanizeIdentifier } from "../../components/format";
-import { ContentSkeleton, EmptyState, IconButton, PrimaryButton, StatusPill, useContentSwap } from "../../components/ui";
+import { ContentSkeleton, EmptyState, IconButton, PrimaryButton, SecondaryButton, StatusPill, useContentSwap } from "../../components/ui";
 import { runOnEnter } from "../../components/keyboard";
 import { useExclusiveAction } from "../../components/useExclusiveAction";
+import { UploadFeedback } from "../capture/UploadFeedback";
+import { UPLOAD_ACCEPT, UPLOAD_HELP } from "../../core/upload";
+import { useLibrarySources } from "../library/useLibrarySources";
 
 export function PinsView({ token, run }: ScreenProps) {
-  const [sources, setSources] = useState<LibrarySourceResponse[]>([]);
+  const catalog = useLibrarySources(token, run);
+  const { sources, query, setQuery, loaded, load } = catalog;
   const [selected, setSelected] = useState<LibrarySourceResponse | null>(null);
-  const [query, setQuery] = useState("");
   const [capture, setCapture] = useState("");
-  const [loaded, setLoaded] = useState(false);
+  const [lastUpload, setLastUpload] = useState<UploadIngestResponse | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const swap = useContentSwap(loaded);
   const { pending, perform } = useExclusiveAction();
-
-  const load = useCallback(async () => {
-    const result = await run(() => api.librarySources(token, 100));
-    if (result) setSources(result);
-    setLoaded(true);
-  }, [run, token]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -58,9 +51,11 @@ export function PinsView({ token, run }: ScreenProps) {
   const upload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const result = await run(() => api.uploadFile(token, file, { destination: "library", source_type: "document" }), "Document pinned");
     event.target.value = "";
-    if (result) await load();
+    await perform(async () => {
+      const result = await run(() => api.uploadFile(token, file, { destination: "library", source_type: "document" }), "");
+      if (result) { setLastUpload(result); await load(); }
+    });
   };
 
   const openSource = async (source: LibrarySourceResponse) => {
@@ -82,15 +77,17 @@ export function PinsView({ token, run }: ScreenProps) {
       <form className="pin-capture" onSubmit={savePin}>
         <div className="pin-capture-icon"><Plus size={18} /></div>
         <input value={capture} onChange={(event) => setCapture(event.target.value)} placeholder="Paste a link or note..." aria-label="New pin" enterKeyHint="done" />
-        <input ref={fileRef} className="visually-hidden" type="file" onChange={upload} aria-label="Choose a document to pin" />
-        <IconButton type="button" onClick={() => fileRef.current?.click()} aria-label="Upload a document" title="Upload a document"><FileUp size={17} /></IconButton>
+        <input ref={fileRef} className="visually-hidden" type="file" accept={UPLOAD_ACCEPT} onChange={upload} aria-label="Choose a document to pin" disabled={pending} />
+        <IconButton type="button" onClick={() => fileRef.current?.click()} aria-label="Upload a document" title="Upload a document" disabled={pending}><FileUp size={17} /></IconButton>
         <PrimaryButton disabled={pending || !capture.trim()} aria-label="Save pin"><Pin size={16} />Pin</PrimaryButton>
       </form>
+      <p className="inline-help">{pending ? "Reading your source…" : UPLOAD_HELP}</p>
+      <UploadFeedback result={lastUpload} />
 
       <div className="pins-toolbar">
         <label className="search-field pin-search">
           <Search size={16} />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => runOnEnter(event, () => { const first = filtered[0]; if (first) void openSource(first); })} placeholder="Search everything you have read" aria-label="Search pins" enterKeyHint="search" />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => runOnEnter(event, () => { const first = filtered[0]; if (first) void openSource(first); })} placeholder="Search titles, authors, and sites" aria-label="Search pins" enterKeyHint="search" />
           {query && <button type="button" onClick={() => setQuery("")} aria-label="Clear search"><X size={15} /></button>}
         </label>
         <span aria-live="polite">{filtered.length} {filtered.length === 1 ? "pin" : "pins"}</span>
@@ -110,7 +107,7 @@ export function PinsView({ token, run }: ScreenProps) {
               <div className="pin-card-copy">
                 <span>{sourceLabel(source)}</span>
                 <h3>{cleanDisplayText(source.title) || source.source_url || "Untitled pin"}</h3>
-                <p>{cleanDisplayText(source.summary) || "Saved to your source memory and ready to surface when relevant."}</p>
+                <p>{cleanDisplayText(source.summary) || (source.status === "processed" ? "Saved to your source memory." : "Link saved. Readable text is not available yet.")}</p>
               </div>
               <footer>
                 <span>{source.chunks} memory {source.chunks === 1 ? "section" : "sections"}{source.published_at ? ` / ${formatShortDate(source.published_at)}` : ""}</span>
@@ -119,6 +116,7 @@ export function PinsView({ token, run }: ScreenProps) {
             </button>
           ))}
           {swap === "ready" && !filtered.length && <EmptyState title={query ? "No matching pins" : "Nothing pinned yet"} detail={query ? "Try a different phrase." : "Paste an article, upload a document, or write a note above."} />}
+          {catalog.hasMore && <SecondaryButton disabled={catalog.pending} onClick={catalog.loadMore}>{catalog.pending ? "Loading…" : "Load more sources"}</SecondaryButton>}
         </div>
 
         {selected && (
@@ -130,7 +128,7 @@ export function PinsView({ token, run }: ScreenProps) {
             <span className="eyebrow">{sourceLabel(selected)}</span>
             <h2>{cleanDisplayText(selected.title) || "Untitled pin"}</h2>
             {selected.author && <p className="pin-author">By {cleanDisplayText(selected.author)}</p>}
-            <p className="pin-summary">{cleanDisplayText(selected.summary) || "This source is saved and indexed for memory-backed conversation."}</p>
+            <p className="pin-summary">{cleanDisplayText(selected.summary) || (selected.status === "processed" ? "This source is saved for conversation." : "Link saved. Readable text is not available yet.")}</p>
             <dl className="pin-meta">
               <div><dt>Type</dt><dd>{humanizeIdentifier(selected.source_type)}</dd></div>
               <div><dt>Sections</dt><dd>{selected.chunks}</dd></div>

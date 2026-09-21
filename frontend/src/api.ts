@@ -46,6 +46,7 @@ import type {
   VoiceArchiveDeleteResponse,
   VoiceArchiveStatusResponse,
 } from "./types";
+import { validateUpload } from "./core/upload";
 import {
   API_BASE_URL,
   ApiError,
@@ -203,10 +204,13 @@ export const api = {
     title?: string | null;
     source_type?: string | null;
     conversation_id?: string;
+    idempotency_key?: string;
   } = {}) {
+    validateUpload(file);
     return request<UploadIngestResponse>("/v1/uploads", {
       method: "POST",
       token,
+      idempotencyKey: options.idempotency_key,
       body: {
         filename: file.name || "upload",
         media_type: file.type || null,
@@ -303,8 +307,9 @@ export const api = {
   downloadObsidianVault(token: string) {
     return requestBlob("/v1/export/vault/download?obsidian_defaults=true", { token });
   },
-  librarySources(token: string, limit = 50) {
-    return request<LibrarySourceResponse[]>(`/v1/library?limit=${limit}`, { token });
+  librarySources(token: string, limit = 50, options: { offset?: number; query?: string; signal?: AbortSignal } = {}) {
+    const params = new URLSearchParams({ limit: String(limit), offset: String(options.offset || 0), q: options.query || "" });
+    return request<LibrarySourceResponse[]>(`/v1/library?${params}`, { token, signal: options.signal });
   },
   librarySource(token: string, sourceRef: string) {
     return request<LibrarySourceResponse>(`/v1/library/${encodeURIComponent(sourceRef)}`, { token });

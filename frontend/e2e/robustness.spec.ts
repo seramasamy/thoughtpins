@@ -89,7 +89,7 @@ test("a pending attachment shows its progress without offering a reply cancellat
   } finally {
     release();
   }
-  await expect(page.getByText("I read fictional-note.txt and pinned it to your source memory. You can ask me about it whenever it is relevant.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Read 48 characters and saved to your source library.", { exact: true })).toBeVisible();
   await expect(composer(page)).toHaveValue("A question to send after the upload");
   await expect(page.getByRole("button", { name: "Send message", exact: true })).toBeEnabled();
   expect(mock?.getUploadPostCount()).toBe(1);

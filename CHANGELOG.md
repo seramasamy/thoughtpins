@@ -32,6 +32,18 @@ Keep a Changelog, and the project uses semantic versioning for public releases.
 
 ### Fixed
 
+- Blocking API transactions, authorization, rate limiting, and idempotency
+  persistence run outside the event loop. Regression tests hold each boundary
+  while an independent health request completes and verify tenant propagation.
+- Web uploads report unreadable, partial, queued, and ready results instead of
+  equating HTTP success with readable content. PDF extraction reports its
+  100-page limit and missing text; photo OCR respects EXIF orientation.
+- Voice recording now has playback, explicit save/discard, safe microphone
+  cleanup, and an in-memory retry draft with a stable idempotency key.
+- Source browsing supports pagination and server-side metadata search beyond
+  100 items, with stale response protection. A slow save preserves newly typed
+  text, and arriving chat replies do not force a reader away from older turns.
+
 - The chat conversation is one column: the status row, transcript, date
   dividers, empty state, and composer all derive from a single measure instead
   of three that nearly agreed, and the empty state centres itself.

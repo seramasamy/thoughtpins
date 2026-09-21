@@ -56,4 +56,19 @@ test("a long transcript can still be scrolled back to its first message", async 
   expect(top.scrollTop).toBe(0);
   expect(top.visible).toBe(true);
   expect(top.offsetFromTop).toBeGreaterThanOrEqual(-1);
+
+  // A pending reply arriving while the reader is at the top must not steal the
+  // scroll position. The jump control is an explicit return to the latest turn.
+  let release!: () => void;
+  const held = new Promise<void>(resolve => { release = resolve; });
+  await page.route("**/v1/chat", async route => { await held; await route.fallback(); });
+  await composer.fill("One more question while I review our history");
+  await composer.press("Enter");
+  await expect(page.getByRole("status", { name: "Thinking with your memory" })).toBeVisible();
+  await page.locator(".chat-stream").evaluate(element => element.scrollTo({ top: 0, behavior: "instant" }));
+  release();
+  await expect(page.getByRole("status", { name: "Thinking with your memory" })).toHaveCount(0);
+  await expect.poll(() => page.locator(".chat-stream").evaluate(element => element.scrollTop)).toBe(0);
+  await page.getByRole("button", { name: "Jump to latest messages" }).click();
+  await expect.poll(() => page.locator(".chat-stream").evaluate(element => element.scrollHeight - element.scrollTop - element.clientHeight)).toBeLessThan(2);
 });

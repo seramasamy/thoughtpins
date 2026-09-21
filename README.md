@@ -38,6 +38,28 @@ instructions are public; hosted availability and store distribution are
 separate release decisions. See [validation and limits](#validation-and-limits)
 for what the evidence supports.
 
+### Capture in the web app
+
+| Input | Current behavior and limits |
+| --- | --- |
+| Voice note | Record, listen back, choose journal or reference source, then explicitly save or discard. A failed save keeps the in-memory recording for retry with the same request identity. Leaving the view or refreshing discards an unsaved recording. |
+| Phone photo or screenshot | Apply the photo's orientation before local OCR. Printed text works best; handwriting, equations, and page layout fidelity are not established. |
+| PDF and text notes | Extract selectable PDF text from up to 100 pages; report page limits and pages without readable text. Image-only PDFs need page images or pasted text. Files are limited to 25 MB. |
+| Presentations and homework | Export DOCX/PPTX to a PDF with selectable text, or paste the text. Direct Office-file parsing is not implemented. |
+| Article link | Save readable authorized content when available. A saved link is distinct from extracted text; the app does not bypass access controls. |
+
+Uploads distinguish unreadable, partial, queued, and completed extraction.
+Attachments in Chat default to reference sources, with an explicit journal
+choice; new recordings default to the personal journal. Source browsing can
+page past the first 100 items and search titles, authors, and sites across the
+user's library. Incoming replies preserve the reader's position in chat history.
+
+The next product evidence should come from observed web capture/recall tasks
+with 5–10 consenting users and a separately scored end-to-end answer evaluation.
+Automated workflow checks and retrieval scores do not establish adoption,
+retention, transcription accuracy, or answer accuracy. Further native expansion
+and ranking complexity should follow measured failures in those workflows.
+
 ## Alternatives, briefly
 
 Thought Pins groups journal capture, people and place views, source retrieval,

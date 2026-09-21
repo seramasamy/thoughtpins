@@ -50,6 +50,30 @@ feature layers own layout and behavior. Native sans typography and explicit
 light/dark semantic pairs are defined in `DESIGN.md`.
 Animations honor `prefers-reduced-motion`.
 
+Capture outcomes are interpreted centrally in `src/core/upload.ts`. HTTP 200
+does not mean the file was read: unreadable, partial, queued and ready states
+have separate messages. Unsupported file extensions and the 25 MB limit are
+checked before base64 encoding. Office files need conversion to selectable-text
+PDFs; scanned PDF pages need image OCR or pasted text.
+
+`useVoiceRecorder` owns microphone cleanup and a local recording draft;
+`VoiceDraft` provides playback and explicit save/discard. Stopping, errors,
+navigation, and late permission grants cannot upload audio. Failed saves retain
+the draft in component memory and reuse the same idempotency key for the same
+file/destination. Navigating away or refreshing loses an unsaved draft.
+`useChatScroll` follows new replies only while the reader is near the bottom.
+
+`useLibrarySources` pages the tenant-scoped catalog and debounces server-side
+title/author/site search. Aborted or stale responses cannot replace a newer
+query. IDs are deduplicated across pages; offset pagination is not a snapshot
+if another session inserts or removes sources while browsing.
+
+`e2e/capture-reliability.spec.ts`, `e2e/library-paging.spec.ts`, and
+`e2e/chat-transcript-scroll.spec.ts` exercise those contracts on Chromium,
+WebKit, and Firefox, including 320, 390, 834, and 1440 CSS-pixel recording review
+layouts and accessibility checks. Recorder/provider responses are synthetic;
+these are workflow tests, not microphone/transcription quality measurements.
+
 ## Local Checks
 
 ```powershell
