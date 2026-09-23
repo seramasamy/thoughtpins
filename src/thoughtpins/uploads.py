@@ -282,6 +282,15 @@ def _attachment_ref(path: Path) -> str:
 def _human_extraction_error(extraction: MediaExtraction, media_kind: str) -> str:
     if extraction.error == "pdf_needs_ocr":
         return "This PDF has no selectable text. Upload clear images of its pages for OCR, or paste the text."
+    if extraction.error == "office_protected":
+        return (
+            "This file is password-protected or uses the older .doc or .ppt format. "
+            "Save an unprotected .docx, .pptx, or PDF copy, or paste the text."
+        )
+    if extraction.error == "office_no_text":
+        return "This file has no readable text; text inside images is not read. Paste the text you want remembered."
+    if extraction.error == "office_too_large":
+        return "This file is too large to read safely. Save the part you need as its own file, or paste the text."
     if media_kind == "audio":
         return "I could not transcribe this audio yet. Type or paste the transcript to save it."
     if media_kind == "image":

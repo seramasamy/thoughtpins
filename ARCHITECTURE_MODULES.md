@@ -139,6 +139,9 @@ as thin adapters.
   Railway's GitHub build variable. Unknown is reported as unknown. `/health`
   serves the API's revision and `/ready` both services'; the worker publishes
   its own beside its heartbeat.
+- `media/office.py`: bounded `.docx`/`.pptx` text extraction with the standard
+  library. DTDs are refused at the parser, external relationships are never
+  followed, and every read is capped by entry count, part size and total bytes.
 - `llm/`: provider-neutral OpenAI-compatible LLM client and JSON repair.
 - `backup.py` and `backup_provenance.py`: archive creation/restore and adjacent
   integrity/recovery metadata. Restore verifies available SHA-256 sidecars

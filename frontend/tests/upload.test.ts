@@ -40,8 +40,13 @@ test("queued, failed and unknown states cannot become a ready claim", () => {
 });
 
 test("file validation rejects unsupported and oversized inputs before encoding", () => {
-  for (const name of ["essay.docx", "lecture.pptx", "camera.heic", "archive.zip", "unknown"]) {
+  // Legacy binary Office formats are not readable; their modern ZIP-based
+  // successors are.
+  for (const name of ["essay.doc", "lecture.ppt", "macros.docm", "camera.heic", "archive.zip", "unknown"]) {
     assert.throws(() => validateUpload({ name, size: 10 }), /format is not supported/);
+  }
+  for (const name of ["essay.docx", "Lecture.PPTX"]) {
+    assert.doesNotThrow(() => validateUpload({ name, size: 10 }));
   }
   assert.throws(() => validateUpload({ name: "scan.pdf", size: 0 }), /empty/);
   assert.throws(() => validateUpload({ name: "scan.pdf", size: UPLOAD_MAX_BYTES + 1 }), /25 MB/);

@@ -1,8 +1,8 @@
 import type { UploadIngestResponse } from "../types";
 
 export const UPLOAD_MAX_BYTES = 25 * 1024 * 1024;
-export const UPLOAD_ACCEPT = ".txt,.md,.markdown,.csv,.json,.log,.pdf,.jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff,.ogg,.oga,.mp3,.m4a,.wav,.webm,.aac,.flac";
-export const UPLOAD_HELP = "PDF with selectable text, text notes, images, or audio. Up to 25 MB per file.";
+export const UPLOAD_ACCEPT = ".txt,.md,.markdown,.csv,.json,.log,.pdf,.docx,.pptx,.jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff,.ogg,.oga,.mp3,.m4a,.wav,.webm,.aac,.flac";
+export const UPLOAD_HELP = "PDF with selectable text, Word or PowerPoint files, text notes, images, or audio. Up to 25 MB per file.";
 
 export function validateUpload(file: Pick<File, "name" | "size">): void {
   if (!file.size) throw new Error("This file is empty. Choose a file with content.");

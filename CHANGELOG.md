@@ -7,6 +7,14 @@ Keep a Changelog, and the project uses semantic versioning for public releases.
 
 ### Added
 
+- Word (`.docx`) and PowerPoint (`.pptx`) uploads. Paragraphs, tables,
+  footnotes and endnotes are read from Word files; slides are read in
+  presentation order with speaker notes and labelled by number. Tracked
+  deletions, field codes and duplicate fallback renderings are excluded.
+  Parsing uses only the standard library, refuses DTDs at the parser, never
+  follows external relationships, and is bounded by entry count, part size,
+  total bytes, slide count and text length. Password-protected and legacy
+  `.doc`/`.ppt` files are identified as such rather than failing generically.
 - Deployment provenance. `/health` reports the commit the API was built from,
   and `/ready` reports the API's and the worker's. The worker publishes its
   revision beside its heartbeat, and Sentry events carry it as the release.

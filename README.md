@@ -45,7 +45,7 @@ for what the evidence supports.
 | Voice note | Record, listen back, choose journal or reference source, then explicitly save or discard. A failed save keeps the in-memory recording for retry with the same request identity. Leaving the view or refreshing discards an unsaved recording. |
 | Phone photo or screenshot | Apply the photo's orientation before local OCR. Printed text works best; handwriting, equations, and page layout fidelity are not established. |
 | PDF and text notes | Extract selectable PDF text from up to 100 pages; report page limits and pages without readable text. Image-only PDFs need page images or pasted text. Files are limited to 25 MB. |
-| Presentations and homework | Export DOCX/PPTX to a PDF with selectable text, or paste the text. Direct Office-file parsing is not implemented. |
+| Word and PowerPoint | Read `.docx` paragraphs, tables, footnotes and endnotes, and `.pptx` slides in presentation order with speaker notes, each labelled by slide number. Tracked deletions are excluded. Text inside images, legacy `.doc`/`.ppt`, and password-protected files are not read; the upload says which. |
 | Article link | Save readable authorized content when available. A saved link is distinct from extracted text; the app does not bypass access controls. |
 
 Uploads distinguish unreadable, partial, queued, and completed extraction.

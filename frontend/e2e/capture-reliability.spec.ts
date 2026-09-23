@@ -68,12 +68,27 @@ test("partial extraction is visible and a slow save preserves the next draft", a
   await expect(page.getByLabel("Context")).toHaveValue("My next note");
 });
 
-test("unsupported office formats are rejected before any upload request", async ({ page }) => {
+test("legacy office formats are rejected before any upload request", async ({ page }) => {
   const api = await installMockApi(page);
   await page.goto("/app/");
-  await page.getByLabel("Choose a file to attach").setInputFiles({ ...file, name: "homework.docx" });
+  await page.getByLabel("Choose a file to attach").setInputFiles({ ...file, name: "homework.doc" });
   await expect(page.getByText(/This file format is not supported yet/)).toBeVisible();
   expect(api?.getUploadPostCount()).toBe(0);
+});
+
+test("word and powerpoint files are sent for reading", async ({ page }) => {
+  await installMockApi(page);
+  const filenames: unknown[] = [];
+  await page.route("**/v1/uploads", async route => {
+    const payload = route.request().postDataJSON();
+    filenames.push(payload.filename);
+    await route.fulfill({ json: { ...ready, filename: payload.filename } });
+  });
+  await page.goto("/app/");
+  await expect(page.getByLabel("Choose a file to attach")).toHaveAttribute("accept", /\.docx,\.pptx/);
+  await page.getByLabel("Choose a file to attach").setInputFiles({ ...file, name: "homework.docx" });
+  await expect.poll(() => filenames).toEqual(["homework.docx"]);
+  await expect(page.getByText(/This file format is not supported yet/)).toHaveCount(0);
 });
 
 for (const width of [320, 390, 834, 1440]) {

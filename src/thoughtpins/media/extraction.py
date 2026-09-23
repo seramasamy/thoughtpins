@@ -12,6 +12,7 @@ from loguru import logger
 from thoughtpins.config import config  # noqa: F401 - compatibility for extraction configuration
 from thoughtpins.media.attachments import save_media_attachment  # noqa: F401
 from thoughtpins.media.extraction_types import MediaExtraction
+from thoughtpins.media.office import OFFICE_SUFFIXES, extract_office_text
 
 TEXT_SUFFIXES = {".txt", ".md", ".markdown", ".csv", ".json", ".log"}
 PDF_PAGE_LIMIT = 100
@@ -58,6 +59,10 @@ def extract_document_text(content: bytes, suffix: str) -> MediaExtraction:
             kind="document",
             metadata={"suffix": normalized_suffix, "engine": "utf8"},
         )
+    if normalized_suffix in OFFICE_SUFFIXES:
+        # Before the textish-bytes fallback: a .docx is a ZIP of XML, and must
+        # never be decoded as if its compressed bytes were text.
+        return extract_office_text(content, normalized_suffix)
     if normalized_suffix == ".pdf":
         try:
             from pypdf import PdfReader
