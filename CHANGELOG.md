@@ -7,6 +7,15 @@ Keep a Changelog, and the project uses semantic versioning for public releases.
 
 ### Added
 
+- Deployment provenance. `/health` reports the commit the API was built from,
+  and `/ready` reports the API's and the worker's. The worker publishes its
+  revision beside its heartbeat, and Sentry events carry it as the release.
+- `scripts/deploy_railway.py`, which deploys one commit from `origin/main` with
+  a green `ci.yml` run, refuses when migrations were added since the deployed
+  builds, uploads a `git archive` export instead of a working tree, and waits
+  until each service reports the new revision. Production had been running
+  builds 14 and 18 commits behind `main` with no record of which.
+
 - An independent accuracy audit of the frozen September retrieval backtest,
   with separate metric/statistical code, hand-worked tests, raw-data mapping
   verification and clearer README comparisons against tuned BM25 and prior GLM.

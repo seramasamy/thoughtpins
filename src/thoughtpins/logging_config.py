@@ -6,6 +6,7 @@ import sys
 
 from loguru import logger
 
+from thoughtpins.build_info import source_revision
 from thoughtpins.config import config
 from thoughtpins.logging_policy import apply_logging_policy
 
@@ -76,6 +77,9 @@ def setup_logging() -> None:
             sentry_sdk.init(
                 dsn=config.SENTRY_DSN,
                 environment=config.ENVIRONMENT,
+                # Ties each error to the commit that raised it. None keeps the
+                # SDK's own default, which is what every build had before.
+                release=source_revision(),
                 traces_sample_rate=0.0,
                 before_send=_scrub_sentry_event,
                 max_request_body_size="never",

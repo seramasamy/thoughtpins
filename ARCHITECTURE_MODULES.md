@@ -134,6 +134,11 @@ as thin adapters.
   analysis for saved reading sources.
 - `runtime_health.py`: deep runtime dependency checks for LLM, embeddings,
   article fetch providers, Redis, workers, graph backend, DB, and job backlog.
+- `build_info.py`: the commit a process was built from, read from the stamp
+  `scripts/deploy_railway.py` writes into a deployment export, or from
+  Railway's GitHub build variable. Unknown is reported as unknown. `/health`
+  serves the API's revision and `/ready` both services'; the worker publishes
+  its own beside its heartbeat.
 - `llm/`: provider-neutral OpenAI-compatible LLM client and JSON repair.
 - `backup.py` and `backup_provenance.py`: archive creation/restore and adjacent
   integrity/recovery metadata. Restore verifies available SHA-256 sidecars
@@ -167,7 +172,9 @@ as thin adapters.
   generated reports.
 - `scripts/`: release gates, smoke tests, migrations checks, live evals, and
   maintenance entry points. Scripts should import core gears rather than
-  reimplementing product behavior.
+  reimplementing product behavior. `scripts/deploy_railway.py` is the only
+  supported Railway deploy path: one CI-green commit from `origin/main`,
+  exported rather than uploaded from a working tree, then verified by revision.
 - `frontend/src/styles/`: ordered, token-driven style layers. Shared visual
   primitives, controls, feedback/data components, feature views, and
   responsive overrides remain separate so cascade ownership is explicit.

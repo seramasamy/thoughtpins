@@ -11,6 +11,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel
 
+from thoughtpins.build_info import normalize_revision, source_revision
 from thoughtpins.config import config, public_client_url
 from thoughtpins.runtime_health import build_deep_health_checks, build_readiness_checks, deep_health_status
 
@@ -84,6 +85,10 @@ def create_metadata_router(
             "status": "ok",
             "uptime_seconds": round(time.time() - start_time, 1),
             "version": config.API_VERSION,
+            # The commit this process was built from. `version` is a release
+            # label that stays fixed from one deployment to the next; this is
+            # what says whether production is running what GitHub main holds.
+            "revision": source_revision(),
             "environment": config.ENVIRONMENT,
             "auth_required": config.REQUIRE_API_AUTH,
             "maintenance_mode": config.MAINTENANCE_MODE,
@@ -99,14 +104,25 @@ def create_metadata_router(
         except TimeoutError:
             return JSONResponse(
                 status_code=503,
-                content={"status": "not_ready", "checks": {"runtime": "timeout"}},
+                content={
+                    "status": "not_ready",
+                    "checks": {"runtime": "timeout"},
+                    "revision": {"api": source_revision(), "worker": None},
+                },
             )
         ready = deep_health_status(checks) == "ok"
+        worker = checks.get("worker")
         return JSONResponse(
             status_code=200 if ready else 503,
             content={
                 "status": "ready" if ready else "not_ready",
                 "checks": {name: str(check.get("status") or "unknown") for name, check in checks.items()},
+                # API and worker deploy separately and once ran builds five days
+                # apart. Reported, not judged: a rolling deploy is briefly mixed.
+                "revision": {
+                    "api": source_revision(),
+                    "worker": normalize_revision(worker.get("revision")) if isinstance(worker, dict) else None,
+                },
             },
         )
 
@@ -249,6 +265,7 @@ def create_metadata_router(
             "status": deep_health_status(checks),
             "uptime_seconds": round(time.time() - start_time, 1),
             "version": config.API_VERSION,
+            "revision": source_revision(),
             "checks": checks,
         }
 

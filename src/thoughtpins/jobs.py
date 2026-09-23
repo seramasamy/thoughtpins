@@ -11,6 +11,7 @@ from loguru import logger
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from thoughtpins.build_info import normalize_revision, source_revision
 from thoughtpins.config import config
 from thoughtpins.db import IngestionJob, User
 from thoughtpins.ingestion.pipeline import process_message
@@ -22,6 +23,11 @@ _executor = ThreadPoolExecutor(max_workers=max(1, config.INGESTION_WORKER_THREAD
 _DISPATCHABLE_STATUSES = ("pending", "retry")
 _CLAIMABLE_STATUSES = (*_DISPATCHABLE_STATUSES, "queued")
 _QUEUE_DISPATCH_ERROR = "The processing queue is temporarily unavailable."
+
+WORKER_HEARTBEAT_KEY = "thoughtpins:worker:heartbeat"
+# A separate key rather than a richer heartbeat value: an API one release behind
+# parses the heartbeat as a bare timestamp, and must keep doing so mid-deploy.
+WORKER_REVISION_KEY = "thoughtpins:worker:revision"
 
 
 class IngestionDispatchUnavailable(RuntimeError):
@@ -207,6 +213,8 @@ def worker_health() -> dict[str, Any]:
             "status": "ok",
             "backend": "thread",
             "max_workers": max(1, config.INGESTION_WORKER_THREADS),
+            # In-process workers are this build by definition.
+            "revision": source_revision(),
         }
 
     if config.INGESTION_QUEUE_BACKEND != "celery":
@@ -219,7 +227,7 @@ def worker_health() -> dict[str, Any]:
         from redis import Redis
 
         client = Redis.from_url(config.REDIS_URL, socket_connect_timeout=1, socket_timeout=1, decode_responses=True)
-        heartbeat = client.get("thoughtpins:worker:heartbeat")
+        heartbeat = client.get(WORKER_HEARTBEAT_KEY)
         queue_depth: int | None = None
         try:
             queue_depth = int(client.llen(config.CELERY_QUEUE_NAME))
@@ -248,9 +256,20 @@ def worker_health() -> dict[str, Any]:
             "heartbeat_age_seconds": age,
             "queue": config.CELERY_QUEUE_NAME,
             "queue_depth": queue_depth,
+            "revision": _worker_revision(client),
         }
     except Exception as e:
         return {"status": "error", "backend": "celery", "detail": str(e)[:200]}
+
+
+def _worker_revision(client: Any) -> str | None:
+    # Optional: a worker from before revisions were published has none, and
+    # that must not turn a live worker into a failed readiness check.
+    try:
+        value = client.get(WORKER_REVISION_KEY)
+    except Exception:
+        return None
+    return normalize_revision(value)
 
 
 def recover_pending_jobs() -> int:

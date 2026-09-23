@@ -637,6 +637,8 @@ def test_public_readiness_is_minimal_and_returns_503_for_dependency_failure(isol
     assert response.json() == {
         "status": "not_ready",
         "checks": {"db": "ok", "redis": "error", "worker": "ok", "vector": "configured"},
+        # A developer checkout has no build stamp; unknown is reported as such.
+        "revision": {"api": None, "worker": None},
     }
     assert "detail" not in response.text
 
@@ -652,7 +654,11 @@ def test_public_readiness_fails_closed_when_dependency_checks_time_out(isolated_
     response = TestClient(app).get("/ready")
 
     assert response.status_code == 503
-    assert response.json() == {"status": "not_ready", "checks": {"runtime": "timeout"}}
+    assert response.json() == {
+        "status": "not_ready",
+        "checks": {"runtime": "timeout"},
+        "revision": {"api": None, "worker": None},
+    }
 
 
 def test_job_list_retry_and_cancel(isolated_db, monkeypatch):

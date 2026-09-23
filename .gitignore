@@ -100,3 +100,6 @@ mobile/android/thoughtpins-app/keystore.properties
 # building it from the command line.
 .swiftpm/
 /Thought Pins/
+
+# Written only into a deployment export by scripts/deploy_railway.py.
+src/thoughtpins/_build_info.json

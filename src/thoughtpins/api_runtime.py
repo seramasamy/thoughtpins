@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from loguru import logger
 from starlette.concurrency import run_in_threadpool
 
+from thoughtpins.build_info import source_revision
 from thoughtpins.config import config
 from thoughtpins.jobs import recover_pending_jobs
 from thoughtpins.library import flush_document_indexing
@@ -80,7 +81,7 @@ def _shutdown() -> None:
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     with request_worker_budget():
         await run_in_threadpool(_startup)
-        logger.info("Thought Pins API started")
+        logger.info("Thought Pins API started at revision {}", source_revision() or "unknown")
         try:
             yield
         finally:

@@ -25,7 +25,8 @@ behavior checks, PostgreSQL RLS verification, startup/shutdown and recovery
 tests. Some run offline; others require configured infrastructure. Check the
 command's options and the release runner before using a production target.
 
-**The rest** — release, export, and generation tooling: `export_vault.py`,
+**The rest** — release, export, and generation tooling: `deploy_railway.py`
+(the Railway deploy path; see the production runbook), `export_vault.py`,
 `generate_sbom.py`, `create_public_export.py`, `ios_release.sh`,
 `bootstrap_macos.sh`.
 

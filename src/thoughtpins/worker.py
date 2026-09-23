@@ -10,8 +10,14 @@ from typing import Any
 
 from loguru import logger
 
+from thoughtpins.build_info import source_revision
 from thoughtpins.config import config
-from thoughtpins.jobs import recover_pending_jobs, run_ingestion_job
+from thoughtpins.jobs import (
+    WORKER_HEARTBEAT_KEY,
+    WORKER_REVISION_KEY,
+    recover_pending_jobs,
+    run_ingestion_job,
+)
 from thoughtpins.logging_config import setup_logging
 from thoughtpins.vault.transfers import recover_vault_import_sessions, run_vault_import_session
 
@@ -35,7 +41,11 @@ def record_worker_heartbeat() -> None:
     client = _redis_client()
     if not client:
         return
-    client.setex("thoughtpins:worker:heartbeat", config.WORKER_HEARTBEAT_TTL_SECONDS, _utc_timestamp())
+    ttl = config.WORKER_HEARTBEAT_TTL_SECONDS
+    client.setex(WORKER_HEARTBEAT_KEY, ttl, _utc_timestamp())
+    # Same lifetime as the heartbeat, so a stopped worker's revision expires
+    # with it instead of vouching for a process that is gone.
+    client.setex(WORKER_REVISION_KEY, ttl, source_revision() or "unknown")
 
 
 def _recover_queue(label: str, recover: Callable[[], int]) -> int:
@@ -110,7 +120,9 @@ def _on_worker_ready(sender=None, **kwargs) -> None:
     del sender, kwargs
     record_worker_heartbeat()
     recover_jobs_if_due(force=True)
-    logger.info("Celery worker ready on queue {}", config.CELERY_QUEUE_NAME)
+    logger.info(
+        "Celery worker ready on queue {} at revision {}", config.CELERY_QUEUE_NAME, source_revision() or "unknown"
+    )
 
 
 def _on_worker_heartbeat(sender=None, **kwargs) -> None:

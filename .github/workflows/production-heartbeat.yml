@@ -57,3 +57,25 @@ jobs:
           echo "     Both services need it. The worker was left on a dead cluster once."
           echo "  4. railway redeploy --service api --yes && railway redeploy --service worker --yes"
           exit 1
+
+      - name: Report deployed revision
+        # Informational, never failing. Production deploys by hand through
+        # scripts/deploy_railway.py, so main runs ahead of it between deploys;
+        # a warning here is the prompt to deploy, not an outage. It exists
+        # because production once ran builds 14 and 18 commits behind main
+        # while every check stayed green.
+        if: always()
+        run: |
+          set -uo pipefail
+          body="$(curl -sS --max-time 30 https://api.thoughtpins.com/ready || true)"
+          read_revision() {
+            printf '%s' "$body" | python3 -c "import json, sys; print((json.load(sys.stdin).get('revision') or {}).get('$1') or 'unknown')" 2>/dev/null || echo unknown
+          }
+          api="$(read_revision api)"
+          worker="$(read_revision worker)"
+          echo "main:   $GITHUB_SHA"
+          echo "api:    $api"
+          echo "worker: $worker"
+          if [ "$api" != "$GITHUB_SHA" ] || [ "$worker" != "$GITHUB_SHA" ]; then
+            echo "::warning::Production is not running main ${GITHUB_SHA::12} (api ${api::12}, worker ${worker::12}). Deploy with: python scripts/deploy_railway.py"
+          fi

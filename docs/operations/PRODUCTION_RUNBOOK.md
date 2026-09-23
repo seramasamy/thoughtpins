@@ -43,6 +43,40 @@
    - `k6 run load/k6-health.js`
    - `k6 run load/k6-api-flow.js`
 
+### Railway: deploy a commit, not a folder
+
+Do not run `railway up` from a checkout. It uploads the working tree as it
+stands, uncommitted files included, and records no commit. That is how
+production came to run API and worker builds 14 and 18 commits behind GitHub
+main in September 2026 with nothing but deployment notes to say so.
+
+Use `scripts/deploy_railway.py` instead. It deploys one commit that is on
+`origin/main` and has a green `ci.yml` run, exports it with `git archive`,
+stamps `src/thoughtpins/_build_info.json`, uploads that export to `api` and
+then `worker`, and waits until each service reports the new revision:
+
+```bash
+python scripts/deploy_railway.py --dry-run   # every check and the export, no upload
+python scripts/deploy_railway.py             # deploy origin/main to production
+```
+
+The script refuses when migrations were added since the builds production is
+running. Apply them first (step 5, with `DATABASE_PUBLIC_URL` from a
+workstation), then rerun with `--migrations-applied`. A build from before
+revision stamping reports no revision, so the first stamped deploy needs the
+baseline named explicitly with `--since <sha>`, once per deployed build, taken
+from each service's Railway deployment note. Pass `--project <id>` when running
+from a checkout that is not linked with `railway link`.
+
+What each service is running is public and needs no credentials:
+
+- `GET /health` → `revision`: the API's commit.
+- `GET /ready` → `revision.api` and `revision.worker`. The worker publishes its
+  commit beside its heartbeat, with the same expiry. A mixed pair is normal for
+  the minute a deploy takes; a lasting one is a deploy that did not finish.
+
+`null` means the build carries no stamp, not that it is current.
+
 ## Local Bootstrap
 
 Use this on a fresh development/staging workstation:
@@ -228,6 +262,10 @@ role before rerunning the rehearsal.
 2. Start the previous known-good image.
 3. If the migration changed schema incompatibly, run the matching Alembic downgrade only after confirming the previous image requires it.
 4. Verify `/health`, `/ready`, `/v1/health/deep`, login, entry queueing, and worker heartbeat.
+   On Railway, `python scripts/deploy_railway.py --ref <known-good-sha>`
+   redeploys an earlier commit from `main`, and `/health` and `/ready` confirm
+   which revision each service now runs. The script checks for migrations the
+   target adds, not ones it lacks; step 3 is still a human decision.
 
 ## Backup
 
