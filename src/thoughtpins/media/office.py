@@ -16,8 +16,10 @@ is labelled so a retrieved passage can still be traced to its slide.
 from __future__ import annotations
 
 import io
+import lzma
 import posixpath
 import zipfile
+import zlib
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from typing import Any, NoReturn
@@ -30,8 +32,18 @@ from thoughtpins.media.extraction_types import MediaExtraction
 
 OFFICE_SUFFIXES = frozenset({".docx", ".pptx"})
 MAX_ENTRIES = 5_000
-MAX_PART_BYTES = 32 * 1024 * 1024
-MAX_TOTAL_BYTES = 128 * 1024 * 1024
+# Parsing is in the request and costs roughly nine times the XML size in
+# memory: a 31 MiB part took 14 s and 277 MiB. 16 MiB still holds a document
+# far longer than MAX_TEXT_CHARS, since markup outweighs the text it carries.
+MAX_PART_BYTES = 16 * 1024 * 1024
+MAX_TOTAL_BYTES = 48 * 1024 * 1024
+# Word's own output compresses about 30:1 even for large empty tables, because
+# it gives every paragraph a unique ID; generators that omit the IDs reach about
+# 150:1. Deflate tops out near 1,000:1, which only a file built to cost the
+# server approaches. MAX_PART_BYTES is the real memory bound; this refuses the
+# extreme before inflating anything.
+MAX_COMPRESSION_RATIO = 400
+_RATIO_EXEMPT_BYTES = 1024 * 1024
 MAX_SLIDES = 500
 MAX_TEXT_CHARS = 2_000_000
 
@@ -62,6 +74,8 @@ class _Package:
         if info.flag_bits & 0x1:
             raise OfficeReadError("office_protected")
         if info.file_size > MAX_PART_BYTES or info.file_size > self.budget:
+            raise OfficeReadError("office_too_large")
+        if info.file_size > _RATIO_EXEMPT_BYTES and info.file_size > MAX_COMPRESSION_RATIO * max(info.compress_size, 1):
             raise OfficeReadError("office_too_large")
         self.budget -= info.file_size
         with self.archive.open(info) as handle:
@@ -127,7 +141,19 @@ def extract_office_text(content: bytes, suffix: str) -> MediaExtraction:
             text, details = reader(package)
     except OfficeReadError as exc:
         return MediaExtraction(kind="document", metadata=metadata, error=exc.code)
-    except (zipfile.BadZipFile, expat.ExpatError, KeyError, EOFError, ValueError, RuntimeError) as exc:
+    except (
+        zipfile.BadZipFile,
+        # A damaged compressed stream fails in the decompressor, not in
+        # zipfile, and used to escape as an HTTP 500 instead of this result.
+        zlib.error,
+        lzma.LZMAError,
+        OSError,
+        EOFError,
+        expat.ExpatError,
+        KeyError,
+        ValueError,
+        RuntimeError,
+    ) as exc:
         # Type only: parser messages can quote the document's own text.
         logger.warning("Office extraction failed ({})", type(exc).__name__)
         return MediaExtraction(kind="document", metadata=metadata, error="office_extract_failed")

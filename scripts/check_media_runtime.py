@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import shutil
 import sys
 import zipfile
 from pathlib import Path
@@ -46,11 +47,24 @@ def main() -> int:
     extracted = extract_image_text(image.getvalue(), suffix=".png")
     if not extracted.ok or phrase not in " ".join(extracted.text.split()):
         raise RuntimeError("Production OCR failed its generated fixture")
+    # A scanned page: a page-sized image with no text layer, read by the same
+    # OCR engine through the PDF path's image decoding and page budget.
+    page = Image.new("L", (1275, 1650), "white")
+    ImageDraw.Draw(page).text((120, 200), phrase, fill="black", font=ImageFont.load_default(size=56))
+    scanned = io.BytesIO()
+    page.save(scanned, format="PDF", resolution=150)
+    scan = extract_document_text(scanned.getvalue(), ".pdf")
+    if not scan.ok or phrase not in " ".join(scan.text.split()) or scan.metadata.get("ocr_pages") != [1]:
+        raise RuntimeError("Production scanned-PDF OCR failed its generated fixture")
     for suffix, package in ((".docx", _docx(phrase)), (".pptx", _pptx(phrase))):
         office = extract_document_text(package, suffix)
         if not office.ok or phrase not in office.text:
             raise RuntimeError(f"Production {suffix} extraction failed its generated fixture")
-    print("Production PDF, image, and Office extraction passed generated content checks.")
+    # Office scanners and Acrobat's scan optimisation write JBIG2 images, which
+    # pypdf decodes only through this binary. Without it every such page fails.
+    if shutil.which("jbig2dec") is None:
+        raise RuntimeError("jbig2dec is missing; JBIG2-compressed scans cannot be decoded")
+    print("Production PDF, scanned-PDF OCR, image, and Office extraction passed generated content checks.")
     return 0
 
 

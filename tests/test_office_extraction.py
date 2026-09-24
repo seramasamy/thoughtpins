@@ -345,3 +345,92 @@ def test_a_protected_office_file_asks_for_text_with_a_specific_reason(upload_cli
     assert body["extraction_status"] == "office_protected"
     assert "password-protected" in body["error"]
     assert body["attachment_saved"] is True
+
+
+def corrupt_entry(content: bytes, name: str = "word/document.xml") -> bytes:
+    """Damage one entry's compressed bytes while leaving the ZIP envelope intact."""
+
+    header = zipfile.ZipFile(io.BytesIO(content)).getinfo(name).header_offset
+    data = bytearray(content)
+    name_length = int.from_bytes(data[header + 26 : header + 28], "little")
+    extra_length = int.from_bytes(data[header + 28 : header + 30], "little")
+    start = header + 30 + name_length + extra_length
+    for offset in range(8):
+        data[start + offset] ^= 0xA5
+    return bytes(data)
+
+
+def recompressed(content: bytes, compression: int) -> bytes:
+    source = zipfile.ZipFile(io.BytesIO(content))
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", compression) as archive:
+        for info in source.infolist():
+            archive.writestr(info.filename, source.read(info.filename))
+    return buffer.getvalue()
+
+
+@pytest.mark.parametrize("compression", [zipfile.ZIP_DEFLATED, zipfile.ZIP_BZIP2, zipfile.ZIP_LZMA])
+def test_a_damaged_compressed_stream_is_an_unreadable_file_not_a_crash(compression):
+    """zlib.error and bz2's OSError used to escape extraction and become HTTP 500s."""
+
+    damaged = corrupt_entry(recompressed(docx(HOMEWORK), compression))
+
+    result = extract_document_text(damaged, ".docx")
+
+    assert result.error == "office_extract_failed"
+    assert result.text == ""
+
+
+def test_a_part_that_inflates_implausibly_is_refused_before_inflating():
+    # About 665:1 -- what a decompression-cost attack looks like, not a document.
+    bomb = docx("<w:p/>" * 600_000)
+    ratio_info = next(i for i in zipfile.ZipFile(io.BytesIO(bomb)).infolist() if i.filename == "word/document.xml")
+    assert ratio_info.file_size > office.MAX_COMPRESSION_RATIO * ratio_info.compress_size
+
+    assert extract_document_text(bomb, ".docx").error == "office_too_large"
+
+
+def test_a_long_real_looking_document_is_still_read():
+    import random
+
+    rng = random.Random(7)
+    words = [f"{rng.choice('bcdfghjklmnpqrstvwz')}{rng.choice('aeiou')}{rng.randrange(10_000)}" for _ in range(120_000)]
+    body = "".join(paragraph(run(" ".join(words[i : i + 12]))) for i in range(0, len(words), 12))
+    content = docx(body)
+    part = next(i for i in zipfile.ZipFile(io.BytesIO(content)).infolist() if i.filename == "word/document.xml")
+    assert part.file_size > 1024 * 1024, "the fixture must exceed the ratio exemption to exercise the cap"
+
+    result = extract_document_text(content, ".docx")
+
+    assert result.ok, result.error
+    assert words[-1] in result.text
+
+
+def test_a_damaged_office_upload_asks_for_text_instead_of_failing(upload_client):
+    damaged = corrupt_entry(docx(HOMEWORK))
+
+    response = upload_client.post(
+        "/v1/uploads",
+        json={"filename": "damaged.docx", "content_base64": base64.b64encode(damaged).decode("ascii")},
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["status"] == "needs_text"
+    assert body["extraction_status"] == "office_extract_failed"
+    assert "Paste the text" in body["error"]
+
+
+def test_a_large_table_of_identical_empty_cells_is_still_read():
+    """Generators that omit Word's paragraph IDs reach ~150:1 on empty tables."""
+
+    cell = '<w:tc><w:tcPr><w:tcW w:w="1870" w:type="dxa"/></w:tcPr><w:p/></w:tc>'
+    table = "<w:tbl>" + ("<w:tr>" + cell * 6 + "</w:tr>") * 8_000 + "</w:tbl>"
+    content = docx(paragraph(run("Inspection form, section 2")) + table)
+    part = next(i for i in zipfile.ZipFile(io.BytesIO(content)).infolist() if i.filename == "word/document.xml")
+    assert part.file_size > 100 * part.compress_size, "the fixture must be as compressible as the real case"
+
+    result = extract_document_text(content, ".docx")
+
+    assert result.ok, result.error
+    assert "Inspection form, section 2" in result.text

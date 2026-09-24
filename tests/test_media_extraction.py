@@ -193,3 +193,90 @@ def test_hosted_transcription_failure_is_generic(monkeypatch):
     result = transcribe_audio(b"audio fixture", suffix=".m4a")
     assert result.error == "transcription_failed"
     assert "sensitive" not in repr(result)
+
+
+def test_telegram_document_extraction_runs_off_the_event_loop(monkeypatch):
+    """A scanned PDF takes up to 40 s of OCR; on the loop it froze every chat."""
+
+    import asyncio
+    import threading
+    from types import SimpleNamespace
+
+    import thoughtpins.bot.photos as photos
+
+    threads: dict[str, int] = {}
+
+    def extract(content: bytes, suffix: str) -> str:
+        threads["extract"] = threading.get_ident()
+        return "Readable document text long enough to be saved as a source."
+
+    async def ingest(update, text) -> None:
+        threads["ingest"] = threading.get_ident()
+
+    class Status:
+        async def edit_text(self, text: str) -> None:
+            return None
+
+    class Message:
+        chat_id = 42
+        caption = ""
+        document = SimpleNamespace(file_name="scan.pdf", file_id="file-1")
+
+        async def reply_text(self, text: str) -> Status:
+            return Status()
+
+    class File:
+        async def download_as_bytearray(self) -> bytearray:
+            return bytearray(b"%PDF-1.4 fixture")
+
+    class Bot:
+        async def get_file(self, file_id: str) -> File:
+            return File()
+
+    monkeypatch.setattr(photos, "_extract_document_text", extract)
+    monkeypatch.setattr(photos, "_save_attachment", lambda *args, **kwargs: None)
+    monkeypatch.setattr(photos, "ingest_library_message", ingest)
+    monkeypatch.setattr(photos, "_e", lambda emoji, chat_id: "")
+
+    asyncio.run(photos.handle_document_message(SimpleNamespace(message=Message()), SimpleNamespace(bot=Bot())))
+
+    assert threads["extract"] != threads["ingest"], "extraction must not run on the event loop thread"
+
+
+def test_telegram_voice_ends_the_lookup_transaction_before_transcribing(monkeypatch):
+    """Transcription takes seconds; no pooled connection may sit idle in a transaction."""
+
+    from types import SimpleNamespace
+
+    import thoughtpins.bot.voice as voice
+
+    events: list[str] = []
+
+    class Session:
+        def commit(self) -> None:
+            events.append("commit")
+
+        def close(self) -> None:
+            events.append("close")
+
+    def ingest(session, **kwargs):
+        from thoughtpins.uploads import UploadIngestOutcome
+
+        events.append("ingest")
+        return UploadIngestOutcome(
+            status="ok",
+            route_type="journal_upload",
+            filename="telegram-voice-note.ogg",
+            media_kind="audio",
+            destination="journal",
+            extraction_status="processed",
+        )
+
+    monkeypatch.setattr(voice, "get_session", Session)
+    monkeypatch.setattr(voice, "record_audit_event", lambda *args, **kwargs: None)
+    monkeypatch.setattr(voice, "telegram_user_id", lambda update, session: "user-1")
+    monkeypatch.setattr(voice, "ingest_upload", ingest)
+
+    voice._ingest_voice(SimpleNamespace(message=SimpleNamespace(message_id=1, chat_id=2)), b"OggS")
+
+    assert events.index("commit") < events.index("ingest")

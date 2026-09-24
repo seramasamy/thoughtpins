@@ -4,18 +4,19 @@ from __future__ import annotations
 
 import io
 import shutil
-import tempfile
-from pathlib import Path
+import threading
+from typing import Any
 
 from loguru import logger
 
 from thoughtpins.config import config  # noqa: F401 - compatibility for extraction configuration
 from thoughtpins.media.attachments import save_media_attachment  # noqa: F401
 from thoughtpins.media.extraction_types import MediaExtraction
+from thoughtpins.media.ocr import read_image_text
 from thoughtpins.media.office import OFFICE_SUFFIXES, extract_office_text
+from thoughtpins.media.pdf import PDF_PAGE_LIMIT, extract_pdf_text  # noqa: F401 - PDF_PAGE_LIMIT compatibility
 
 TEXT_SUFFIXES = {".txt", ".md", ".markdown", ".csv", ".json", ".log"}
-PDF_PAGE_LIMIT = 100
 
 
 def extract_image_text(content: bytes, *, suffix: str = ".jpg") -> MediaExtraction:
@@ -31,14 +32,10 @@ def extract_image_text(content: bytes, *, suffix: str = ".jpg") -> MediaExtracti
             if original.width * original.height > 25_000_000:
                 return MediaExtraction(kind="image", error="image_too_large")
             image = ImageOps.exif_transpose(original).convert("RGB")
-        with tempfile.TemporaryDirectory(prefix="thoughtpins-ocr-") as directory:
-            tmp_path = Path(directory) / "image.png"
-            image.save(tmp_path, format="PNG")
-            results = reader.readtext(str(tmp_path), detail=0, paragraph=True)
-            text = " ".join(str(item) for item in results).strip()
-            if text:
-                logger.info("OCR extracted {} chars from image", len(text))
-            return MediaExtraction(text=text, kind="image", metadata={"engine": getattr(reader, "engine", "easyocr")})
+        text = read_image_text(reader, image)
+        if text:
+            logger.info("OCR extracted {} chars from image", len(text))
+        return MediaExtraction(text=text, kind="image", metadata={"engine": getattr(reader, "engine", "easyocr")})
     except ImportError:
         logger.debug("An OCR dependency is not installed")
         return MediaExtraction(kind="image", error="missing_ocr_dependency")
@@ -64,38 +61,8 @@ def extract_document_text(content: bytes, suffix: str) -> MediaExtraction:
         # never be decoded as if its compressed bytes were text.
         return extract_office_text(content, normalized_suffix)
     if normalized_suffix == ".pdf":
-        try:
-            from pypdf import PdfReader
-        except ImportError:
-            logger.debug("pypdf is not installed; PDF extraction unavailable")
-            return MediaExtraction(kind="document", metadata={"suffix": normalized_suffix}, error="missing_pypdf")
-        try:
-            reader = PdfReader(io.BytesIO(content))
-            pages = [(page.extract_text() or "") for page in reader.pages[:PDF_PAGE_LIMIT]]
-            missing = sum(not page.strip() for page in pages)
-            truncated = len(reader.pages) > PDF_PAGE_LIMIT
-            warnings = []
-            if truncated:
-                warnings.append(f"Only the first {PDF_PAGE_LIMIT} of {len(reader.pages)} pages were read.")
-            if missing:
-                warnings.append(f"{missing} pages had no readable text. Scanned pages need image OCR.")
-            return MediaExtraction(
-                text="\n\n".join(pages).strip(),
-                kind="document",
-                metadata={
-                    "suffix": normalized_suffix,
-                    "engine": "pypdf",
-                    "pages_read": min(len(reader.pages), PDF_PAGE_LIMIT),
-                    "pages_total": len(reader.pages),
-                    "pages_without_text": missing,
-                    "partial": bool(missing or truncated),
-                    "warnings": warnings,
-                },
-                error="pdf_needs_ocr" if not any(page.strip() for page in pages) else None,
-            )
-        except Exception as exc:
-            logger.warning("PDF text extraction failed ({})", type(exc).__name__)
-            return MediaExtraction(kind="document", metadata={"suffix": normalized_suffix}, error="pdf_extract_failed")
+        # Resolved at call time so tests and callers can swap the OCR engine.
+        return extract_pdf_text(content, normalized_suffix, ocr_reader=lambda: _get_ocr_reader(require_timeout=True))
     if _looks_textish(content):
         return MediaExtraction(
             text=content.decode("utf-8", errors="replace").strip(),
@@ -113,20 +80,32 @@ def _looks_textish(content: bytes) -> bool:
     return control / max(len(sample), 1) < 0.05
 
 
-_ocr_reader = None
+_ocr_reader: Any = None
+# Uploads reach this from request worker threads and the Telegram bot from
+# asyncio.to_thread, so the lazy engine is built once, under a lock.
+_ocr_reader_lock = threading.Lock()
 
 
-def _get_ocr_reader():
+def _get_ocr_reader(*, require_timeout: bool = False):
     global _ocr_reader
-    if _ocr_reader is None:
-        executable = shutil.which("tesseract")
-        if executable:
-            from thoughtpins.media.ocr import TesseractReader
+    with _ocr_reader_lock:
+        if _ocr_reader is None:
+            executable = shutil.which("tesseract")
+            if executable:
+                from thoughtpins.media.ocr import TesseractReader
 
-            _ocr_reader = TesseractReader(executable)
-            return _ocr_reader
-        import easyocr
+                _ocr_reader = TesseractReader(executable)
+                return _ocr_reader
+            if require_timeout:
+                # Building EasyOCR loads a large model, possibly downloading it;
+                # a caller that would refuse it anyway must not pay for that.
+                raise ImportError("a time-bounded OCR engine (Tesseract) is not installed")
+            import easyocr
 
-        _ocr_reader = easyocr.Reader(["en"], gpu=False)
-        logger.info("EasyOCR reader loaded for media extraction")
+            from thoughtpins.media.ocr import SerializedReader
+
+            # One EasyOCR model is hundreds of MB and not safe to call from two
+            # threads at once; share one and let calls take turns.
+            _ocr_reader = SerializedReader(easyocr.Reader(["en"], gpu=False), engine="easyocr")
+            logger.info("EasyOCR reader loaded for media extraction")
     return _ocr_reader

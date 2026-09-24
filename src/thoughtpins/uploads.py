@@ -85,8 +85,12 @@ def ingest_upload(
     if len(content) > UPLOAD_MAX_BYTES:
         raise ValueError(f"Uploaded file is too large; limit is {UPLOAD_MAX_BYTES // (1024 * 1024)} MB")
 
-    lock_active_user_for_write(session, user_id)
     media_kind = detect_media_kind(clean_filename, media_type)
+    # Extract before touching the database. OCR and transcription can take tens
+    # of seconds, and neither a pooled connection nor this account's row lock --
+    # which account deletion waits on -- should be held while they run.
+    extraction = _extract(content, filename=clean_filename, media_type=media_type, media_kind=media_kind)
+    lock_active_user_for_write(session, user_id)
     # Voice is ephemeral unless the user has separately enabled the encrypted
     # personal archive. Other user-supplied files retain their existing vault flow.
     attachment = (
@@ -100,7 +104,6 @@ def ingest_upload(
             session=session,
         )
     )
-    extraction = _extract(content, filename=clean_filename, media_type=media_type, media_kind=media_kind)
     text = _combine_caption_and_text(caption, extraction.text)
     resolved_destination = resolve_destination(destination, media_kind)
     attachment_ref = _attachment_ref(attachment) if attachment is not None else None
@@ -281,7 +284,7 @@ def _attachment_ref(path: Path) -> str:
 
 def _human_extraction_error(extraction: MediaExtraction, media_kind: str) -> str:
     if extraction.error == "pdf_needs_ocr":
-        return "This PDF has no selectable text. Upload clear images of its pages for OCR, or paste the text."
+        return _pdf_without_text_message(extraction.metadata)
     if extraction.error == "office_protected":
         return (
             "This file is password-protected or uses the older .doc or .ppt format. "
@@ -296,6 +299,25 @@ def _human_extraction_error(extraction: MediaExtraction, media_kind: str) -> str
     if media_kind == "image":
         return "I could not read text from this image yet. Type or paste the text to save it."
     return "I could not extract readable text from this file. Paste the text you want remembered."
+
+
+def _pdf_without_text_message(metadata: dict[str, Any]) -> str:
+    # Say what actually happened. Advising clearer scans when OCR never ran, or
+    # "try again later" for a server that will never have it, both mislead.
+    if metadata.get("ocr_unavailable"):
+        return (
+            "This PDF has no selectable text, and OCR for PDFs is not set up on this server. "
+            "Paste the text, or upload images of its pages."
+        )
+    if metadata.get("ocr_busy"):
+        return "OCR is busy with other uploads. Try this PDF again in a minute, or paste the text."
+    if metadata.get("ocr_skipped_pages") or metadata.get("ocr_unchecked_pages") or metadata.get("pages_timed_out"):
+        return "This PDF needs more OCR time than one upload allows. Split it into smaller files, or paste the text."
+    if metadata.get("ocr_failed_pages"):
+        return (
+            "OCR could not read the scanned pages of this PDF. Upload clearer images of its pages, or paste the text."
+        )
+    return "No readable text was found in this PDF. Upload clear images of its pages, or paste the text."
 
 
 def _chat_metadata(result: ChatEngineResult) -> dict[str, Any]:

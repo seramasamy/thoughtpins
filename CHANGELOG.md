@@ -7,6 +7,20 @@ Keep a Changelog, and the project uses semantic versioning for public releases.
 
 ### Added
 
+- Scanned PDF pages are read with the local OCR engine. Only pages with almost
+  no embedded text that draw a page-sized image are read, so embedded text is
+  never replaced. Text extraction, decoding and OCR share a 40-second budget,
+  OCR reads at most 20 pages per upload and runs for at most two uploads at
+  once (others are told it is busy), and every page not read is reported with
+  its reason. Images are found by a bounded, cycle-safe walk of what each page
+  draws; JPEG and JPEG 2000 scans are sized from their own headers before
+  decoding; `/Rotate` is honoured; OCR output that holds no words is discarded;
+  pages stored as several image strips are reported as only partly read.
+  The image installs `jbig2dec` for JBIG2 scans, and the image build proves
+  Tesseract reads a generated scanned page.
+- The Android file picker offers Word and PowerPoint files, matching the web
+  app; iOS already accepted any file.
+
 - Word (`.docx`) and PowerPoint (`.pptx`) uploads. Paragraphs, tables,
   footnotes and endnotes are read from Word files; slides are read in
   presentation order with speaker notes and labelled by number. Tracked
@@ -48,6 +62,34 @@ Keep a Changelog, and the project uses semantic versioning for public releases.
   must resolve, in CI and the release gate.
 
 ### Fixed
+
+- A damaged Word or PowerPoint file returned HTTP 500: a corrupt deflate or
+  bzip2 stream raised from the decompressor, outside the handled errors. It
+  now returns the unreadable-file result asking for pasted text.
+- A small, highly compressible Office upload could inflate to 31 MiB of XML
+  and cost the API 14 s and 277 MiB. Parts that expand more than 100:1 are
+  refused before inflating, and part and package limits are 16 and 48 MiB.
+- Production logs recorded entity names drawn from journal entries when an
+  entity was created or its type corrected. Those lines now log an identifier
+  and type. 41 further log calls printed exception text, which can quote SQL
+  parameters, parser input, provider requests or file paths named after notes;
+  they now log the exception type. The log-privacy gate fails on content-named
+  arguments -- through slices, f-strings, `.format`, concatenation, containers
+  and wrappers, including `logger.opt()` chains -- and on printed exceptions,
+  except ten reviewed infrastructure messages. It does not yet cover the
+  traceback `logger.exception()` attaches by itself.
+- Uploads held a database connection and the account's row lock while
+  extracting text. Extraction now runs first, so OCR and transcription no
+  longer block account deletion or hold a pooled connection.
+- The Telegram bot ran document and photo extraction on its event loop, which
+  a scanned PDF would have frozen for up to 40 s; both now run in a thread, and
+  the shared OCR engine is built once under a lock.
+- The worker heartbeat used `setex`, which redis-py 8 deprecates and warned
+  about on every worker start; it now uses `set(..., ex=)`.
+- `scripts/deploy_railway.py` accepted a matching revision beside a failing
+  dependency. It now finishes only when `/ready` reports ready with every
+  deployed service on the new revision, within `--ready-timeout`, and names
+  only the checks the server itself counts as unhealthy.
 
 - Blocking API transactions, authorization, rate limiting, and idempotency
   persistence run outside the event loop. Regression tests hold each boundary

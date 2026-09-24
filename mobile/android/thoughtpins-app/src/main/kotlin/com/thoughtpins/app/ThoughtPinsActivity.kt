@@ -164,7 +164,14 @@ private class AndroidFileUploadProvider(
                 if (destination == NativeUploadDestination.OBSIDIAN_VAULT) {
                     arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream")
                 } else {
-                    arrayOf("text/*", "application/pdf", "image/*", "audio/*")
+                    arrayOf(
+                        "text/*",
+                        "application/pdf",
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                        "image/*",
+                        "audio/*",
+                    )
                 }
             )
         } ?: error("No file selected.")

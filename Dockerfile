@@ -28,7 +28,7 @@ WORKDIR /app
 
 COPY requirements-prod.lock ./
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng \
+    && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng jbig2dec \
     && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir --require-hashes -r requirements-prod.lock
 

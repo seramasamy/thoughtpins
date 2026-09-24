@@ -2,14 +2,14 @@ import type { UploadIngestResponse } from "../types";
 
 export const UPLOAD_MAX_BYTES = 25 * 1024 * 1024;
 export const UPLOAD_ACCEPT = ".txt,.md,.markdown,.csv,.json,.log,.pdf,.docx,.pptx,.jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff,.ogg,.oga,.mp3,.m4a,.wav,.webm,.aac,.flac";
-export const UPLOAD_HELP = "PDF with selectable text, Word or PowerPoint files, text notes, images, or audio. Up to 25 MB per file.";
+export const UPLOAD_HELP = "PDFs, including scans, Word or PowerPoint files, text notes, images, or audio. Up to 25 MB per file.";
 
 export function validateUpload(file: Pick<File, "name" | "size">): void {
   if (!file.size) throw new Error("This file is empty. Choose a file with content.");
   if (file.size > UPLOAD_MAX_BYTES) throw new Error("This file exceeds 25 MB. Choose a smaller file.");
   const extension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
   if (!UPLOAD_ACCEPT.split(",").includes(extension)) {
-    throw new Error("This file format is not supported yet. Export it to a PDF with selectable text, or paste its text.");
+    throw new Error("This file format is not supported yet. Export it to PDF, or paste its text.");
   }
 }
 

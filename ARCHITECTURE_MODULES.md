@@ -141,7 +141,14 @@ as thin adapters.
   its own beside its heartbeat.
 - `media/office.py`: bounded `.docx`/`.pptx` text extraction with the standard
   library. DTDs are refused at the parser, external relationships are never
-  followed, and every read is capped by entry count, part size and total bytes.
+  followed, and every read is capped by entry count, part size, total bytes and
+  compression ratio.
+- `media/pdf.py`: PDF text extraction plus bounded OCR of scanned pages. OCR
+  fills only pages without usable embedded text, within a shared time budget,
+  a page limit and a process-wide concurrency limit sized for the upload
+  request; `media/ocr.py` owns the shared OCR call. `uploads.py` extracts
+  before it touches the database, so no connection or row lock is held
+  during OCR or transcription.
 - `llm/`: provider-neutral OpenAI-compatible LLM client and JSON repair.
 - `backup.py` and `backup_provenance.py`: archive creation/restore and adjacent
   integrity/recovery metadata. Restore verifies available SHA-256 sidecars
