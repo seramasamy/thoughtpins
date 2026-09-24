@@ -107,7 +107,7 @@ def generate_conversation_reply(
             user_id=user_id,
         )
     except Exception as exc:
-        logger.warning("Conversation memory context failed: {}", exc)
+        logger.warning("Conversation memory context failed ({})", type(exc).__name__)
         profile = get_response_profile(None, None, chat_id)
         style_prompt = ""
         memory_context = ""
@@ -135,7 +135,7 @@ def generate_conversation_reply(
         response = get_llm_client().chat(messages, temperature=0.65, max_tokens=1200)
         response = trim(response) if trim else (response or "").strip()
     except Exception as exc:
-        logger.warning("Conversation LLM failed: {}", exc)
+        logger.warning("Conversation LLM failed ({})", type(exc).__name__)
         response = ""
 
     if not response:
@@ -147,7 +147,7 @@ def generate_conversation_reply(
                 user_id=user_id,
             )
         except Exception as exc:
-            logger.warning("Conversation local memory fallback failed: {}", exc)
+            logger.warning("Conversation local memory fallback failed ({})", type(exc).__name__)
             response = ""
     if not response:
         response = fallback_conversation_reply(text)

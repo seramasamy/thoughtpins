@@ -119,7 +119,7 @@ async def handle_natural_language(update: Update, context: ContextTypes.DEFAULT_
         await _execute_durable_chat_turn(update, text)
 
     except Exception as e:
-        logger.error("Handler crashed: {}", e)
+        logger.error("Handler crashed ({})", type(e).__name__)
         try:
             await update.message.reply_text("Something went wrong. Try /status to check whether the message was saved.")
         except Exception:

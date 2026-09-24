@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
 from loguru import logger
@@ -34,7 +35,8 @@ async def handle_photo_message(update, context):
         photo_file = await context.bot.get_file(photo.file_id)
         img_bytes = bytes(await photo_file.download_as_bytearray())
         _save_attachment(update, img_bytes, category="photos", filename=f"telegram_{photo.file_id}.jpg")
-        extracted_text = _ocr_extract(img_bytes)
+        # OCR is CPU-bound; on the event loop it would stall every other chat.
+        extracted_text = await asyncio.to_thread(_ocr_extract, img_bytes)
 
         if caption:
             extracted_text = f"{caption}\n\n{extracted_text}" if extracted_text else caption
@@ -50,7 +52,7 @@ async def handle_photo_message(update, context):
         )
         await _process_and_reply(update, extracted_text)
     except Exception as exc:
-        logger.error("Photo processing failed: {}", exc)
+        logger.error("Photo processing failed ({})", type(exc).__name__)
         await status_msg.edit_text(f"{e('Warning')} Couldn't process this image. Saved to vault for manual review.")
 
 
@@ -77,7 +79,8 @@ async def handle_document_message(update, context):
         tg_file = await context.bot.get_file(document.file_id)
         content = bytes(await tg_file.download_as_bytearray())
         _save_attachment(update, content, category="documents", filename=filename)
-        text = _extract_document_text(content, suffix)
+        # Scanned PDFs are OCR'd for up to 40 s; keep that off the event loop.
+        text = await asyncio.to_thread(_extract_document_text, content, suffix)
         caption = update.message.caption or ""
         if caption:
             text = f"{caption}\n\n{text}" if text else caption
@@ -90,7 +93,7 @@ async def handle_document_message(update, context):
         await status_msg.edit_text(f"{e('Info')} Extracted {len(text)} chars. Saving to reading memory...")
         await ingest_library_message(update, f"document: {filename}\n\n{text}")
     except Exception as exc:
-        logger.error("Document processing failed: {}", exc)
+        logger.error("Document processing failed ({})", type(exc).__name__)
         await status_msg.edit_text(f"{e('Warning')} Could not process {filename}. Paste the text with /read.")
 
 

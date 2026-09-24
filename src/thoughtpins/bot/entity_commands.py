@@ -310,7 +310,7 @@ def _delete_memory_vector(memory_id: str) -> None:
 
         get_vector_store().delete([memory_id])
     except Exception as exc:
-        logger.warning("Could not delete memory {} from vector index: {}", memory_id, exc)
+        logger.warning("Could not delete memory {} from vector index ({})", memory_id, type(exc).__name__)
 
 
 async def cmd_forget(update, context) -> None:

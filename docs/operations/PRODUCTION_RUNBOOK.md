@@ -53,7 +53,8 @@ main in September 2026 with nothing but deployment notes to say so.
 Use `scripts/deploy_railway.py` instead. It deploys one commit that is on
 `origin/main` and has a green `ci.yml` run, exports it with `git archive`,
 stamps `src/thoughtpins/_build_info.json`, uploads that export to `api` and
-then `worker`, and waits until each service reports the new revision:
+then `worker`, waits until each service reports the new revision, and
+finishes only when `/ready` reports `ready` with every deployed service on it:
 
 ```bash
 python scripts/deploy_railway.py --dry-run   # every check and the export, no upload

@@ -120,9 +120,10 @@ class _FakeRedis:
         self.values = dict(values or {})
         self.expiry: dict[str, int] = {}
 
-    def setex(self, key: str, ttl: int, value: str) -> None:
+    def set(self, key: str, value: str, ex: int | None = None) -> None:
         self.values[key] = value
-        self.expiry[key] = ttl
+        if ex is not None:
+            self.expiry[key] = ex
 
     def get(self, key: str) -> str | None:
         return self.values.get(key)
@@ -150,7 +151,7 @@ def test_the_worker_heartbeat_publishes_its_revision_with_the_same_lifetime(monk
 
     assert fake.values[WORKER_REVISION_KEY] == SHA
     assert float(fake.values[WORKER_HEARTBEAT_KEY]) > 0
-    assert fake.expiry[WORKER_REVISION_KEY] == fake.expiry[WORKER_HEARTBEAT_KEY]
+    assert fake.expiry[WORKER_REVISION_KEY] == fake.expiry[WORKER_HEARTBEAT_KEY] == config.WORKER_HEARTBEAT_TTL_SECONDS
 
 
 def _celery_worker_health(monkeypatch, fake: _FakeRedis) -> dict[str, Any]:

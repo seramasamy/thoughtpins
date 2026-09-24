@@ -260,7 +260,7 @@ def _validate_items(items: Sequence[object], model_cls, label: str) -> list:
         try:
             valid.append(model_cls.model_validate(item))
         except ValidationError as ve:
-            logger.debug("Skipping invalid {} at index {}: {}", label, i, ve)
+            logger.debug("Skipping invalid {} at index {} ({} errors)", label, i, ve.error_count())
     return valid
 
 

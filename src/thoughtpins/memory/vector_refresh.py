@@ -31,4 +31,4 @@ def refresh_vectors_after_removed_memories(
                 [{"user_id": memory.user_id} for memory in restored_memories],
             )
     except Exception as exc:
-        logger.warning("Vector refresh failed after entry rewrite {}: {}", entry_id, exc)
+        logger.warning("Vector refresh failed after entry rewrite {} ({})", entry_id, type(exc).__name__)

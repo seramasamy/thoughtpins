@@ -32,7 +32,8 @@ def _start_backup_thread() -> None:
             try:
                 _daily_backup()
             except Exception as e:
-                logger.warning("Backup failed: {}", e)
+                # Type only: an OSError names its file, and vault files are note titles.
+                logger.warning("Backup failed ({})", type(e).__name__)
 
     thread = threading.Thread(target=backup_loop, daemon=True, name="backup")
     thread.start()

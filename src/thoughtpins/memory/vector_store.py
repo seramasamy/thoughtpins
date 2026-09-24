@@ -226,14 +226,14 @@ class VectorStore:
             try:
                 return get_embeddings(texts)
             except Exception as e:
-                logger.warning("Configured LLM embedding failed: {}, using zero vectors", e)
+                logger.warning("Configured LLM embedding failed ({}), using zero vectors", type(e).__name__)
                 return [[0.0] * self._dimension for _ in texts]
 
         if self._embedding_model == "openai_api":
             try:
                 return _embed_openai(texts)
             except Exception as e:
-                logger.warning("OpenAI embedding failed: {}, using zero vectors", e)
+                logger.warning("OpenAI embedding failed ({}), using zero vectors", type(e).__name__)
                 return [[0.0] * self._dimension for _ in texts]
 
         # Local sentence-transformers model

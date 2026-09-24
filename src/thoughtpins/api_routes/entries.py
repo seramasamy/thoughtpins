@@ -607,7 +607,7 @@ def create_entries_router(
 
                     get_vector_store().delete(memory_ids)
                 except Exception as e:
-                    logger.warning("Vector cleanup failed for entry {}: {}", entry_id, e)
+                    logger.warning("Vector cleanup failed for entry {} ({})", entry_id, type(e).__name__)
             record_audit_event(session, user_id=user_id, action="entry.deleted", metadata={"entry_id": entry_id})
             return {"status": "deleted", "entry_id": entry_id}
         finally:

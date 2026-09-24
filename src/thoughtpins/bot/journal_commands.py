@@ -128,7 +128,7 @@ async def _answer_question_command(update, context, *, force_full_context: bool 
             answer = "[Full context audit]\n\n" + answer
         await update.message.reply_text(answer)
     except Exception as e:
-        logger.error("ask failed: {}", e)
+        logger.error("ask failed ({})", type(e).__name__)
         await update.message.reply_text("I had trouble answering that. Try again or check if the database has entries.")
     finally:
         session.close()
@@ -269,7 +269,7 @@ async def cmd_undo(update, context) -> None:
                     [{"user_id": memory.user_id} for memory in restored_memories],
                 )
         except Exception as exc:
-            logger.warning("Undo vector refresh failed for entry {}: {}", entry_id, exc)
+            logger.warning("Undo vector refresh failed for entry {} ({})", entry_id, type(exc).__name__)
 
         restored = f"\nRestored {len(restored_memories)} superseded memory record(s)." if restored_memories else ""
         await update.message.reply_text(f"Undid latest saved item {entry_id[:10]}.\nPreview: {preview}{restored}")

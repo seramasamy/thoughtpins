@@ -18,7 +18,9 @@ This script removes the working tree from the path entirely:
 4. Upload that directory to each service and wait for Railway to report the
    deployment it created.
 5. Read ``/health`` and ``/ready`` until the API and the worker each report the
-   new revision. A successful upload is not treated as a successful deploy.
+   new revision, and finally until ``/ready`` reports ``ready`` with every
+   deployed service on it. A successful upload is not a successful deploy, and
+   a matching revision beside a failing dependency is not one either.
 
 ``--dry-run`` performs every check and builds the export without uploading.
 """
@@ -58,6 +60,9 @@ BUILD_INFO_RELATIVE = Path("src") / "thoughtpins" / BUILD_INFO_FILENAME
 # path, which reads like an authentication failure and is not one.
 BROWSER_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0"
 TERMINAL_FAILURES = {"FAILED", "CRASHED", "REMOVED", "SKIPPED"}
+# runtime_health.HEALTHY_STATUSES, copied so the script does not import the
+# application; tests/test_deploy_railway.py keeps the two in step.
+HEALTHY_CHECK_STATES = frozenset({"ok", "disabled", "configured", "warn"})
 
 Runner = Callable[[Sequence[str], Path | None], subprocess.CompletedProcess[str]]
 
@@ -346,6 +351,55 @@ def wait_for_revision(
         sleep(interval)
 
 
+def readiness_refusal(payload: dict[str, Any], revision: str, services: Sequence[str]) -> str | None:
+    """Why /ready does not yet confirm this release, or None when it does."""
+
+    if payload.get("status") != "ready":
+        checks = payload.get("checks")
+        failing = (
+            ", ".join(f"{name}={state}" for name, state in sorted(checks.items()) if state not in HEALTHY_CHECK_STATES)
+            if isinstance(checks, dict)
+            else ""
+        )
+        return f"/ready reports {payload.get('status') or 'no status'}" + (f" ({failing})" if failing else "")
+    revisions = ready_revisions(payload)
+    stale = [
+        f"{service}={revisions.get(service) or 'unknown'}" for service in services if revisions.get(service) != revision
+    ]
+    if stale:
+        return "/ready is ready but reports " + ", ".join(stale)
+    return None
+
+
+def wait_for_ready(
+    revision: str,
+    services: Sequence[str],
+    health_url: str,
+    *,
+    fetch: Callable[[str], dict[str, Any]] = fetch_json,
+    timeout: float = 300.0,
+    interval: float = 10.0,
+    sleep: Callable[[float], None] = time.sleep,
+    clock: Callable[[], float] = time.monotonic,
+) -> None:
+    # Separate from wait_for_revision on purpose. That one follows a rolling
+    # deploy, where an unhealthy old build must still be readable; this is the
+    # release verdict, and Railway health-checks only the API, not the worker.
+    deadline = clock() + timeout
+    while True:
+        try:
+            refusal = readiness_refusal(fetch(f"{health_url}/ready"), revision, services)
+        except (OSError, ValueError) as exc:
+            refusal = f"/ready unreadable ({type(exc).__name__})"
+        if refusal is None:
+            return
+        if clock() >= deadline:
+            raise DeployRefused(
+                f"deployed {revision[:12]}, but production is not ready after {int(timeout)}s: {refusal}"
+            )
+        sleep(interval)
+
+
 def linked_project(runner: Runner, repo: Path) -> str | None:
     result = runner(["railway", "status", "--json"], repo)
     if result.returncode != 0:
@@ -370,6 +424,9 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
     parser.add_argument("--skip-ci-check", action="store_true", help="deploy without a green ci.yml run (emergency)")
     parser.add_argument("--no-fetch", action="store_true", help="use the local origin/main without fetching")
     parser.add_argument("--timeout", type=float, default=1200.0, help="seconds to wait for each Railway build")
+    parser.add_argument(
+        "--ready-timeout", type=float, default=300.0, help="seconds to wait for /ready to confirm the release"
+    )
     parser.add_argument("--dry-run", action="store_true", help="check and export, but upload nothing")
     parser.add_argument("--keep-export", action="store_true", help="leave the exported tree on disk")
     return parser.parse_args(argv)
@@ -397,6 +454,7 @@ def deploy(
     *,
     fetch: Callable[[str], dict[str, Any]] = fetch_json,
     sleep: Callable[[float], None] = time.sleep,
+    clock: Callable[[], float] = time.monotonic,
 ) -> int:
     services = tuple(args.services or DEFAULT_SERVICES)
     health_url = args.health_url.rstrip("/")
@@ -435,9 +493,15 @@ def deploy(
         for service in services:
             nonce = uuid.uuid4().hex[:12]
             _checked(runner, railway_up_command(target, service, deployment_message(revision, nonce)), export)
-            deployment_id = wait_for_deployment(target, service, nonce, runner, timeout=args.timeout, sleep=sleep)
-            wait_for_revision(service, revision, target.health_url, fetch=fetch, sleep=sleep)
+            deployment_id = wait_for_deployment(
+                target, service, nonce, runner, timeout=args.timeout, sleep=sleep, clock=clock
+            )
+            wait_for_revision(service, revision, target.health_url, fetch=fetch, sleep=sleep, clock=clock)
             print(f"{service}: deployment {deployment_id} is serving {revision}")
+        wait_for_ready(
+            revision, services, target.health_url, fetch=fetch, timeout=args.ready_timeout, sleep=sleep, clock=clock
+        )
+        print(f"Ready: /ready reports ready with {', '.join(services)} on {revision}")
     finally:
         if args.keep_export:
             print(f"Kept export at {export}")

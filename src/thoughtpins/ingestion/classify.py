@@ -254,7 +254,7 @@ def _classify_with_llm(text: str) -> dict:
             result.setdefault("confidence", 0.7)
             return result
     except Exception as e:
-        logger.warning("LLM classification failed, using heuristic: {}", e)
+        logger.warning("LLM classification failed, using heuristic ({})", type(e).__name__)
 
     return {"type": "journal_entry", "intent": "life log or journal entry", "confidence": 0.62}
 

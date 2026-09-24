@@ -156,7 +156,7 @@ def _resolve_open_access_candidate(url: str) -> OpenAccessCandidate | None:
             timeout_seconds=config.OPEN_ACCESS_TIMEOUT_SECONDS,
         )
     except Exception as exc:
-        logger.info("Open-access resolution was unavailable for this source: {}", str(exc)[:160])
+        logger.info("Open-access resolution was unavailable for this source ({})", type(exc).__name__)
         return None
 
 

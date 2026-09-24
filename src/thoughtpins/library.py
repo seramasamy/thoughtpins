@@ -579,7 +579,7 @@ def _index_document_memory_payloads(payload: IndexPayload) -> None:
         metadata = [{"user_id": user_id} for _, _, user_id in payload]
         get_vector_store().add(ids, texts, metadata)
     except Exception as exc:
-        logger.warning("Document memory vector indexing failed: {}", exc)
+        logger.warning("Document memory vector indexing failed ({})", type(exc).__name__)
 
 
 def _extract_document_graph(
@@ -650,7 +650,7 @@ def _refresh_document_entity_salience(session: Session, raw: RawEntry) -> None:
         if entity_ids:
             refresh_entity_salience(session, user_id=raw.user_id, entity_ids=entity_ids)
     except Exception as exc:  # noqa: BLE001 - ranking is derived, the source is the record
-        logger.warning("Document entity salience refresh skipped for entry {}: {}", raw.id, str(exc)[:200])
+        logger.warning("Document entity salience refresh skipped for entry {} ({})", raw.id, type(exc).__name__)
 
 
 def _mirror_document_to_graph_backend(
@@ -686,4 +686,4 @@ def _mirror_document_to_graph_backend(
             ),
         )
     except Exception as exc:
-        logger.debug("Graph backend mirror skipped for document {}: {}", document.id, str(exc)[:160])
+        logger.debug("Graph backend mirror skipped for document {} ({})", document.id, type(exc).__name__)

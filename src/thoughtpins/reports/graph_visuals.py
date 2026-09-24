@@ -34,13 +34,13 @@ def export_all_graphs(days_back: int = 90, user_id: str | None = None) -> dict[s
         try:
             results["graphml"] = gs.export_graphml(out_dir / "memory_graph.graphml", G)
         except Exception as e:
-            logger.error("GraphML export failed: {}", e)
+            logger.error("GraphML export failed ({})", type(e).__name__)
 
         # PyVis HTML
         try:
             results["html"] = gs.export_pyvis_html(out_dir / "memory_graph.html", G)
         except Exception as e:
-            logger.error("PyVis export failed: {}", e)
+            logger.error("PyVis export failed ({})", type(e).__name__)
 
         # CSV
         try:
@@ -48,7 +48,7 @@ def export_all_graphs(days_back: int = 90, user_id: str | None = None) -> dict[s
             results["nodes_csv"] = nodes_path
             results["edges_csv"] = edges_path
         except Exception as e:
-            logger.error("CSV export failed: {}", e)
+            logger.error("CSV export failed ({})", type(e).__name__)
 
         # Mermaid
         try:
@@ -57,7 +57,7 @@ def export_all_graphs(days_back: int = 90, user_id: str | None = None) -> dict[s
             mermaid_path.write_text(f"```mermaid\n{mermaid}\n```\n", encoding="utf-8")
             results["mermaid"] = mermaid_path
         except Exception as e:
-            logger.error("Mermaid export failed: {}", e)
+            logger.error("Mermaid export failed ({})", type(e).__name__)
 
         logger.info("Graph exports complete: {}", list(results.keys()))
         return results

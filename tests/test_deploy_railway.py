@@ -216,7 +216,9 @@ def test_deploy_uploads_the_stamped_export_to_each_service_and_waits_for_the_rev
         uploaded = {upload["service"] for upload in railway.uploads}
         api = revision if "api" in uploaded else None
         worker = revision if "worker" in uploaded else None
-        return {"revision": api} if url.endswith("/health") else {"revision": {"api": api, "worker": worker}}
+        if url.endswith("/health"):
+            return {"revision": api}
+        return {"status": "ready", "checks": {"db": "ok"}, "revision": {"api": api, "worker": worker}}
 
     result = deploy.deploy(args(since=[revision]), railway, repo, fetch=fetch, sleep=lambda _s: None)
 
@@ -274,4 +276,90 @@ def test_a_deploy_that_never_serves_the_new_revision_fails():
             timeout=250,
             sleep=lambda _s: None,
             clock=lambda: float(next(ticks)),
+        )
+
+
+def test_matching_revisions_beside_a_failing_dependency_are_not_a_release():
+    """The other review's case: both SHAs match, the database check fails."""
+
+    sha = "a" * 40
+    unhealthy = {
+        "status": "not_ready",
+        "checks": {"db": "error", "redis": "ok"},
+        "revision": {"api": sha, "worker": sha},
+    }
+    ticks = iter(range(0, 10_000, 100))
+
+    with pytest.raises(deploy.DeployRefused, match=r"not ready.*db=error"):
+        deploy.wait_for_ready(
+            sha,
+            ("api", "worker"),
+            "https://api.example",
+            fetch=lambda _url: unhealthy,
+            timeout=250,
+            sleep=lambda _s: None,
+            clock=lambda: float(next(ticks)),
+        )
+
+
+def test_readiness_names_the_service_left_on_an_old_revision():
+    sha, old = "a" * 40, "b" * 40
+    ready = {"status": "ready", "checks": {"db": "ok"}, "revision": {"api": sha, "worker": old}}
+
+    assert deploy.readiness_refusal(ready, sha, ("api",)) is None
+    assert f"worker={old}" in (deploy.readiness_refusal(ready, sha, ("api", "worker")) or "")
+
+
+def test_a_deploy_whose_worker_never_becomes_ready_is_reported(repo):
+    revision = git(repo, "rev-parse", "HEAD")
+    railway = FakeRailway(ci_runs=green(revision))
+
+    def fetch(url: str) -> dict[str, Any]:
+        if url.endswith("/health"):
+            return {"revision": revision}
+        return {"status": "not_ready", "checks": {"worker": "error"}, "revision": {"api": revision, "worker": revision}}
+
+    now = [0.0]
+
+    def advance(seconds: float) -> None:
+        now[0] += seconds
+
+    with pytest.raises(deploy.DeployRefused, match="worker=error"):
+        deploy.deploy(args(since=[revision]), railway, repo, fetch=fetch, sleep=advance, clock=lambda: now[0])
+    assert [upload["service"] for upload in railway.uploads] == ["api", "worker"]
+
+
+def test_the_healthy_check_states_match_the_server():
+    from thoughtpins.runtime_health import HEALTHY_STATUSES
+
+    assert deploy.HEALTHY_CHECK_STATES == HEALTHY_STATUSES
+
+
+def test_a_readiness_refusal_names_only_the_failing_checks():
+    sha = "a" * 40
+    payload = {
+        "status": "not_ready",
+        "checks": {"db": "error", "vector": "configured", "llm": "disabled", "redis": "warn", "worker": "ok"},
+        "revision": {"api": sha, "worker": sha},
+    }
+
+    assert deploy.readiness_refusal(payload, sha, ("api", "worker")) == "/ready reports not_ready (db=error)"
+
+
+def test_the_readiness_wait_honours_the_operator_timeout(repo):
+    revision = git(repo, "rev-parse", "HEAD")
+    railway = FakeRailway(ci_runs=green(revision))
+    now = [0.0]
+
+    def advance(seconds: float) -> None:
+        now[0] += seconds
+
+    def fetch(url: str) -> dict[str, Any]:
+        if url.endswith("/health"):
+            return {"revision": revision}
+        return {"status": "not_ready", "checks": {"db": "error"}, "revision": {"api": revision, "worker": revision}}
+
+    with pytest.raises(deploy.DeployRefused, match="after 50s"):
+        deploy.deploy(
+            args(since=[revision], ready_timeout=50.0), railway, repo, fetch=fetch, sleep=advance, clock=lambda: now[0]
         )

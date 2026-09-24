@@ -256,9 +256,9 @@ def _apply_heuristic_type_corrections(
         if corrected_type and corrected_type in entity_types:
             previous_type = entity.type
             entity.type = corrected_type
+            # The type change is the diagnostic; the name is journal content.
             logger.info(
-                "Type fixed (heuristic): '{}' {} -> {}",
-                entity.surface_name,
+                "Type fixed (heuristic): {} -> {}",
                 previous_type,
                 corrected_type,
             )
@@ -300,7 +300,7 @@ def _review_suspicious_types(
         corrections = _parse_type_corrections(response)
         return _apply_llm_type_corrections(extraction, corrections, entity_types)
     except Exception as exc:
-        logger.debug("LLM type review skipped: {}", exc)
+        logger.debug("LLM type review skipped ({})", type(exc).__name__)
         return 0
 
 
@@ -332,6 +332,6 @@ def _apply_llm_type_corrections(
             continue
         previous_type = entity.type
         entity.type = corrected_type
-        logger.info("Type fixed (LLM): '{}' {} -> {}", name, previous_type, corrected_type)
+        logger.info("Type fixed (LLM): {} -> {}", previous_type, corrected_type)
         corrections_made += 1
     return corrections_made

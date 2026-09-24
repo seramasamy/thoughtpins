@@ -42,10 +42,13 @@ def record_worker_heartbeat() -> None:
     if not client:
         return
     ttl = config.WORKER_HEARTBEAT_TTL_SECONDS
-    client.setex(WORKER_HEARTBEAT_KEY, ttl, _utc_timestamp())
+    # set(ex=) rather than setex: redis-py 8 deprecates setex and printed a
+    # warning at every worker start; a later release removing it would stop
+    # the heartbeat and fail /ready.
+    client.set(WORKER_HEARTBEAT_KEY, _utc_timestamp(), ex=ttl)
     # Same lifetime as the heartbeat, so a stopped worker's revision expires
     # with it instead of vouching for a process that is gone.
-    client.setex(WORKER_REVISION_KEY, ttl, source_revision() or "unknown")
+    client.set(WORKER_REVISION_KEY, source_revision() or "unknown", ex=ttl)
 
 
 def _recover_queue(label: str, recover: Callable[[], int]) -> int:

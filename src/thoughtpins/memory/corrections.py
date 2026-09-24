@@ -277,7 +277,7 @@ def _refresh_correction_vectors(session: Session, result: CorrectionResult) -> N
                 [{"user_id": memory.user_id} for memory in correction_memories],
             )
     except Exception as exc:
-        logger.warning("Correction vector refresh failed: {}", exc)
+        logger.warning("Correction vector refresh failed ({})", type(exc).__name__)
 
 
 def _clean_piece(value: str) -> str:

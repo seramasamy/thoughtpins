@@ -106,4 +106,4 @@ def _mirror_raw_entry_to_graph_backend(session: Session, raw_entry: RawEntry, te
             ),
         )
     except Exception as exc:
-        logger.debug("Graph backend mirror skipped for raw entry {}: {}", raw_entry.id, str(exc)[:160])
+        logger.debug("Graph backend mirror skipped for raw entry {} ({})", raw_entry.id, type(exc).__name__)

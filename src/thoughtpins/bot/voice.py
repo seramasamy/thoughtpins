@@ -52,6 +52,9 @@ def _ingest_voice(update, ogg_bytes: bytes) -> UploadIngestOutcome:
     session = get_session()
     try:
         user_id = telegram_user_id(update, session)
+        # The lookup opened a transaction; end it so no pooled connection sits
+        # idle in it while ingest_upload transcribes.
+        session.commit()
         outcome = ingest_upload(
             session,
             user_id=user_id,

@@ -32,7 +32,7 @@ def build_vault_file_context(
             relative_path = path.relative_to(vault_root).as_posix()
             content = path.read_text(encoding="utf-8", errors="replace").strip()
         except OSError as exc:
-            logger.warning("Could not read vault context file {}: {}", path, exc)
+            logger.warning("Could not read vault context file ({})", type(exc).__name__)
             continue
         if not content:
             continue

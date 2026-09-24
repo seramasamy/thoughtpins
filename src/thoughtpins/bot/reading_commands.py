@@ -73,7 +73,7 @@ async def ingest_library_message(update, text: str) -> None:
             f"{result.chunks} searchable {'section is' if result.chunks == 1 else 'sections are'} now available in your reading memory."
         )
     except Exception as exc:
-        logger.error("Library ingest failed: {}", exc)
+        logger.error("Library ingest failed ({})", type(exc).__name__)
         await update.message.reply_text(
             "I could not save that source. Check the link or add a short note about what you want to remember."
         )

@@ -338,7 +338,7 @@ async def _process_and_reply(update, text: str) -> None:
         stop_status = True
         updater_task.cancel()
         finish_processing(chat_id, elapsed, len(text))
-        logger.error("Processing failed: {}", exc)
+        logger.error("Processing failed ({})", type(exc).__name__)
         await status_msg.edit_text("Processing failed before I could confirm the save. Use /status or try again.")
     finally:
         session.close()

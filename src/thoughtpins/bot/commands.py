@@ -453,7 +453,7 @@ async def handle_conversation(update, text: str) -> None:
         await update.message.reply_text(response)
 
     except Exception as e:
-        logger.error("Conversation handler failed: {}", e)
+        logger.error("Conversation handler failed ({})", type(e).__name__)
         response = _fallback_conversation_reply(text)
         await update.message.reply_text(response)
         _remember_conversation_turn(

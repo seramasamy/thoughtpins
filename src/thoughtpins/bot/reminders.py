@@ -99,7 +99,7 @@ async def reminder_loop(application) -> None:
         except asyncio.CancelledError:
             raise
         except Exception as exc:
-            logger.warning("Telegram reminder loop failed: {}", exc)
+            logger.warning("Telegram reminder loop failed ({})", type(exc).__name__)
         await asyncio.sleep(interval)
 
 

@@ -70,10 +70,12 @@ def record_audit_event(
     except Exception as e:
         session.rollback()
         logger.warning(
-            "Audit event write failed action={} user_id_hash={}: {}",
+            "Audit event write failed action={} user_id_hash={} ({})",
             action,
             fingerprint_identifier(user_id),
-            e,
+            # Type only: the commit flushes the caller's pending rows too, and a
+            # SQLAlchemy error quotes their parameters.
+            type(e).__name__,
         )
 
 

@@ -302,7 +302,7 @@ class ReportGenerator:
         except ImportError:
             logger.info("WeasyPrint not installed -- skipping PDF")
         except Exception as e:
-            logger.warning("WeasyPrint PDF failed: {}", e)
+            logger.warning("WeasyPrint PDF failed ({})", type(e).__name__)
 
         # Try ReportLab fallback
         try:
@@ -319,7 +319,7 @@ class ReportGenerator:
         except ImportError:
             logger.info("ReportLab not installed -- PDF unavailable")
         except Exception as e:
-            logger.warning("ReportLab PDF failed: {}", e)
+            logger.warning("ReportLab PDF failed ({})", type(e).__name__)
 
         logger.info("PDF generation unavailable. Markdown saved at: {}", md_path)
         return None

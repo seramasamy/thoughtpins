@@ -413,7 +413,7 @@ Only JSON. No commentary."""
         return resolved
 
     except Exception as e:
-        logger.debug("Batch semantic resolve skipped: {}", e)
+        logger.debug("Batch semantic resolve skipped ({})", type(e).__name__)
         return {}
 
 
@@ -553,5 +553,7 @@ def create_or_get_entity(
     )
     session.add(entity)
     session.flush()
-    logger.info("Created new entity: {} [{}]", display_name, entity.id)
+    # Identifier and type only: the name comes from someone's journal, and
+    # hosted logs outlive account deletion.
+    logger.info("Created new entity [{}] type={}", entity.id, entity_type)
     return entity

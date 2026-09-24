@@ -181,7 +181,7 @@ class GraphitiBackend:
         try:
             results = _run_async_value(_search)
         except Exception as exc:
-            logger.warning("Graphiti search failed: {}", str(exc)[:200])
+            logger.warning("Graphiti search failed ({})", type(exc).__name__)
             return []
         hits: list[GraphSearchHit] = []
         for result in results or []:
@@ -222,7 +222,7 @@ class ShadowGraphBackend:
         try:
             self.shadow.add_episode(episode)
         except Exception as exc:
-            logger.warning("Shadow graph add failed: {}", str(exc)[:200])
+            logger.warning("Shadow graph add failed ({})", type(exc).__name__)
         return ok
 
     def search(self, query: str, *, user_id: str, limit: int = 10) -> list[GraphSearchHit]:
@@ -236,7 +236,7 @@ class ShadowGraphBackend:
         try:
             self.shadow.search(query, user_id=user_id, limit=max(1, limit // 2))
         except Exception as exc:
-            logger.warning("Shadow graph search failed: {}", str(exc)[:200])
+            logger.warning("Shadow graph search failed ({})", type(exc).__name__)
         return primary_hits[:limit]
 
     def delete_user(self, user_id: str) -> bool:
@@ -245,7 +245,7 @@ class ShadowGraphBackend:
         try:
             shadow_ok = self.shadow.delete_user(user_id)
         except Exception as exc:
-            logger.warning("Shadow graph delete failed: {}", str(exc)[:200])
+            logger.warning("Shadow graph delete failed ({})", type(exc).__name__)
             shadow_ok = False
         return primary_ok and shadow_ok
 
@@ -287,7 +287,7 @@ def add_episode_to_graph_backend(session: Session, episode: GraphEpisode) -> boo
     try:
         return get_graph_backend(session).add_episode(episode)
     except Exception as exc:
-        logger.warning("Graph backend episode add failed: {}", str(exc)[:200])
+        logger.warning("Graph backend episode add failed ({})", type(exc).__name__)
         return False
 
 
@@ -299,7 +299,7 @@ def _run_async_safely(factory, label: str) -> bool:
         logger.warning("{} skipped inside existing event loop: {}", label, exc)
         return False
     except Exception as exc:
-        logger.warning("{} failed: {}", label, str(exc)[:200])
+        logger.warning("{} failed ({})", label, type(exc).__name__)
         return False
 
 

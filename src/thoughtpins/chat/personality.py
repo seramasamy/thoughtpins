@@ -122,7 +122,7 @@ def load_personality(chat_id: str | None = None) -> str:
                     return _normalize_personality_id(chat_data.get("personality"))
             return _normalize_personality_id(data.get("personality"))
         except Exception as e:
-            logger.warning("Personality load error: {}", e)
+            logger.warning("Personality load error ({})", type(e).__name__)
     return "friendly"
 
 
@@ -305,7 +305,7 @@ def derive_personality_from_history(
         logger.info("Mirror personality derived from {} entries", len(entries))
         return mirror_voice
     except Exception as e:
-        logger.error("Mirror personality derivation failed: {}", e)
+        logger.error("Mirror personality derivation failed ({})", type(e).__name__)
     finally:
         if close_session:
             session.close()
