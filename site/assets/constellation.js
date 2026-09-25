@@ -1,4 +1,4 @@
-import { sampleConstellationMark } from "/assets/constellation-shape.js?v=20260925-luminous-2";
+import { sampleConstellationMark } from "/assets/constellation-shape.js?v=20260925-luminous-3";
 
 /* The floating memory field and its scroll-to-logo sequence.
 

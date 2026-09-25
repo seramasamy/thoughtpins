@@ -486,10 +486,11 @@
 }
 
 /* ---------------- Motion: arrivals only, nothing ambient ---------------- */
+/* Entrances fade and lift; none animates blur, which crashes WebKit's
+   software renderer. */
 @keyframes lum-focus-in {
   from {
     opacity: 0;
-    filter: blur(10px);
     transform: translateY(18px);
   }
 }
@@ -497,7 +498,6 @@
 @keyframes lum-art-in {
   from {
     opacity: 0;
-    filter: blur(6px);
     transform: scale(0.94) rotate(-3deg);
   }
 }
@@ -514,12 +514,11 @@
 
   html.js-reveal .shell .page section.reveal {
     opacity: 0;
-    filter: blur(4px);
     transform: translateY(18px);
-    transition: opacity 560ms var(--ease-quiet), filter 560ms var(--ease-quiet), transform 700ms var(--ease-settle);
+    transition: opacity 560ms var(--ease-quiet), transform 700ms var(--ease-settle);
   }
 
-  html.js-reveal .shell .page section.reveal.is-visible { opacity: 1; filter: none; transform: none; }
+  html.js-reveal .shell .page section.reveal.is-visible { opacity: 1; transform: none; }
   .shell .lum-progress { display: block; }
 
   .shell > .topbar,

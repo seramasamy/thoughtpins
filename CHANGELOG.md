@@ -238,7 +238,9 @@ Keep a Changelog, and the project uses semantic versioning for public releases.
   public page with the accepted version, offering Accept only when a newer
   version applies. New named motions (focus-in,
   signal, orbit, sheen) are documented in `DESIGN.md`; all respect Reduce
-  Motion and the homepage pause control. Site cache key `20260925-luminous-2`.
+  Motion and the homepage pause control, and entrances fade and lift without
+  animating blur, which crashed WebKit's software renderer in the browser
+  tests. Site cache key `20260925-luminous-3`.
 - Reranking derives query interpretation once per request instead of once per
   candidate, roughly halving rerank latency with byte-identical output.
 - All nineteen ranking coefficients are declared and bounded in one validated

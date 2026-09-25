@@ -491,10 +491,11 @@ html .lab-motion-toggle {
 }
 
 /* ---------------- Motion: only when motion is allowed and running ---------------- */
+/* Entrances fade and lift; none animates blur, which crashes WebKit's
+   software renderer (the Linux WebKit the site's browser tests run). */
 @keyframes lum-focus-in {
   from {
     opacity: 0;
-    filter: blur(12px);
     transform: translateY(26px) scale(0.985);
   }
 }
@@ -502,7 +503,6 @@ html .lab-motion-toggle {
 @keyframes lum-focus-in-still {
   from {
     opacity: 0;
-    filter: blur(12px);
   }
 }
 
@@ -595,20 +595,14 @@ html .lab-motion-toggle {
 @keyframes lum-pin-in {
   from {
     opacity: 0;
-    filter: blur(8px);
     transform: scale(0.9);
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  /* Headlines resolve out of a blur, like a memory coming into focus. */
+  /* Headlines rise into place, like a memory surfacing. */
   html:not([data-motion-paused="true"]) .lab-reveal-ready > span {
-    filter: blur(14px);
-    transition: transform 1100ms var(--lum-ease), opacity 900ms var(--lum-ease), filter 1000ms var(--lum-ease);
-  }
-
-  html:not([data-motion-paused="true"]) .lab-reveal-ready:is(.lab-in, :focus-within) > span {
-    filter: none;
+    transition: transform 1100ms var(--lum-ease), opacity 900ms var(--lum-ease);
   }
 
   html:not([data-motion-paused="true"]) .lab-hero-copy > :nth-child(2) > * > span,
@@ -651,7 +645,7 @@ html .lab-motion-toggle {
   }
 
   /* The workspace holds the phone preview, whose reserved box never moves:
-     it comes into focus without the lift and scale. */
+     it fades in without the lift and scale. */
   html.lum-reveals[data-motion-paused="false"] .showcase-workspace.lum-reveal.lum-in {
     animation-name: lum-focus-in-still;
   }

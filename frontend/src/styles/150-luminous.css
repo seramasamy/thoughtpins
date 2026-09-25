@@ -225,10 +225,11 @@
 }
 
 /* ---------------- Motion vocabulary ---------------- */
+/* Entrances fade and lift; none animates blur, which crashes WebKit's
+   software renderer. */
 @keyframes lum-focus-in {
   from {
     opacity: 0;
-    filter: blur(6px);
     transform: translateY(12px);
   }
 }

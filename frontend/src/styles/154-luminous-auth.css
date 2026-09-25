@@ -42,7 +42,6 @@
 @keyframes lum-chip-in {
   from {
     opacity: 0;
-    filter: blur(8px);
     scale: 0.92;
   }
 }

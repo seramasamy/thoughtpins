@@ -109,13 +109,14 @@ It is white on the terracotta app tile. Canonical files are
   55-110ms between siblings. In the app, card grids use the `.stagger` utility
   (50ms steps, capped at six items).
 - Named motions shared across surfaces: rise, settle, stagger, breathe,
-  thinking-dots, constellation, focus-in (opacity with a short blur that
-  resolves), signal (a light travelling along a hairline or thread), orbit
+  thinking-dots, constellation, focus-in (opacity and a short lift; entrances
+  never animate blur, which crashes WebKit's software renderer and fails the
+  WebKit browser tests), signal (a light travelling along a hairline or thread), orbit
   (nodes travelling elliptical tracks with depth), and sheen (a highlight
   crossing a primary button on hover). Experimental labs/ pages may exceed these
   rules; they are not product surfaces until adopted.
 - Marketing reveals on the public homepage may run 900–1100ms; product views
-  keep the 380ms entrance ceiling and a blur of 6px or less.
+  keep the 380ms entrance ceiling.
 - Ambient loops live only where attention is not needed for a task: the
   homepage hero, the Chat welcome orbit and the sign-in brand pane. Shell
   chrome, reading pages and utility views have no infinite animation.
