@@ -7,9 +7,11 @@ text can quote the input they failed on. It cannot see what a variable with a
 neutral name holds at run time, so it narrows the risk rather than proving logs
 content-free; the reviewed exceptions below are the ones judged safe.
 
-Not covered: the traceback logger.exception() attaches on its own, whose final
-line is the exception's message. Redacting that needs a logging-level change,
-not a call-site rule.
+The traceback logger.exception() attaches on its own is not a call-site
+matter: thoughtpins.log_redaction withholds every logged exception's message
+at the logging level, and logging_config routes the standard-library tree
+(uvicorn, Celery, libraries) through it. tests/test_no_sensitive_data_in_logs.py
+proves both.
 """
 
 from __future__ import annotations

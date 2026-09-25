@@ -227,6 +227,7 @@ def test_the_sentry_scrubber_strips_bodies_and_credentials():
         "exception": {"values": []},
     }
     scrubbed = _scrub_sentry_event(event, {})
+    assert scrubbed is not None
     assert "data" not in scrubbed["request"]
     assert "cookies" not in scrubbed["request"]
     assert scrubbed["request"]["query_string"] == ""

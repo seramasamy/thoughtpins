@@ -66,6 +66,9 @@ def run_api(host: str = "127.0.0.1", port: int = 8420) -> None:
         host=host,
         port=port,
         log_level=config.LOG_LEVEL.lower(),
+        # Keep the logging setup_logging installed: uvicorn's own config would
+        # give its loggers handlers that bypass the redaction and the patcher.
+        log_config=None,
         reload=False,
         timeout_keep_alive=120,
     )

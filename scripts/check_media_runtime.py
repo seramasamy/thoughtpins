@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import io
+import re
 import shutil
+import struct
+import subprocess
 import sys
 import zipfile
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -60,12 +64,101 @@ def main() -> int:
         office = extract_document_text(package, suffix)
         if not office.ok or phrase not in office.text:
             raise RuntimeError(f"Production {suffix} extraction failed its generated fixture")
-    # Office scanners and Acrobat's scan optimisation write JBIG2 images, which
-    # pypdf decodes only through this binary. Without it every such page fails.
-    if shutil.which("jbig2dec") is None:
-        raise RuntimeError("jbig2dec is missing; JBIG2-compressed scans cannot be decoded")
+    # A page stored sideways and drawn turned upright, as scanners write
+    # landscape pages: real OCR proves the turn goes the right way.
+    upright = Image.new("L", (1275, 1650), "white")
+    ImageDraw.Draw(upright).text((120, 200), phrase, fill="black", font=ImageFont.load_default(size=56))
+    sideways = io.BytesIO()
+    upright.rotate(-90, expand=True).save(sideways, "JPEG", quality=90)
+    turned = _image_page(sideways.getvalue(), "/DCTDecode", (1650, 1275), b"q 0 792 -612 0 612 0 cm /Im Do Q")
+    result = extract_document_text(turned, ".pdf")
+    if not result.ok or phrase not in " ".join(result.text.split()):
+        raise RuntimeError("Production OCR did not read a page drawn turned upright")
+    # JPEG 2000 scans decode in a child process with a hard timeout.
+    jpx = io.BytesIO()
+    upright.save(jpx, "JPEG2000")
+    result = extract_document_text(_image_page(jpx.getvalue(), "/JPXDecode", (1275, 1650)), ".pdf")
+    if not result.ok or phrase not in " ".join(result.text.split()):
+        raise RuntimeError("Production OCR did not read a JPEG 2000 scan")
+    # Office scanners and Acrobat's scan optimisation write JBIG2 images, decoded
+    # by jbig2dec (--embedded, with a -M memory limit) in a timed subprocess.
+    _check_jbig2dec()
+    result = extract_document_text(_image_page(_jbig2(upright), "/JBIG2Decode", (1275, 1650), bits=1), ".pdf")
+    if not result.ok or phrase not in " ".join(result.text.split()):
+        raise RuntimeError("Production OCR did not read a JBIG2 scan")
     print("Production PDF, scanned-PDF OCR, image, and Office extraction passed generated content checks.")
     return 0
+
+
+def _image_page(
+    data: bytes, filter_name: str, size: tuple[int, int], drawing: bytes | None = None, *, bits: int = 8
+) -> bytes:
+    from pypdf import PdfWriter
+    from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject, NumberObject
+
+    writer = PdfWriter()
+    page = writer.add_blank_page(width=612, height=792)
+    image = DecodedStreamObject()
+    image.set_data(data)
+    image.update(
+        {
+            NameObject("/Type"): NameObject("/XObject"),
+            NameObject("/Subtype"): NameObject("/Image"),
+            NameObject("/Width"): NumberObject(size[0]),
+            NameObject("/Height"): NumberObject(size[1]),
+            NameObject("/ColorSpace"): NameObject("/DeviceGray"),
+            NameObject("/BitsPerComponent"): NumberObject(bits),
+            NameObject("/Filter"): NameObject(filter_name),
+        }
+    )
+    page[NameObject("/Resources")] = DictionaryObject(
+        {NameObject("/XObject"): DictionaryObject({NameObject("/Im"): writer._add_object(image)})}
+    )
+    content = DecodedStreamObject()
+    content.set_data(drawing or b"q 612 0 0 792 0 0 cm /Im Do Q")
+    page[NameObject("/Contents")] = writer._add_object(content)
+    buffer = io.BytesIO()
+    writer.write(buffer)
+    return buffer.getvalue()
+
+
+def _jbig2(page: Any) -> bytes:
+    """*page* as a PDF stores JBIG2: an embedded stream holding one MMR generic region."""
+    from PIL import Image, ImageOps, TiffImagePlugin
+
+    width, height = page.size
+    # CCITT Group 4 is the MMR coding a JBIG2 generic region may use. In one
+    # strip, the TIFF's image data is exactly the region's data. Group 4 codes
+    # 0 bits as white and JBIG2 reads 1 as black, so ink is stored as 1.
+    tiff = io.BytesIO()
+    ImageOps.invert(page.convert("L")).convert("1").save(
+        tiff, "TIFF", compression="group4", tiffinfo={TiffImagePlugin.ROWSPERSTRIP: height}
+    )
+    with Image.open(tiff) as stored:
+        (offset,) = stored.tag_v2[TiffImagePlugin.STRIPOFFSETS]
+        (length,) = stored.tag_v2[TiffImagePlugin.STRIPBYTECOUNTS]
+    coded = tiff.getvalue()[offset : offset + length]
+
+    def segment(number: int, kind: int, data: bytes) -> bytes:
+        # Number, type, no referred-to segments, page 1, data length (T.88 7.2).
+        return struct.pack(">IBBBI", number, kind, 0, 1, len(data)) + data
+
+    page_information = struct.pack(">IIIIBH", width, height, 0, 0, 0, 0)
+    generic_region = struct.pack(">IIIIB", width, height, 0, 0, 0) + b"" + coded  # MMR on
+    return segment(0, 48, page_information) + segment(1, 38, generic_region)
+
+
+def _check_jbig2dec() -> None:
+    executable = shutil.which("jbig2dec")
+    if executable is None:
+        raise RuntimeError("jbig2dec is missing; JBIG2-compressed scans cannot be decoded")
+    result = subprocess.run([executable, "--version"], capture_output=True, text=True, timeout=10)
+    reported = f"{result.stdout} {result.stderr}"
+    match = re.search(r"(\d+)\.(\d+)", reported)
+    if result.returncode != 0 or match is None:
+        raise RuntimeError(f"jbig2dec --version did not report a version: {reported.strip()!r}")
+    if (int(match.group(1)), int(match.group(2))) < (0, 19):
+        raise RuntimeError(f"jbig2dec {match.group(0)} is older than 0.19, the oldest release this path is verified on")
 
 
 _RELS = "http://schemas.openxmlformats.org/package/2006/relationships"

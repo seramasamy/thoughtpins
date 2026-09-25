@@ -149,6 +149,12 @@ as thin adapters.
   request; `media/ocr.py` owns the shared OCR call. `uploads.py` extracts
   before it touches the database, so no connection or row lock is held
   during OCR or transcription.
+- `media/pdf_images.py`: the images a PDF page draws -- a bounded, cycle-safe
+  content-stream walk that tracks the drawing matrix -- decoded within hard
+  bounds (JBIG2 and JPEG 2000 in a timed subprocess), and pages stored as
+  strips reassembled for OCR.
+- `log_redaction.py`: the Loguru patcher that withholds exception messages
+  from every log sink while keeping types, frames and the cause chain.
 - `llm/`: provider-neutral OpenAI-compatible LLM client and JSON repair.
 - `backup.py` and `backup_provenance.py`: archive creation/restore and adjacent
   integrity/recovery metadata. Restore verifies available SHA-256 sidecars

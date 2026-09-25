@@ -8,11 +8,10 @@ replaces embedded text, which is always better.
 Extraction runs inside the upload request, and a proxied request has about 100
 seconds, so text extraction, image decoding and OCR share one time budget, and
 OCR is also capped by page count and by how many uploads may run it at once, so
-scanned PDFs cannot occupy every API worker. Only images a page actually draws
-are considered, found by a bounded, cycle-safe walk of its content stream. JPEG
-and JPEG 2000 scans are sized from their own headers before decoding, because a
-declared PDF size can lie, and JPEGs decode at reduced resolution. Every page
-that was not read is counted, with the reason, rather than silently dropped.
+scanned PDFs cannot occupy every API worker. ``media/pdf_images.py`` finds the
+images a page draws, decodes each within a hard bound, and reassembles pages
+stored as strips; this module decides what to read and reports every page that
+was not read, with the reason, rather than dropping it silently.
 """
 
 from __future__ import annotations
@@ -28,8 +27,10 @@ from typing import Any
 
 from loguru import logger
 
+from thoughtpins.media import pdf_images
 from thoughtpins.media.extraction_types import MediaExtraction
 from thoughtpins.media.ocr import read_image_text
+from thoughtpins.media.pdf_images import DecodeTimeout, DrawnImage, compose, decode, drawn_images, fix_polarity
 
 PDF_PAGE_LIMIT = 100
 OCR_PAGE_LIMIT = 20
@@ -47,31 +48,20 @@ _OCR_SLOTS = threading.BoundedSemaphore(OCR_CONCURRENCY)
 MIN_EMBEDDED_CHARS = 40
 # Smaller images are logos and icons, not page scans.
 MIN_SCAN_PIXELS = 200_000
-# Some scanners store a page as several strips. Drawn images this size or more
-# besides the largest mean OCR saw only part of the page, which is reported.
+# Drawn images this size or more count as pieces of the page's scan.
 MIN_PIECE_PIXELS = 50_000
-# A 600 dpi Letter page is 33.7M pixels. JPEG and JPEG 2000 sizes are read from
-# the image header; other encodings are decoded by pypdf at their declared size,
-# which their sample data must match, and re-encoded, so they get a lower cap.
-MAX_SCAN_PIXELS = 36_000_000
-MAX_RAW_SCAN_PIXELS = 25_000_000
-# Downscaled before OCR: about 350 dpi on Letter, as much as Tesseract uses.
-OCR_LONG_SIDE = 4_000
-# A scanned page draws its image in a few dozen bytes. A page whose content
-# stream is larger is vector drawing, which OCR cannot read without rendering.
-MAX_SCAN_CONTENT_BYTES = 256 * 1024
-MAX_XOBJECTS_PER_PAGE = 64
-_MAX_FORM_DEPTH = 3
-_HEADER_SIZED_FILTERS = {"/DCTDecode", "/JPXDecode"}
 _WORD = re.compile(r"[^\W\d_]{3,}")
 
 
 @dataclass(frozen=True)
-class _Scan:
-    pixels: int
-    xobject: Any
-    # Other sizeable images the page draws: strips or tiles of one scan.
-    pieces: int = 0
+class _PagePlan:
+    """What to OCR on one page: a scan, or the strips of one."""
+
+    images: tuple[DrawnImage, ...]
+    # Counter-clockwise degrees that turn the result upright as displayed.
+    rotation: int
+    # Other sizeable images on the page were left unread.
+    pieced: bool
 
 
 @dataclass
@@ -83,7 +73,7 @@ class _OcrOutcome:
     # Pages without text never examined: the time budget ran out, or OCR had
     # already stopped (no engine, busy, page limit), so walking them buys nothing.
     unchecked: int = 0
-    # Pages stored as several image pieces, of which OCR read at most one.
+    # Pages stored as image pieces that could not be put back together.
     pieced: int = 0
     unavailable: bool = False
     busy: bool = False
@@ -112,12 +102,22 @@ def extract_pdf_text(
         total = len(reader.pages)
         pages = list(reader.pages[:PDF_PAGE_LIMIT])
         texts: list[str] = []
+        unreadable = 0
         for page in pages:
             if _remaining(started, clock) <= 0:
                 break
-            texts.append(page.extract_text() or "")
+            try:
+                texts.append(page.extract_text() or "")
+            except Exception as exc:
+                # One malformed page is a page without text, not a failed upload:
+                # the others keep their text, and it can still be read by OCR.
+                logger.warning("PDF page text extraction failed ({})", type(exc).__name__)
+                texts.append("")
+                unreadable += 1
     except Exception as exc:
         logger.warning("PDF text extraction failed ({})", type(exc).__name__)
+        return MediaExtraction(kind="document", metadata={"suffix": suffix}, error="pdf_extract_failed")
+    if texts and unreadable == len(texts):
         return MediaExtraction(kind="document", metadata={"suffix": suffix}, error="pdf_extract_failed")
     timed_out = len(pages) - len(texts)
     pages = pages[: len(texts)]
@@ -125,21 +125,6 @@ def extract_pdf_text(
     ocr = _ocr_scanned_pages(pages, texts, ocr_reader, started=started, clock=clock)
     missing = sum(not text.strip() for text in texts)
     truncated = total > PDF_PAGE_LIMIT
-    warnings = []
-    if truncated:
-        warnings.append(f"Only the first {PDF_PAGE_LIMIT} of {total} pages were read.")
-    if timed_out:
-        warnings.append(f"Reading stopped after {len(texts)} pages to stay within the upload time limit.")
-    if ocr.pages:
-        warnings.append(
-            f"{len(ocr.pages)} scanned pages were read with OCR; check names and numbers against the original."
-        )
-    if ocr.pieced:
-        warnings.append(
-            f"{ocr.pieced} pages are stored as several image strips; OCR read only the largest, so text may be missing."
-        )
-    if missing:
-        warnings.append(f"{missing} pages had no readable text.{_missing_reason(ocr)}")
     return MediaExtraction(
         text="\n\n".join(texts).strip(),
         kind="document",
@@ -149,6 +134,7 @@ def extract_pdf_text(
             "pages_read": len(texts),
             "pages_total": total,
             "pages_without_text": missing,
+            "pages_unreadable": unreadable,
             "pages_timed_out": timed_out,
             "ocr_pages": ocr.pages,
             "ocr_engine": ocr.engine if ocr.pages else None,
@@ -159,10 +145,30 @@ def extract_pdf_text(
             "ocr_busy": ocr.busy,
             "ocr_pieced_pages": ocr.pieced,
             "partial": bool(missing or truncated or timed_out or ocr.pieced),
-            "warnings": warnings,
+            "warnings": _warnings(total=total, read=len(texts), timed_out=timed_out, missing=missing, ocr=ocr),
         },
         error="pdf_needs_ocr" if not any(text.strip() for text in texts) else None,
     )
+
+
+def _warnings(*, total: int, read: int, timed_out: int, missing: int, ocr: _OcrOutcome) -> list[str]:
+    warnings = []
+    if total > PDF_PAGE_LIMIT:
+        warnings.append(f"Only the first {PDF_PAGE_LIMIT} of {total} pages were read.")
+    if timed_out:
+        warnings.append(f"Reading stopped after {read} pages to stay within the upload time limit.")
+    if ocr.pages:
+        warnings.append(
+            f"{len(ocr.pages)} scanned pages were read with OCR; check names and numbers against the original."
+        )
+    if ocr.pieced:
+        warnings.append(
+            f"{ocr.pieced} pages are stored as image layers or pieces that could not be put back together; "
+            "text on them may be missing."
+        )
+    if missing:
+        warnings.append(f"{missing} pages had no readable text.{_missing_reason(ocr)}")
+    return warnings
 
 
 def _missing_reason(ocr: _OcrOutcome) -> str:
@@ -203,12 +209,17 @@ def _ocr_scanned_pages(
                 # budget is spent, that walk buys nothing.
                 outcome.unchecked += 1
                 continue
-            scan = _largest_drawn_image(pages[index])
-            if scan is None:
+            try:
+                plan = _plan_page(pages[index])
+            except Exception as exc:
+                # A malformed page fails alone; it must not end the whole upload.
+                logger.warning("PDF page planning failed ({})", type(exc).__name__)
+                outcome.failed += 1
                 continue
-            if scan.pixels < MIN_SCAN_PIXELS:
-                # Strips too small to read on their own are still text lost.
-                outcome.pieced += scan.pieces > 0
+            if plan is None:
+                continue
+            if not plan.images:
+                outcome.pieced += plan.pieced
                 continue
             if not holding_slot:
                 holding_slot = _OCR_SLOTS.acquire(blocking=False)
@@ -221,22 +232,7 @@ def _ocr_scanned_pages(
                 if reader is None:
                     outcome.skipped += 1
                     continue
-            try:
-                recognized = _read_scan(pages[index], scan, reader, started=started, clock=clock)
-            except _BudgetSpent:
-                outcome.skipped += 1
-                continue
-            except Exception as exc:
-                # Type only: decoder and OCR messages can carry document content.
-                logger.warning("PDF page OCR failed ({})", type(exc).__name__)
-                outcome.failed += 1
-                continue
-            if _looks_like_text(recognized):
-                texts[index] = f"{text.strip()}\n{recognized.strip()}".strip()
-                outcome.pages.append(index + 1)
-                outcome.pieced += scan.pieces > 0
-            else:
-                outcome.failed += 1
+            _read_page(index, text, plan, reader, texts, outcome, started=started, clock=clock)
     finally:
         if holding_slot:
             _OCR_SLOTS.release()
@@ -244,6 +240,114 @@ def _ocr_scanned_pages(
     if outcome.pages:
         logger.info("PDF OCR read {} scanned pages", len(outcome.pages))
     return outcome
+
+
+def _read_page(
+    index: int,
+    text: str,
+    plan: _PagePlan,
+    reader: Any,
+    texts: list[str],
+    outcome: _OcrOutcome,
+    *,
+    started: float,
+    clock: Callable[[], float],
+) -> None:
+    try:
+        recognized = _read_plan(plan, reader, started=started, clock=clock)
+    except _BudgetSpent:
+        outcome.skipped += 1
+        return
+    except Exception as exc:
+        # Type only: decoder and OCR messages can carry document content.
+        logger.warning("PDF page OCR failed ({})", type(exc).__name__)
+        outcome.failed += 1
+        return
+    if _looks_like_text(recognized):
+        texts[index] = f"{text.strip()}\n{recognized.strip()}".strip()
+        outcome.pages.append(index + 1)
+        outcome.pieced += plan.pieced
+    else:
+        outcome.failed += 1
+
+
+def _plan_page(page: Any) -> _PagePlan | None:
+    drawing = drawn_images(page)
+    plan = _plan_drawing(page, drawing.images)
+    if drawing.complete:
+        return plan
+    # The walk stopped at its budget with more left to draw, so whatever is
+    # read of this page, it is reported as partly read.
+    return _PagePlan(plan.images if plan else (), plan.rotation if plan else 0, pieced=True)
+
+
+def _plan_drawing(page: Any, images: list[DrawnImage]) -> _PagePlan | None:
+    pieces = [image for image in images if image.pixels >= MIN_PIECE_PIXELS]
+    if not pieces:
+        return None
+    total = sum(image.pixels for image in pieces)
+    if len(pieces) > 1 and total <= pdf_images.MAX_SCAN_PIXELS and all(_assemblable(image) for image in pieces):
+        # Strips or tiles of one scan: read them as one page. Together they are
+        # held to the same threshold as a single image, so a few small graphics
+        # are not mistaken for a scan.
+        return None if total < MIN_SCAN_PIXELS else _PagePlan(tuple(pieces), _rotation(page, 0), pieced=False)
+    largest = max(pieces, key=lambda image: image.pixels)
+    if largest.pixels < MIN_SCAN_PIXELS:
+        # One small image is a logo. Several that cannot be reassembled are a
+        # page whose text is in pieces too small to read: report it.
+        return None if len(pieces) == 1 else _PagePlan((), 0, pieced=True)
+    drawn = pdf_images.orientation(largest.matrix)
+    return _PagePlan((largest,), _rotation(page, drawn or 0), pieced=len(pieces) > 1)
+
+
+def _assemblable(image: DrawnImage) -> bool:
+    # Masked layers (mixed raster content) need compositing rules this does not
+    # model; turned or skewed pieces need more than a paste.
+    return not image.masked and pdf_images.is_upright(image.matrix)
+
+
+def _rotation(page: Any, drawn: int) -> int:
+    # The drawing matrix turns the stored image counter-clockwise; /Rotate then
+    # turns the whole page clockwise for display. OCR wants what is displayed.
+    try:
+        turned = int(page.rotation or 0)
+    except (TypeError, ValueError):
+        # A malformed /Rotate is read as none, as viewers do.
+        turned = 0
+    return (drawn - turned) % 360
+
+
+def _read_plan(plan: _PagePlan, reader: Any, *, started: float, clock: Callable[[], float]) -> str:
+    def decode_piece(image: DrawnImage) -> Any:
+        timeout = _step_timeout(started, clock)
+        try:
+            return decode(image, timeout=timeout)
+        except DecodeTimeout as exc:
+            if timeout < OCR_PAGE_TIMEOUT_SECONDS:
+                raise _BudgetSpent from exc
+            raise
+
+    images = list(plan.images)
+    picture = decode_piece(images[0]) if len(images) == 1 else compose(images, decode_piece)
+    # Polarity is judged on the whole page: one dark strip is not an inverted page.
+    if all(pdf_images.is_bilevel(image) for image in images):
+        picture = fix_polarity(picture)
+    if plan.rotation:
+        picture = picture.rotate(plan.rotation, expand=True)
+    timeout = _step_timeout(started, clock)
+    try:
+        return read_image_text(reader, picture, timeout=timeout)
+    except subprocess.TimeoutExpired as exc:
+        if timeout < OCR_PAGE_TIMEOUT_SECONDS:
+            raise _BudgetSpent from exc
+        raise
+
+
+def _step_timeout(started: float, clock: Callable[[], float]) -> float:
+    timeout = min(OCR_PAGE_TIMEOUT_SECONDS, _remaining(started, clock))
+    if timeout < _OCR_MIN_REMAINING_SECONDS:
+        raise _BudgetSpent
+    return timeout
 
 
 def _start_reader(reader_factory: Callable[[], Any], outcome: _OcrOutcome) -> Any:
@@ -264,115 +368,6 @@ def _start_reader(reader_factory: Callable[[], Any], outcome: _OcrOutcome) -> An
 
 def _remaining(started: float, clock: Callable[[], float]) -> float:
     return OCR_TIME_BUDGET_SECONDS - (clock() - started)
-
-
-def _largest_drawn_image(page: Any) -> _Scan | None:
-    """The largest image the page draws, following the forms it draws.
-
-    Bounded by content size, form depth and a per-page XObject count, and safe
-    against shared or cyclic references, so a crafted file cannot make the walk
-    itself expensive. Images listed in resources but never drawn are ignored:
-    some producers share one resource dictionary across every page.
-    """
-
-    from pypdf.generic import ContentStream, IndirectObject
-
-    found: list[_Scan] = []
-    seen: set[Any] = set()
-    budget = [MAX_XOBJECTS_PER_PAGE]
-
-    def visit(operations: Any, resources: Any, depth: int) -> None:
-        if resources is None or depth > _MAX_FORM_DEPTH:
-            return
-        xobjects = resources.get_object().get("/XObject")
-        if xobjects is None:
-            return
-        xobjects = xobjects.get_object()
-        for operands, operator in operations:
-            if operator != b"Do" or not operands or str(operands[0]) not in xobjects:
-                continue
-            if budget[0] <= 0:
-                return
-            budget[0] -= 1
-            reference = xobjects.raw_get(str(operands[0]))
-            identity = (
-                (reference.idnum, reference.generation) if isinstance(reference, IndirectObject) else id(reference)
-            )
-            if identity in seen:
-                continue
-            seen.add(identity)
-            xobject = reference.get_object()
-            subtype = xobject.get("/Subtype")
-            if subtype == "/Image":
-                found.append(_Scan(int(xobject.get("/Width", 0)) * int(xobject.get("/Height", 0)), xobject))
-            elif subtype == "/Form" and len(xobject.get_data()) <= MAX_SCAN_CONTENT_BYTES:
-                visit(ContentStream(xobject, page.pdf).operations, xobject.get("/Resources"), depth + 1)
-
-    try:
-        # Measured on the decoded stream bytes before anything is parsed, so a
-        # multi-megabyte vector page costs a length check, not a parse.
-        if _content_bytes(page) > MAX_SCAN_CONTENT_BYTES:
-            return None
-        contents = page.get_contents()
-        if contents is not None:
-            visit(contents.operations, page.get("/Resources"), 0)
-    except Exception as exc:
-        logger.debug("PDF page content unreadable ({})", type(exc).__name__)
-        return None
-    if not found:
-        return None
-    largest = max(found, key=lambda scan: scan.pixels)
-    pieces = sum(1 for scan in found if scan is not largest and scan.pixels >= MIN_PIECE_PIXELS)
-    return _Scan(largest.pixels, largest.xobject, pieces)
-
-
-def _content_bytes(page: Any) -> int:
-    contents = page.get("/Contents")
-    if contents is None:
-        return 0
-    contents = contents.get_object()
-    streams = contents if isinstance(contents, list) else [contents]
-    return sum(len(stream.get_object().get_data()) for stream in streams)
-
-
-def _read_scan(page: Any, scan: _Scan, reader: Any, *, started: float, clock: Callable[[], float]) -> str:
-    from PIL import Image
-
-    filters = scan.xobject.get("/Filter")
-    names = [str(item) for item in filters] if isinstance(filters, list) else ([str(filters)] if filters else [])
-    if names and names[-1] in _HEADER_SIZED_FILTERS:
-        image = Image.open(io.BytesIO(scan.xobject.get_data()))
-        # The header's size, not the PDF's claim, decides what decoding costs.
-        if image.width * image.height > MAX_SCAN_PIXELS:
-            raise ValueError("scan image exceeds the pixel limit")
-        if names[-1] == "/DCTDecode":
-            # Decode straight to grayscale at reduced size; a 600 dpi colour
-            # page then never exists in memory at full resolution.
-            image.draft("L", (OCR_LONG_SIDE, OCR_LONG_SIDE))
-    else:
-        # Raw samples must match their declared size, so the declared size is
-        # the decoded size. Decoded from the object already found, not through
-        # page.images, which would walk every XObject on the page again.
-        if scan.pixels > MAX_RAW_SCAN_PIXELS:
-            raise ValueError("scan image exceeds the pixel limit")
-        image = scan.xobject.decode_as_image()
-    grayscale = image.convert("L")
-    if max(grayscale.size) > OCR_LONG_SIDE:
-        grayscale.thumbnail((OCR_LONG_SIDE, OCR_LONG_SIDE))
-    # /Rotate turns the page clockwise for display; the image is stored
-    # unrotated, and Tesseract reads sideways text as noise.
-    rotation = int(page.rotation or 0) % 360
-    if rotation in (90, 180, 270):
-        grayscale = grayscale.rotate(-rotation, expand=True)
-    timeout = min(OCR_PAGE_TIMEOUT_SECONDS, _remaining(started, clock))
-    if timeout < _OCR_MIN_REMAINING_SECONDS:
-        raise _BudgetSpent
-    try:
-        return read_image_text(reader, grayscale, timeout=timeout)
-    except subprocess.TimeoutExpired as exc:
-        if timeout < OCR_PAGE_TIMEOUT_SECONDS:
-            raise _BudgetSpent from exc
-        raise
 
 
 def _looks_like_text(recognized: str) -> bool:

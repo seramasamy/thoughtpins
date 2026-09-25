@@ -113,7 +113,16 @@ def main() -> None:
     setup_logging()
     host = os.getenv("THOUGHTPINS_WEB_HOST", "127.0.0.1")
     port = int(os.getenv("THOUGHTPINS_WEB_PORT", "8421"))
-    uvicorn.run("thoughtpins.web_proxy:app", host=host, port=port, log_level=config.LOG_LEVEL.lower(), reload=False)
+    # log_config=None keeps setup_logging's routing; uvicorn's own config would
+    # give its loggers handlers that bypass the redaction and the patcher.
+    uvicorn.run(
+        "thoughtpins.web_proxy:app",
+        host=host,
+        port=port,
+        log_level=config.LOG_LEVEL.lower(),
+        log_config=None,
+        reload=False,
+    )
 
 
 if __name__ == "__main__":

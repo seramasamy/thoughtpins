@@ -14,10 +14,26 @@ Keep a Changelog, and the project uses semantic versioning for public releases.
   once (others are told it is busy), and every page not read is reported with
   its reason. Images are found by a bounded, cycle-safe walk of what each page
   draws; JPEG and JPEG 2000 scans are sized from their own headers before
-  decoding; `/Rotate` is honoured; OCR output that holds no words is discarded;
-  pages stored as several image strips are reported as only partly read.
+  decoding; OCR output that holds no words is discarded. Pages are read upright
+  whether turned by `/Rotate` or by the drawing matrix itself; pages stored as
+  strips or tiles are reassembled and read whole, and layered (masked) pages
+  that cannot be reassembled are reported as partly read. JBIG2 and JPEG 2000
+  decoding runs in a subprocess under the remaining budget as a hard timeout,
+  with none of the server's secrets in its environment; pypdf's own JBIG2 path,
+  which has none, is never used. A compression filter in front of JBIG2 is
+  undone first, and a filter chain hiding a codec is refused. A bilevel page
+  decoded with reversed polarity is inverted before OCR, judged on the whole
+  page. A malformed `/Rotate` is read as none, as viewers do, and a page that
+  cannot be planned fails alone instead of ending the upload. Other encodings
+  are decoded at the size the pixel limit checked: an image's soft mask is
+  never decoded, LZW and ASCII85 data is read as samples rather than as an
+  embedded PNG or TIFF of any size, and CCITT data must be as wide as its
+  image. A page drawing more images than the walk takes is reported as partly
+  read, and a page whose text cannot be extracted no longer discards the text
+  of every other page.
   The image installs `jbig2dec` for JBIG2 scans, and the image build proves
-  Tesseract reads a generated scanned page.
+  Tesseract reads generated scanned pages: plain, turned upright by the drawing
+  matrix, JPEG 2000, and JBIG2 decoded by the installed `jbig2dec`.
 - The Android file picker offers Word and PowerPoint files, matching the web
   app; iOS already accepted any file.
 
@@ -76,8 +92,46 @@ Keep a Changelog, and the project uses semantic versioning for public releases.
   they now log the exception type. The log-privacy gate fails on content-named
   arguments -- through slices, f-strings, `.format`, concatenation, containers
   and wrappers, including `logger.opt()` chains -- and on printed exceptions,
-  except ten reviewed infrastructure messages. It does not yet cover the
-  traceback `logger.exception()` attaches by itself.
+  except ten reviewed infrastructure messages.
+- `logger.exception()` tracebacks ended with the exception's message, which a
+  call-site rule cannot see. A Loguru patcher now replaces each logged
+  exception with a stand-in of the same type whose message is withheld,
+  rebuilt along the cause chain (and through exception groups) with the
+  original frames, so every sink -- text, JSON and Sentry's Loguru handler --
+  keeps types and frames without text. uvicorn's own traceback for an
+  unhandled 500, which Starlette re-raises for the server to log, and Celery's
+  task-failure line now pass through the same path: the standard `logging`
+  tree is routed into Loguru, uvicorn no longer installs its own handlers, and
+  Celery no longer replaces the root logger. From that tree only uvicorn's and
+  Celery's INFO lines are kept, and nothing below INFO: httpx logs each
+  request's full URL at INFO, which would have put saved article addresses and
+  the Telegram bot token in the log, and uvicorn at TRACE logs each request's
+  path and query string. Routed lines name the code that logged them, even
+  through Sentry's wrapper, and neither the patcher nor the routing ever raises
+  into the caller; if a faithful stand-in cannot be built, a generic one is
+  logged instead.
+- uvicorn's access log recorded every client IP address and each request's
+  full path with its query string, including terms typed into library search.
+  Access lines now keep method, route and status; a path segment that is not
+  identifier-like is shown as `{redacted}`, and so is the name or title given
+  to a people, places or library route. A test fails if a route adds a
+  free-text path parameter the redaction does not cover.
+- Sentry events carried stack-frame local variables and breadcrumbs, both on by
+  default in sentry-sdk; on a content route the locals are the journal text.
+  Both are now off, and exception messages are withheld before an event is
+  sent, leaving the type, stack, route and status. One unhandled 500 reaches
+  Sentry three ways -- Starlette, the handler's `logger.exception()` and
+  uvicorn's re-log -- and withheld messages defeated Sentry's own
+  deduplication, so a report of an exception already sent is now dropped.
+- Sentry's own Loguru handlers were added with Loguru's defaults, which render
+  local variable values into a logged traceback, and Sentry sent that
+  rendering as the event's message: a `logger.exception()` on a content route
+  could send what the person wrote. Those handlers are off; Sentry's event
+  handler is added like every other sink and sends the log line alone, and a
+  log event keeps only its first line. Standard-library messages routed into
+  the log keep their first line too: asyncio's report of a failed task quotes
+  the exception's text on the next. Those records reach Sentry once, through
+  its logging integration, not again through the Loguru handler.
 - Uploads held a database connection and the account's row lock while
   extracting text. Extraction now runs first, so OCR and transcription no
   longer block account deletion or hold a pooled connection.

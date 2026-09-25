@@ -112,6 +112,9 @@ def _build_celery_app():
         broker_connection_retry_on_startup=True,
         task_time_limit=900,
         task_soft_time_limit=840,
+        # setup_logging routes the root logger through Loguru and its redaction;
+        # Celery would otherwise replace those handlers at worker start.
+        worker_hijack_root_logger=False,
     )
     return app
 
