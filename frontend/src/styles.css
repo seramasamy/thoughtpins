@@ -16,3 +16,8 @@
 @import "./styles/120-color-scheme.css";
 @import "./styles/130-touch-targets.css";
 @import "./styles/140-modern.css";
+@import "./styles/150-luminous.css";
+@import "./styles/151-luminous-controls.css";
+@import "./styles/152-luminous-chat.css";
+@import "./styles/153-luminous-views.css";
+@import "./styles/154-luminous-auth.css";

@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
-   Dark scheme: warm charcoal paper, same brand voice
+   Dark scheme: the mineral navy of the app (DESIGN.md), same brand voice
 
    The same token remap is applied three ways:
    - system dark, when the visitor has not chosen a theme (no data-theme)
@@ -24,31 +24,31 @@
    stay identical. */
 :root[data-theme="dark"] {
   --tp-canvas: #0c1220;
-  --tp-surface: #131b2b;
-  --tp-surface-warm: #2b251e;
-  --tp-ink: #f5f1ea;
-  --tp-ink-soft: #b5ac9f;
-  --tp-ink-faint: #8d8478;
-  --tp-line: #383128;
-  --tp-line-strong: #4a4136;
-  --tp-brand-soft: #402518;
-  --tp-sage-soft: #26332b;
+  --tp-surface: #151e30;
+  --tp-surface-warm: #1b263a;
+  --tp-ink: #edf2ff;
+  --tp-ink-soft: #a9b5cb;
+  --tp-ink-faint: #96a2ba;
+  --tp-line: #2a354b;
+  --tp-line-strong: #414f69;
+  --tp-brand-soft: #38271f;
+  --tp-sage-soft: #19372f;
   --tp-blue-soft: #223038;
-  --tp-charcoal: #211d18;
-  --tp-charcoal-soft: #222c40;
+  --tp-charcoal: #182339;
+  --tp-charcoal-soft: #26334b;
 
   --tp-eyebrow: #f0906a;
   --tp-link: #f0906a;
   --tp-action-hover: #cd4d20;
-  --tp-band: #211d18;
-  --tp-header-bg: rgba(28, 25, 22, 0.92);
+  --tp-band: #111a2b;
+  --tp-header-bg: rgba(12, 18, 32, 0.88);
   --tp-chip-orange-ink: #ffb48f;
-  --tp-chip-orange-bg: #402518;
+  --tp-chip-orange-bg: #38271f;
   --tp-chip-sage-ink: #a9c4b4;
-  --tp-chip-sage-bg: #26332b;
+  --tp-chip-sage-bg: #19372f;
   --tp-chip-blue-ink: #a3c3d4;
   --tp-chip-blue-bg: #223038;
-  --tp-summary-ink: #f2cdb8;
+  --tp-summary-ink: #e3e9f7;
   --tp-shadow-card: 0 10px 30px rgba(0, 0, 0, 0.35);
   --tp-shadow-shot: 0 24px 64px rgba(0, 0, 0, 0.5);
 }
@@ -56,31 +56,31 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --tp-canvas: #0c1220;
-    --tp-surface: #131b2b;
-    --tp-surface-warm: #2b251e;
-    --tp-ink: #f5f1ea;
-    --tp-ink-soft: #b5ac9f;
-    --tp-ink-faint: #8d8478;
-    --tp-line: #383128;
-    --tp-line-strong: #4a4136;
-    --tp-brand-soft: #402518;
-    --tp-sage-soft: #26332b;
+    --tp-surface: #151e30;
+    --tp-surface-warm: #1b263a;
+    --tp-ink: #edf2ff;
+    --tp-ink-soft: #a9b5cb;
+    --tp-ink-faint: #96a2ba;
+    --tp-line: #2a354b;
+    --tp-line-strong: #414f69;
+    --tp-brand-soft: #38271f;
+    --tp-sage-soft: #19372f;
     --tp-blue-soft: #223038;
-    --tp-charcoal: #211d18;
-    --tp-charcoal-soft: #222c40;
+    --tp-charcoal: #182339;
+    --tp-charcoal-soft: #26334b;
 
     --tp-eyebrow: #f0906a;
     --tp-link: #f0906a;
     --tp-action-hover: #cd4d20;
-    --tp-band: #211d18;
-    --tp-header-bg: rgba(28, 25, 22, 0.92);
+    --tp-band: #111a2b;
+    --tp-header-bg: rgba(12, 18, 32, 0.88);
     --tp-chip-orange-ink: #ffb48f;
-    --tp-chip-orange-bg: #402518;
+    --tp-chip-orange-bg: #38271f;
     --tp-chip-sage-ink: #a9c4b4;
-    --tp-chip-sage-bg: #26332b;
+    --tp-chip-sage-bg: #19372f;
     --tp-chip-blue-ink: #a3c3d4;
     --tp-chip-blue-bg: #223038;
-    --tp-summary-ink: #f2cdb8;
+    --tp-summary-ink: #e3e9f7;
     --tp-shadow-card: 0 10px 30px rgba(0, 0, 0, 0.35);
     --tp-shadow-shot: 0 24px 64px rgba(0, 0, 0, 0.5);
   }
@@ -89,7 +89,7 @@
 /* Component-level dark adjustments, explicit theme choice… */
 [data-theme="dark"] ::selection {
   color: var(--tp-ink);
-  background: #4a2c1c;
+  background: rgba(172, 168, 255, 0.3);
 }
 
 [data-theme="dark"] .site-brand img,
@@ -115,11 +115,11 @@
 
 [data-theme="dark"] .site-footer {
   border-top: 1px solid var(--tp-line);
-  background: #191613;
+  background: #080d18;
 }
 
 [data-theme="dark"] .footer-bottom {
-  border-top-color: #332d25;
+  border-top-color: #1f2a3f;
 }
 
 [data-theme="dark"] .skip-link {
@@ -147,7 +147,7 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) ::selection {
     color: var(--tp-ink);
-    background: #4a2c1c;
+    background: rgba(172, 168, 255, 0.3);
   }
 
   :root:not([data-theme="light"]) .site-brand img,
@@ -173,11 +173,11 @@
 
   :root:not([data-theme="light"]) .site-footer {
     border-top: 1px solid var(--tp-line);
-    background: #191613;
+    background: #080d18;
   }
 
   :root:not([data-theme="light"]) .footer-bottom {
-    border-top-color: #332d25;
+    border-top-color: #1f2a3f;
   }
 
   :root:not([data-theme="light"]) .skip-link {

@@ -12,6 +12,12 @@ precise typography, an orbital memory motif, and the established ember mark
 connect the surfaces. Content and primary actions retain the strongest hierarchy.
 Android retains its existing native palette until a separate implementation pass.
 
+The September 2026 luminous pass renders that system as light rather than
+changing it: hairlines lit from above, glass reserved for chrome, soft ember
+and violet atmosphere, and a memory-network motif of nodes, threads, orbits
+and travelling signals. Headings come into focus instead of simply fading in,
+and surfaces catch the pointer's light along their edge on fine pointers.
+
 ## Color Strategy
 
 | Role | Light | Dark |
@@ -33,6 +39,10 @@ dark counterparts. The public homepage uses the dark palette in both system
 appearances. Gradients are reserved for subtle atmosphere and hero surfaces.
 Native system controls retain the established softened ember tint `#e8895f`
 in dark mode; filled buttons use the shared `#b33e16` in both appearances.
+Luminous accents are for light, never for text on light surfaces: ember glow
+`#ff7d4a` and apricot `#f4b493` for nodes and blooms, and violet `#c9c6ff` for
+secondary text on navy. Filled buttons may run a short `#c24a1c` to `#b33e16`
+gradient; white text keeps AA contrast across it.
 
 ## Typography
 
@@ -99,8 +109,16 @@ It is white on the terracotta app tile. Canonical files are
   55-110ms between siblings. In the app, card grids use the `.stagger` utility
   (50ms steps, capped at six items).
 - Named motions shared across surfaces: rise, settle, stagger, breathe,
-  thinking-dots, constellation. Experimental labs/ pages may exceed these
+  thinking-dots, constellation, focus-in (opacity with a short blur that
+  resolves), signal (a light travelling along a hairline or thread), orbit
+  (nodes travelling elliptical tracks with depth), and sheen (a highlight
+  crossing a primary button on hover). Experimental labs/ pages may exceed these
   rules; they are not product surfaces until adopted.
+- Marketing reveals on the public homepage may run 900–1100ms; product views
+  keep the 380ms entrance ceiling and a blur of 6px or less.
+- Ambient loops live only where attention is not needed for a task: the
+  homepage hero, the Chat welcome orbit and the sign-in brand pane. Shell
+  chrome, reading pages and utility views have no infinite animation.
 
 ## Theme
 

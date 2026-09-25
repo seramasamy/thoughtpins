@@ -8,12 +8,13 @@ import { IconButton, KeyValue, Panel, SecondaryButton, StatusPill } from "../../
 import { SignInMethodsPanel } from "./SignInMethodsPanel";
 import { VaultTransferPanel } from "./VaultTransferPanel";
 import { VoiceArchivePanel } from "./VoiceArchivePanel";
+import { LegalAcceptancesPanel, type LegalDocument, type LegalLinks } from "./LegalAcceptancesPanel";
 import { applyThemeMode, THEME_MODES, useTheme, type ThemeMode } from "../../core/theme";
 
 const WEB_INSTALL_KEY = "thoughtpins.web_installation.v1";
 const THEME_LABELS: Record<ThemeMode, string> = { auto: "Auto (system)", light: "Light", dark: "Dark" };
 
-export function AccountView({ token, me, run, logout, localMode, legalVersion, voiceArchiveEnabled }: ScreenProps & { me: MeResponse | null; logout: () => Promise<void>; localMode: boolean; legalVersion: string; voiceArchiveEnabled: boolean }) {
+export function AccountView({ token, me, run, logout, localMode, legalVersion, legalLinks, voiceArchiveEnabled }: ScreenProps & { me: MeResponse | null; logout: () => Promise<void>; localMode: boolean; legalVersion: string; legalLinks: LegalLinks; voiceArchiveEnabled: boolean }) {
   const [exported, setExported] = useState<AccountExportResponse | null>(null);
   const [prefs, setPrefs] = useState<PreferencesResponse | null>(null);
   const [devices, setDevices] = useState<DeviceResponse[]>([]);
@@ -41,7 +42,7 @@ export function AccountView({ token, me, run, logout, localMode, legalVersion, v
     if (result) setPrefs(result);
   };
 
-  const accept = async (document: "privacy" | "terms" | "ai_disclosure") => {
+  const accept = async (document: LegalDocument) => {
     const result = await run(() => api.acceptLegalDocument(token, document, legalVersion), "Accepted");
     if (result) setPrefs(result);
   };
@@ -210,14 +211,7 @@ export function AccountView({ token, me, run, logout, localMode, legalVersion, v
         )}
         <AccountSection icon={<BookOpen size={18} />} title="Legal acceptances" detail="The policy documents accepted on this account.">
           <Panel>
-            <div className="button-row wrap">
-              <SecondaryButton onClick={() => accept("privacy")}>Privacy</SecondaryButton>
-              <SecondaryButton onClick={() => accept("terms")}>Terms</SecondaryButton>
-              <SecondaryButton onClick={() => accept("ai_disclosure")}>AI Disclosure</SecondaryButton>
-            </div>
-            <div className="legal-list compact">
-              {Object.entries(prefs?.legal_acceptances || {}).map(([key, value]) => <div className="legal-row muted-row" key={key}><span>{key}</span><small>{value.version}</small></div>)}
-            </div>
+            <LegalAcceptancesPanel acceptances={prefs?.legal_acceptances} legalVersion={legalVersion} links={legalLinks} onAccept={(document) => void accept(document)} />
           </Panel>
         </AccountSection>
       </div>

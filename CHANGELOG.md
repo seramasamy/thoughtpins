@@ -223,6 +223,22 @@ Keep a Changelog, and the project uses semantic versioning for public releases.
 
 ### Changed
 
+- Luminous Memory visual refresh across the public site, the six trust pages,
+  the web app and the static fallback. The identity is unchanged (navy night,
+  ember brain-pin mark, violet memory accent, native sans); it is rendered as
+  light: lit hairlines, glass chrome, ember and violet atmosphere, and a
+  memory-network motif. The homepage constellation keeps its 135 motes, pace
+  and scroll-to-logo assembly, and adds glowing tones, travelling recall
+  signals, a depth layer, a pointer node, floating memory pins and an ignition
+  when the mark forms. Trust pages gain a navy dark palette (replacing warm
+  brown tokens), reading progress and scrollspy. The app gains a living Chat
+  welcome orbit, a night-sky sign-in pane and pointer-lit cards, and fixes
+  near-invisible user bubbles in dark mode. Account settings list each
+  accepted policy (Privacy Policy, Terms, AI Disclosure) as a link to its
+  public page with the accepted version, offering Accept only when a newer
+  version applies. New named motions (focus-in,
+  signal, orbit, sheen) are documented in `DESIGN.md`; all respect Reduce
+  Motion and the homepage pause control. Site cache key `20260925-luminous-2`.
 - Reranking derives query interpretation once per request instead of once per
   candidate, roughly halving rerank latency with byte-identical output.
 - All nineteen ranking coefficients are declared and bounded in one validated

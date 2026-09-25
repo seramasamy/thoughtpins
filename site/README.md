@@ -48,6 +48,30 @@ Keyboard focus keeps the introduction visible; fully faded links are inert.
 Short windows, oversized text, unavailable SVG geometry and system Reduce Motion
 use ordinary document flow, without the pinned sequence.
 Pause when offscreen, hidden or leaving the page, and resume on restoration.
+
+The September 2026 luminous pass renders that same field as light without moving
+any node the original placed. Motes glow in three tones (ember, violet, pale)
+chosen from values the field already draws, so the seeded random sequence and
+every position are unchanged. Recall signals travel along the current links and
+wake the node they reach, sometimes passing on to a neighbour. A deep dust layer
+parallaxes with the pointer and streams outward during assembly, the pointer
+itself joins the network as a node with its own faint connections, and four
+fictional memory pins float beside the headline on screens 1100px and wider,
+each tethered to its nearest mote. As the mark forms, light circles the pin
+outline and runs down each brain stroke, the mark ignites with an ember bloom and
+a single ring, and the name fades in beneath it. Everything added is drawn with
+sprites (`drawImage`), `fillRect` or plain strokes, never `arc`, so the review
+hooks still see exactly one arc per mote and every formed node lands on the
+mark. Pins and the formed name are decorative and `aria-hidden`; both are hidden
+in the static layout.
+
+`assets/luminous-sections.css` and `assets/luminous.css` hold the refreshed
+presentation and load after `modern-home.css` and before `motion-controls.css`,
+which stays last. `assets/luminous.js` adds the header's reading-progress line,
+the section being read in the navigation, pointer-lit card edges, focus-in
+reveals and the product frame settling flat as it arrives. Each of those is
+decoration over a finished page: without the script, an observer or motion,
+everything is visible and in place.
 The motion toggle pauses automatic floating/twinkle and the marquee; deliberate
 scrolling still controls assembly. Live system Reduce Motion disables both
 automatic animation and assembly. All content and native scrolling remain usable

@@ -20,22 +20,25 @@
 <meta name="twitter:image" content="https://thoughtpins.com/assets/product-chat-desktop.png">
 <title>Thought Pins - Your memory, connected</title>
 <link rel="canonical" href="https://thoughtpins.com/">
-<link rel="icon" href="/assets/thought-pins-mark.svg?v=20260912-scroll-logo-2" type="image/svg+xml">
-    <link rel="icon" href="/assets/favicon.ico?v=20260912-scroll-logo-2" sizes="any">
-<link rel="icon" href="/assets/apple-touch-icon.png?v=20260912-scroll-logo-2" type="image/png" sizes="1024x1024">
-<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=20260912-scroll-logo-2">
+<link rel="icon" href="/assets/thought-pins-mark.svg?v=20260925-luminous-2" type="image/svg+xml">
+    <link rel="icon" href="/assets/favicon.ico?v=20260925-luminous-2" sizes="any">
+<link rel="icon" href="/assets/apple-touch-icon.png?v=20260925-luminous-2" type="image/png" sizes="1024x1024">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=20260925-luminous-2">
 <link rel="manifest" href="/assets/site.webmanifest">
-<link rel="stylesheet" href="/assets/labs.css?v=20260912-scroll-logo-2">
-<link rel="stylesheet" href="/assets/labs-demo.css?v=20260912-scroll-logo-2">
-<link rel="stylesheet" href="/assets/styles/23-demo-live.css?v=20260912-scroll-logo-2">
-<link rel="stylesheet" href="/assets/modern-site.css?v=20260912-scroll-logo-2">
-  <link rel="stylesheet" href="/assets/product-showcase.css?v=20260912-scroll-logo-2">
-  <link rel="stylesheet" href="/assets/modern-home.css?v=20260912-scroll-logo-2">
-  <link rel="stylesheet" href="/assets/motion-controls.css?v=20260912-scroll-logo-2">
-  <script src="/assets/motion-preference.js?v=20260912-scroll-logo-2" defer></script>
-  <script src="/assets/labs.js?v=20260912-scroll-logo-2" defer></script>
-  <script src="/assets/constellation.js?v=20260912-scroll-logo-2" type="module"></script>
-<script src="/assets/site.js?v=20260912-scroll-logo-2" defer></script>
+<link rel="stylesheet" href="/assets/labs.css?v=20260925-luminous-2">
+<link rel="stylesheet" href="/assets/labs-demo.css?v=20260925-luminous-2">
+<link rel="stylesheet" href="/assets/styles/23-demo-live.css?v=20260925-luminous-2">
+<link rel="stylesheet" href="/assets/modern-site.css?v=20260925-luminous-2">
+  <link rel="stylesheet" href="/assets/product-showcase.css?v=20260925-luminous-2">
+  <link rel="stylesheet" href="/assets/modern-home.css?v=20260925-luminous-2">
+  <link rel="stylesheet" href="/assets/luminous-sections.css?v=20260925-luminous-2">
+  <link rel="stylesheet" href="/assets/luminous.css?v=20260925-luminous-2">
+  <link rel="stylesheet" href="/assets/motion-controls.css?v=20260925-luminous-2">
+  <script src="/assets/motion-preference.js?v=20260925-luminous-2" defer></script>
+  <script src="/assets/luminous.js?v=20260925-luminous-2" defer></script>
+  <script src="/assets/labs.js?v=20260925-luminous-2" defer></script>
+  <script src="/assets/constellation.js?v=20260925-luminous-2" type="module"></script>
+<script src="/assets/site.js?v=20260925-luminous-2" defer></script>
 <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -66,7 +69,7 @@
 
 <header class="lab-nav">
   <a class="lab-brand" href="/" aria-label="Thought Pins home">
-    <img src="/assets/thought-pins-mark.svg?v=20260912-scroll-logo-2" alt="" width="34" height="34">
+    <img src="/assets/thought-pins-mark.svg?v=20260925-luminous-2" alt="" width="34" height="34">
     <span>Thought Pins</span>
   </a>
   <nav class="lab-nav-links" aria-label="Main navigation">
@@ -79,6 +82,7 @@
     <a class="lab-nav-login" data-app-link="login" href="/app/?auth=login">Log in</a>
     <a class="lab-nav-signup" data-app-link="register" href="/app/?auth=register">Sign up</a>
   </div>
+  <span class="lum-nav-progress" aria-hidden="true"><span data-scroll-progress></span></span>
 </header>
 
 <main id="main">
@@ -86,6 +90,12 @@
   <section class="lab-hero" data-hero-wrap>
     <div class="lab-hero-sticky">
       <canvas class="lab-constellation" data-constellation aria-hidden="true"></canvas>
+      <div class="lum-pins" aria-hidden="true">
+        <span class="lum-pin" data-memory-pin data-x="0.135" data-y="0.29" data-tone="ember"><span class="lum-pin-body"><i></i>The copper lantern at Atlas Cafe</span></span>
+        <span class="lum-pin" data-memory-pin data-x="0.86" data-y="0.25" data-tone="violet"><span class="lum-pin-body"><i></i>Nora got the job</span></span>
+        <span class="lum-pin" data-memory-pin data-x="0.115" data-y="0.7" data-tone="violet"><span class="lum-pin-body"><i></i>“Attention is care.”</span></span>
+        <span class="lum-pin" data-memory-pin data-x="0.875" data-y="0.72" data-tone="ember"><span class="lum-pin-body"><i></i>That idea on the 7:40 train</span></span>
+      </div>
       <div class="lab-hero-copy">
         <p class="lab-eyebrow" data-reveal-line><span>Journaling. Recall. Connection.</span></p>
         <h1 class="lab-h1" aria-label="Your memory, connected.">
@@ -101,6 +111,7 @@
           </span>
         </div>
       </div>
+      <p class="lum-formed" data-formed-caption aria-hidden="true">Thought Pins</p>
       <p class="lab-test-note" data-test-session-note hidden><span aria-hidden="true"></span>Local test session available. No credentials required.</p>
       <p class="lab-scroll-hint" aria-hidden="true"><span></span>scroll</p>
     </div>
@@ -186,14 +197,14 @@
           <div class="showcase-panel is-active" data-preview-panel="desktop" id="lab-preview-desktop" role="tabpanel" aria-labelledby="preview-tab-desktop" tabindex="0">
             <div class="browser-frame">
               <div class="browser-frame-bar" aria-hidden="true"><i></i><i></i><i></i><span class="browser-frame-address">thoughtpins.com / your space</span></div>
-              <img class="product-app-capture product-app-capture-desktop" src="/assets/product-chat-desktop.png?v=20260912-scroll-logo-2" width="1440" height="1000" loading="lazy" alt="Thought Pins desktop web app: a personal memory workspace with a conversation composer and Recap, People, Chat, Places, and Pins in the side navigation.">
+              <img class="product-app-capture product-app-capture-desktop" src="/assets/product-chat-desktop.png?v=20260925-luminous-2" width="1440" height="1000" loading="lazy" alt="Thought Pins desktop web app: a personal memory workspace with a conversation composer and Recap, People, Chat, Places, and Pins in the side navigation.">
             </div>
           </div>
           <div class="showcase-panel" data-preview-panel="mobile" id="lab-preview-mobile" role="tabpanel" aria-labelledby="preview-tab-mobile" tabindex="0" hidden>
             <div class="phone-shell">
               <div class="phone-speaker" aria-hidden="true"></div>
               <div class="phone-screen">
-                <img class="product-app-capture product-app-capture-mobile" src="/assets/product-chat-mobile.png?v=20260912-scroll-logo-2" width="390" height="844" loading="lazy" alt="Thought Pins mobile web app, with a compact conversation composer and all five destinations in the bottom navigation.">
+                <img class="product-app-capture product-app-capture-mobile" src="/assets/product-chat-mobile.png?v=20260925-luminous-2" width="390" height="844" loading="lazy" alt="Thought Pins mobile web app, with a compact conversation composer and all five destinations in the bottom navigation.">
               </div>
             </div>
           </div>
@@ -233,14 +244,22 @@
     </header>
     <ul class="lab-keep-list">
       <li>
+        <svg class="lum-keep-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><path d="M24 8v20m0 0-8-8m8 8 8-8"/><path d="M10 30v6a4 4 0 0 0 4 4h20a4 4 0 0 0 4-4v-6"/><circle class="n" cx="12" cy="12" r="1.6"/><circle class="n" cx="36" cy="10" r="1.6"/><path d="M12 12 24 8l12 2"/></svg>
         <strong>Yours to take</strong>
         <span>Download your account data. On the web, export an Obsidian-compatible Markdown vault, too. Third-party source text follows the export policy.</span>
+        <div class="lum-vault" aria-hidden="true">
+          <code><i></i>journal/2026-07-12.md</code>
+          <code><i></i>people/nora.md</code>
+          <code><i></i>places/atlas-cafe.md</code>
+        </div>
       </li>
       <li>
+        <svg class="lum-keep-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><circle cx="24" cy="24" r="14"/><path d="M14 34 34 14"/></svg>
         <strong>Yours to end</strong>
         <span>Delete your account and its data from inside the app, whenever you decide.</span>
       </li>
       <li>
+        <svg class="lum-keep-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><rect x="8" y="16" width="32" height="16" rx="8"/><circle class="n" cx="32" cy="24" r="5"/></svg>
         <strong>Yours to choose</strong>
         <span>AI processing requires your consent. Your content is scoped to your account and is never used to build an advertising profile. <a href="/ai-disclosure">How AI processing works</a></span>
       </li>
@@ -249,6 +268,11 @@
 
   <!-- Closer -->
   <section class="lab-closer">
+    <div class="lum-orbit" aria-hidden="true">
+      <span class="lum-orbit-ring lum-orbit-ring--outer"><i></i><i></i></span>
+      <span class="lum-orbit-ring lum-orbit-ring--inner"><i></i></span>
+      <img src="/assets/thought-pins-mark.svg?v=20260925-luminous-2" alt="" width="64" height="64">
+    </div>
     <p class="lab-closer-line" data-reveal-line><span>A thought today.</span></p>
     <p class="lab-closer-line" data-reveal-line><span>A connection tomorrow.</span></p>
     <p class="lab-closer-line lab-italic" data-reveal-line><span>A little more you.</span></p>

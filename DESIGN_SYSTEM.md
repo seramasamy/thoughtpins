@@ -41,18 +41,31 @@ platform mask.
   `site/assets/styles/00-foundations.css`: topbar with theme toggle,
   `.page-toc` for long policies, and the full `.site-footer` with brand
   block. All seven pages load `/assets/site.js` (theme, reveals, app links).
+  The luminous layers `60-luminous.css` (palette, topbar, header, footer,
+  motion) and `61-luminous-reading.css` (body text, lists, contents) come last
+  in `styles.css`. On trust pages only, `site.js` adds the decorative header
+  orbit, the reading-progress line, scrollspy on the contents list
+  (`aria-current="location"`) and the small-screen "On this page" bar.
 - The homepage product preview is a self-playing chat vignette
   (`23-demo-live.css`, driven from `site.js`); the static screenshots remain
   the no-JS / reduced-motion / print representation.
-- The homepage uses `labs.css` for its scroll narrative and
-  `modern-site.css` for the current presentation. Reduced-motion mode keeps
-  the headline and every narrative item visible.
+- The homepage uses `labs.css` for its scroll narrative,
+  `modern-site.css` and `modern-home.css` for its composition, and
+  `luminous-sections.css` plus `luminous.css` for the luminous presentation,
+  with `luminous.js` for progress, scrollspy, pointer-lit edges and reveals.
+  Reduced-motion mode keeps the headline and every narrative item visible.
 - iOS theming lives in `ThoughtPinsTheme.swift` (dynamic light/dark token
   colors, `ThoughtPinsThinkingDots`, `ThoughtPinsEmptyState`). Shared surfaces
   and orbital artwork live in `ThoughtPinsDesignComponents.swift`; the chat,
   recap, auth, and collection screens each have a focused module.
-- The static fallback (`frontend/static/`) is rethemed to the warm-paper
-  tokens so a failed Vite build never ships the retired green design.
+- The static fallback (`frontend/static/`) ends with a mineral pass (navy
+  rail, ember actions, violet accents, native display type) so a failed Vite
+  build still looks like the current product.
+- The web app's luminous layers are `150-luminous.css` (tokens, canvas,
+  shell), `151-luminous-controls.css`, `152-luminous-chat.css`,
+  `153-luminous-views.css` and `154-luminous-auth.css`, imported last in
+  `styles.css`. `usePointerLight` gives cards a pointer-lit edge on fine
+  pointers; `AuthSky` draws the sign-in pane's decorative network.
 
 ## Core Tokens
 
@@ -104,6 +117,11 @@ platform mask.
 
 ## Motion Language
 
+- Focus-in (opacity with a short blur that resolves; ≤380ms and ≤6px in the
+  app, up to 1100ms on the homepage), signal (light travelling a hairline),
+  orbit (nodes travelling elliptical tracks via `offset-path`) and sheen
+  (a highlight crossing primary buttons on hover). Ambient loops run only in
+  the homepage hero, the Chat welcome orbit and the sign-in brand pane.
 - Rise (380ms entrance), settle (scale 1.04 → 1), stagger (50ms sibling
   steps via `.stagger`, wired into Recap/Memory/Pins/Entries grids), breathe
   (hero mark idle), thinking-dots (all busy states), constellation (hero

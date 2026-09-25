@@ -45,8 +45,10 @@ primary product remains personal rather than administrative.
 
 The ember mark and primary action sit on cool mineral surfaces. A violet
 secondary accent connects the memory motif, profiles, and reflection panels.
-`styles/140-modern.css` owns the shared visual composition; the preceding
-feature layers own layout and behavior. Native sans typography and explicit
+`styles/140-modern.css` owns the shared composition and the luminous layers
+`150`–`154` (shell, controls, chat, views, sign-in) render it as light: glass
+chrome, lit edges, ember and violet glows. The preceding feature layers own
+layout and behavior. Native sans typography and explicit
 light/dark semantic pairs are defined in `DESIGN.md`.
 Animations honor `prefers-reduced-motion`.
 

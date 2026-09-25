@@ -9,11 +9,11 @@ const STARTERS = [
 export function ChatWelcome({ onChoose }: { onChoose: (text: string) => void }) {
   return (
     <div className="chat-welcome">
+      {/* Nodes ride inside their rings so each can follow its ellipse (offset-path). */}
       <div className="memory-orbit" aria-hidden="true">
-        <span className="orbit-track orbit-track--outer" />
-        <span className="orbit-track orbit-track--inner" />
+        <span className="orbit-track orbit-track--outer"><i className="orbit-node orbit-node--one" /><i className="orbit-node orbit-node--three" /></span>
+        <span className="orbit-track orbit-track--inner"><i className="orbit-node orbit-node--two" /></span>
         <img className="welcome-mark" src={`${import.meta.env.BASE_URL}assets/thought-pins-mark.svg?v=20260712-memory-pin-v4`} alt="" width="64" height="64" />
-        <i className="orbit-node orbit-node--one" /><i className="orbit-node orbit-node--two" />
       </div>
       <span className="welcome-eyebrow">A little space for your mind</span>
       <h2>What is on your mind?</h2>

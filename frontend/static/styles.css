@@ -1219,3 +1219,265 @@ h3,
     opacity: 0.6;
   }
 }
+
+/* ------------------------------------------------------------------
+   Luminous mineral pass (September 2026).
+   The fallback shell only appears when the Vite build is unavailable, but it
+   should still look like Thought Pins: the app's cool mineral canvas, a navy
+   rail, ember actions with a soft glow, and violet memory accents. Layout,
+   behavior and every contract rule above stay untouched.
+   ------------------------------------------------------------------ */
+:root {
+  color: #192132;
+  background: #f4f5f9;
+}
+
+body,
+.shell {
+  background:
+    radial-gradient(900px 520px at 88% -8%, rgba(84, 84, 184, 0.1), transparent 70%),
+    radial-gradient(700px 480px at 0% 108%, rgba(232, 97, 43, 0.06), transparent 70%),
+    #f4f5f9;
+}
+
+.loading-screen {
+  background: radial-gradient(640px 420px at 50% 42%, rgba(84, 84, 184, 0.12), transparent 70%), #f4f5f9;
+}
+
+.loading-mark,
+.brand-mark {
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6), 0 12px 28px -8px rgba(232, 97, 43, 0.55);
+}
+
+.loading-line {
+  color: #616b7f;
+}
+
+.sidebar {
+  color: #f1f4ff;
+  background:
+    radial-gradient(120% 60% at 0% 0%, rgba(120, 112, 255, 0.16), transparent 60%),
+    linear-gradient(170deg, #1d2a45, #131b2b 55%, #0f1624);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.06);
+}
+
+.sidebar .brand span,
+.sidebar .identity small {
+  color: #aab7d0;
+}
+
+.nav-button {
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  color: #c9d2e6;
+  transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.nav-button:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.nav-button.active {
+  color: #ffffff;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.05));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 20px -12px rgba(255, 125, 74, 0.8);
+}
+
+.topbar h1 {
+  letter-spacing: -0.035em;
+}
+
+.brand span,
+.muted,
+.identity small,
+.field-help {
+  color: #616b7f;
+}
+
+.hero-panel {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  color: #f1f4ff;
+  background:
+    radial-gradient(120% 120% at 100% 0%, rgba(120, 112, 255, 0.28), transparent 55%),
+    radial-gradient(90% 90% at 0% 100%, rgba(232, 97, 43, 0.22), transparent 60%),
+    linear-gradient(160deg, #1d2a45, #0f1626);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 30px 60px -30px rgba(15, 22, 38, 0.6);
+}
+
+.hero-panel p {
+  color: #b9c4da;
+}
+
+.hero-panel .eyebrow {
+  color: #c9c6ff;
+}
+
+.panel,
+.notice,
+.memory-card,
+.memory-detail,
+.tool-card,
+.legal-summary-card,
+.auth-panel {
+  border-color: #e3e7f0;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: inset 0 1px 0 #ffffff, 0 18px 40px -26px rgba(25, 33, 50, 0.28);
+}
+
+.memory-card {
+  transition: border-color 160ms ease, box-shadow 220ms ease, transform 220ms ease;
+}
+
+.memory-card:hover {
+  border-color: #cfd3f5;
+  box-shadow: 0 0 0 3px #eeedfb, 0 20px 44px -24px rgba(84, 84, 184, 0.45);
+}
+
+.tag-list span,
+.badge {
+  border-radius: 999px;
+}
+
+input,
+select,
+textarea {
+  border-color: #d9deea;
+  border-radius: 12px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #5454b8;
+  outline-offset: 2px;
+}
+
+.button.primary {
+  border-color: #b33e16;
+  border-radius: 13px;
+  background: linear-gradient(180deg, #c24a1c, #b33e16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 10px 26px -10px rgba(179, 62, 22, 0.6);
+}
+
+.segment,
+.composer-mode {
+  border-color: #e3e7f0;
+  border-radius: 14px;
+  background: #e8ebf3;
+}
+
+.segment button,
+.composer-mode button {
+  border-radius: 10px;
+}
+
+.segment button.active,
+.composer-mode button.active {
+  color: #192132;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(25, 33, 50, 0.1);
+}
+
+.chat-message {
+  border-color: #e3e7f0;
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.chat-message.user {
+  border-color: #d9d7f7;
+  border-radius: 18px 18px 6px 18px;
+  color: #26284a;
+  background: #eeedfb;
+}
+
+.bottom-composer {
+  border-color: #d9deea;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: inset 0 1px 0 #ffffff, 0 22px 50px -24px rgba(25, 33, 50, 0.45);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.empty {
+  border-color: #d9deea;
+  border-radius: 20px;
+  color: #616b7f;
+  background: linear-gradient(180deg, #ffffff, #f8f9fc);
+}
+
+.thinking-dots i {
+  background: #e8612b;
+  box-shadow: 0 0 8px rgba(232, 97, 43, 0.55);
+}
+
+.thinking-dots i:nth-child(2) {
+  background: #5454b8;
+  box-shadow: 0 0 8px rgba(84, 84, 184, 0.5);
+}
+
+/* Native display type, as in the main app; the serif fallback above predates
+   the mineral system. */
+h1,
+h2,
+h3,
+.brand strong {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: -0.03em;
+}
+
+h1 {
+  font-weight: 680;
+}
+
+.section-tabs {
+  border-color: #e3e7f0;
+  border-radius: 14px;
+  background: #e8ebf3;
+}
+
+.section-tabs button {
+  border-radius: 10px;
+  color: #3a4357;
+}
+
+.section-tabs button.active {
+  color: #192132;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(25, 33, 50, 0.1);
+}
+
+.ghost-button,
+.icon-button,
+.button {
+  border-color: #d9deea;
+  border-radius: 12px;
+}
+
+.sidebar .icon-button {
+  color: #f1f4ff;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.notice.ok {
+  border-color: #cfe3da;
+  background: linear-gradient(180deg, #ffffff, #f4faf7);
+}
+
+/* Chat mode adds the private-memory toggle as a fourth control; give it its
+   own column so Send stays on the composer row. */
+@media (min-width: 901px) {
+  .bottom-composer:has(.check-row) {
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+  }
+
+  .bottom-composer-status {
+    grid-column: 1 / -1;
+  }
+}

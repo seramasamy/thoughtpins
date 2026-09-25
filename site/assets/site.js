@@ -535,3 +535,218 @@ function setupMagneticCta() {
 }
 
 setupMagneticCta();
+
+// ------------------------------------------------------------------
+// Trust pages (privacy, terms, support, security, AI disclosure, account
+// deletion): a static orbit beside the page title, a reading-progress line
+// on the topbar, and scrollspy for the table of contents (or for the section
+// thread on pages without one). Decoration and state only: every page is
+// complete without it, and nothing runs outside the legal chrome, so the
+// homepage and classic are untouched.
+// ------------------------------------------------------------------
+const TRUST_ORBIT = `<svg class="lum-header-art" viewBox="0 0 320 200" aria-hidden="true" focusable="false">
+  <defs>
+    <radialGradient id="lum-art-glow-ember"><stop offset="0" stop-color="#ff7d4a" stop-opacity="0.55"/><stop offset="1" stop-color="#ff7d4a" stop-opacity="0"/></radialGradient>
+    <radialGradient id="lum-art-glow-violet"><stop offset="0" stop-color="#aca8ff" stop-opacity="0.6"/><stop offset="1" stop-color="#aca8ff" stop-opacity="0"/></radialGradient>
+  </defs>
+  <circle class="lum-art-dash" cx="168" cy="100" r="62"/>
+  <ellipse class="lum-art-ring" cx="168" cy="100" rx="132" ry="46" transform="rotate(-14 168 100)"/>
+  <ellipse class="lum-art-ring lum-art-ring--inner" cx="168" cy="100" rx="86" ry="30" transform="rotate(24 168 100)"/>
+  <path class="lum-art-thread" d="M212 46.1 284 28M273.3 104.2 302 150M47.2 110.1 22 162M100 90.8 168 100 236 109.2"/>
+  <circle class="lum-art-halo" cx="168" cy="100" r="36" fill="url(#lum-art-glow-ember)"/>
+  <circle class="lum-art-core-ring" cx="168" cy="100" r="11"/>
+  <circle class="lum-art-ember" cx="168" cy="100" r="4.5"/>
+  <circle class="lum-art-halo" cx="212" cy="46.1" r="12" fill="url(#lum-art-glow-ember)"/>
+  <circle class="lum-art-halo" cx="100" cy="90.8" r="11" fill="url(#lum-art-glow-violet)"/>
+  <circle class="lum-art-halo" cx="284" cy="28" r="10" fill="url(#lum-art-glow-violet)"/>
+  <circle class="lum-art-ember" cx="212" cy="46.1" r="3.6"/>
+  <circle class="lum-art-ember" cx="47.2" cy="110.1" r="2.8"/>
+  <circle class="lum-art-ember" cx="302" cy="150" r="2.2"/>
+  <circle class="lum-art-violet" cx="100" cy="90.8" r="3.2"/>
+  <circle class="lum-art-violet" cx="236" cy="109.2" r="2.6"/>
+  <circle class="lum-art-violet" cx="284" cy="28" r="2.4"/>
+  <circle class="lum-art-violet" cx="152.6" cy="62.3" r="1.9"/>
+  <circle class="lum-art-apricot" cx="273.3" cy="104.2" r="3"/>
+  <circle class="lum-art-apricot" cx="134.7" cy="152.9" r="2.5"/>
+  <circle class="lum-art-apricot" cx="22" cy="162" r="1.8"/>
+</svg>`;
+
+function setupTrustPages() {
+  const shell = document.querySelector(".shell");
+  const topbar = shell ? shell.querySelector(".topbar") : null;
+  const main = shell ? shell.querySelector("main.page") : null;
+  if (!topbar || !main) return;
+
+  const header = main.querySelector(".page-header");
+  if (header && !header.querySelector(".lum-header-art")) {
+    header.insertAdjacentHTML("beforeend", TRUST_ORBIT);
+    header.classList.add("lum-has-art");
+  }
+
+  let progress = topbar.querySelector(".lum-progress");
+  if (!progress) {
+    progress = document.createElement("span");
+    progress.className = "lum-progress";
+    progress.setAttribute("aria-hidden", "true");
+    progress.appendChild(document.createElement("span"));
+    topbar.appendChild(progress);
+  }
+
+  // What the reader is in: table-of-contents entries where the page has
+  // them, otherwise the page's own sections.
+  const tocNav = main.querySelector(".page-toc");
+  const toc = tocNav ? tocNav.querySelector("ol") : null;
+  const items = [];
+  if (toc) {
+    for (const link of toc.querySelectorAll('a[href^="#"]')) {
+      let section = null;
+      try { section = document.getElementById(decodeURIComponent(link.hash.slice(1))); } catch { section = null; }
+      if (section) items.push({ section, link, number: String(items.length + 1).padStart(2, "0") });
+    }
+  } else {
+    for (const section of main.children) {
+      if (section.tagName === "SECTION") items.push({ section, link: null, number: "" });
+    }
+  }
+
+  // Small screens: the list folds into one bar that names the section being
+  // read. Without JavaScript the full list simply stays open.
+  const compact = window.matchMedia("(max-width: 900px)");
+  let toggle = null;
+  let now = null;
+  const isOpen = () => Boolean(toggle) && toggle.getAttribute("aria-expanded") === "true";
+  const setOpen = (open) => {
+    if (!toggle) return;
+    toggle.setAttribute("aria-expanded", String(open));
+    tocNav.classList.toggle("is-open", open);
+    toc.hidden = compact.matches && !open;
+    if (open) fillRail();
+  };
+  if (toc && items.length) {
+    if (!toc.id) toc.id = "lum-toc-list";
+    const title = tocNav.querySelector(".page-toc-title");
+    const label = (title && title.textContent.trim()) || tocNav.getAttribute("aria-label") || "";
+    toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "lum-toc-toggle";
+    toggle.setAttribute("aria-controls", toc.id);
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute("aria-label", label);
+    toggle.innerHTML = '<span class="lum-toc-label" aria-hidden="true"></span><span class="lum-toc-now" aria-hidden="true"><b></b><span></span></span><svg class="lum-toc-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg>';
+    toggle.querySelector(".lum-toc-label").textContent = label;
+    now = toggle.querySelector(".lum-toc-now");
+    tocNav.insertBefore(toggle, toc);
+    toggle.addEventListener("click", () => setOpen(!isOpen()));
+    toc.addEventListener("click", (event) => {
+      if (compact.matches && event.target instanceof Element && event.target.closest("a")) setOpen(false);
+    });
+    tocNav.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape" || !isOpen()) return;
+      setOpen(false);
+      toggle.focus();
+    });
+    document.addEventListener("click", (event) => {
+      if (isOpen() && event.target instanceof Node && !tocNav.contains(event.target)) setOpen(false);
+    });
+    const applyMode = () => {
+      tocNav.classList.toggle("is-compact", compact.matches);
+      setOpen(false);
+    };
+    if (compact.addEventListener) compact.addEventListener("change", applyMode);
+    else if (compact.addListener) compact.addListener(applyMode);
+    applyMode();
+  }
+
+  let current = null;
+  function fillRail() {
+    if (!toc) return;
+    let fill = 0;
+    if (current && current.link && !toc.hidden) {
+      // Measure rather than assume: the rail and its nodes sit differently
+      // in the sidebar and in the folded list.
+      const rail = window.getComputedStyle(toc, "::before");
+      const node = window.getComputedStyle(current.link, "::after");
+      const railTop = parseFloat(rail.top) || 0;
+      const railLength = toc.clientHeight - railTop - (parseFloat(rail.bottom) || 0);
+      const nodeCenter = current.link.getBoundingClientRect().top - toc.getBoundingClientRect().top
+        + (parseFloat(node.top) || 0) + 3.5;
+      fill = railLength > 0 ? Math.min(1, Math.max(0, (nodeCenter - railTop) / railLength)) : 0;
+    }
+    toc.style.setProperty("--lum-toc-fill", fill.toFixed(4));
+  }
+  const keepInView = () => {
+    // A sidebar taller than the window scrolls itself so the active entry
+    // stays visible; the page never moves.
+    if (!current || !current.link || compact.matches || tocNav.scrollHeight <= tocNav.clientHeight) return;
+    const box = tocNav.getBoundingClientRect();
+    const row = current.link.getBoundingClientRect();
+    if (row.top < box.top + 64 || row.bottom > box.bottom - 24) {
+      tocNav.scrollTop += row.top - box.top - box.height / 2;
+    }
+  };
+  const mark = (next) => {
+    if (next === current) return;
+    if (current) {
+      current.section.classList.remove("is-current");
+      if (current.link) {
+        current.link.classList.remove("is-active");
+        current.link.removeAttribute("aria-current");
+      }
+    }
+    current = next;
+    if (current) {
+      current.section.classList.add("is-current");
+      if (current.link) {
+        current.link.classList.add("is-active");
+        current.link.setAttribute("aria-current", "location");
+      }
+    }
+    if (now && toggle) {
+      now.querySelector("b").textContent = current ? current.number : "";
+      now.querySelector("span").textContent = current && current.link ? current.link.textContent.trim() : "";
+      toggle.classList.toggle("has-current", Boolean(current));
+    }
+    fillRail();
+    keepInView();
+  };
+
+  const root = document.documentElement;
+  let frame = 0;
+  const update = () => {
+    frame = 0;
+    const y = window.scrollY || root.scrollTop || 0;
+    const max = root.scrollHeight - window.innerHeight;
+    const read = max > 0 ? Math.min(1, Math.max(0, y / max)) : 0;
+    progress.style.setProperty("--lum-read", read.toFixed(4));
+    topbar.classList.toggle("is-scrolled", y > 8);
+    if (toggle) {
+      // Docked: the folded contents bar has reached its sticky offset.
+      const style = window.getComputedStyle(tocNav);
+      const dock = style.position === "sticky" ? parseFloat(style.top) : NaN;
+      tocNav.classList.toggle("is-stuck", y > 0 && !Number.isNaN(dock) && tocNav.getBoundingClientRect().top <= dock + 0.5);
+    }
+    if (!items.length) return;
+    // A section becomes current once its top passes a third of the way down
+    // the viewport; at the very end of the page the last one always is.
+    const line = Math.min(window.innerHeight * 0.34, 340);
+    let next = null;
+    for (const item of items) {
+      if (item.section.getBoundingClientRect().top <= line) next = item;
+      else break;
+    }
+    if (max > 0 && y >= max - 2) next = items[items.length - 1];
+    mark(next);
+  };
+  const schedule = () => {
+    if (!frame) frame = window.requestAnimationFrame(update);
+  };
+  window.addEventListener("scroll", schedule, { passive: true });
+  window.addEventListener("resize", () => { fillRail(); schedule(); }, { passive: true });
+  update();
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", setupTrustPages);
+} else {
+  setupTrustPages();
+}

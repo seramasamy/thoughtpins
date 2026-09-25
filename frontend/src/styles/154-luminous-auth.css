@@ -1,0 +1,564 @@
+/* ==================================================================
+   Luminous memory: sign-in, consent, invite and loading.
+
+   The first impression. The brand pane is a night sky in both
+   appearances: a small memory network whose nodes pulse and whose links
+   carry a travelling light, with a few remembered fragments floating on
+   it. That motion is ambient and only runs when motion is allowed; the
+   form beside it stays still, glassy and quiet, and its fields light up
+   on focus.
+   ================================================================== */
+
+@keyframes lum-node-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    scale: 1;
+  }
+  50% {
+    opacity: 1;
+    scale: 1.45;
+  }
+}
+
+@keyframes lum-signal-travel {
+  0% {
+    stroke-dashoffset: 0.16;
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  52% {
+    opacity: 1;
+  }
+  60%,
+  100% {
+    stroke-dashoffset: -1;
+    opacity: 0;
+  }
+}
+
+@keyframes lum-chip-in {
+  from {
+    opacity: 0;
+    filter: blur(8px);
+    scale: 0.92;
+  }
+}
+
+@keyframes lum-float {
+  50% {
+    translate: 0 -5px;
+  }
+}
+
+/* ---------------- Page and panel ---------------- */
+.auth-layout {
+  background: var(--tp-canvas);
+}
+
+.auth-layout::before {
+  background:
+    radial-gradient(760px 460px at 50% 112%, rgba(232, 97, 43, 0.07), transparent 70%),
+    var(--lum-atmosphere);
+}
+
+.auth-panel {
+  border-color: var(--lum-glass-edge);
+  background: var(--lum-fill);
+  box-shadow: var(--lum-lit), var(--lum-float);
+}
+
+.auth-panel.auth-split {
+  position: relative;
+}
+
+.auth-panel.auth-split::before,
+.invite-panel::before {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(172, 168, 255, 0.2) 30%, transparent 62%, rgba(232, 97, 43, 0.26));
+  content: "";
+  pointer-events: none;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+
+.auth-layout > .auth-panel:not(.auth-split):not(.auth-consent-panel) {
+  display: grid;
+  gap: 18px;
+  padding: 28px;
+  border-radius: 24px;
+}
+
+.loading-line {
+  color: var(--tp-ink-soft);
+  font-weight: 560;
+}
+
+/* ---------------- Brand pane: the night sky ---------------- */
+.auth-brand-pane {
+  position: relative;
+  isolation: isolate;
+  color: #f1f4ff;
+  background:
+    radial-gradient(1.4px 1.4px at 14% 18%, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(1.2px 1.2px at 72% 12%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1.6px 1.6px at 88% 44%, rgba(201, 198, 255, 0.75), transparent),
+    radial-gradient(1.2px 1.2px at 34% 52%, rgba(255, 255, 255, 0.45), transparent),
+    radial-gradient(1.3px 1.3px at 58% 68%, rgba(255, 214, 196, 0.6), transparent),
+    radial-gradient(1.1px 1.1px at 8% 76%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1.2px 1.2px at 94% 88%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(440px 320px at 100% 0%, rgba(108, 100, 230, 0.3), transparent 70%),
+    radial-gradient(400px 300px at 0% 100%, rgba(232, 97, 43, 0.2), transparent 70%),
+    linear-gradient(160deg, #19233f, #0b1120 72%);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.auth-brand-pane .brand-icon {
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 10px 26px -6px rgba(232, 97, 43, 0.7);
+}
+
+.auth-brand-pane .brand strong {
+  color: #f4f6ff;
+}
+
+.auth-brand-pane .brand span {
+  color: #a3afc8;
+}
+
+.auth-promise {
+  text-shadow: 0 2px 30px rgba(8, 13, 24, 0.6);
+}
+
+.auth-trust li {
+  color: #b8c3da;
+}
+
+.auth-trust svg {
+  color: var(--lum-ember-hot);
+  filter: drop-shadow(0 0 6px rgba(255, 125, 74, 0.6));
+}
+
+:root .auth-brand-pane .auth-home-link {
+  color: #b8c3da;
+}
+
+:root .auth-brand-pane .auth-home-link:hover {
+  color: #ffffff;
+}
+
+.auth-brand-pane .auth-theme-toggle {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 50%;
+  color: #edf2ff;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 10px 24px -14px rgba(0, 0, 0, 0.8);
+}
+
+.auth-brand-pane .auth-theme-toggle:hover:not(:disabled) {
+  border-color: rgba(172, 168, 255, 0.5);
+  color: #ffffff;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.05));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 22px -4px rgba(150, 140, 255, 0.6);
+}
+
+.auth-mobile-promise {
+  color: #c9c6ff;
+}
+
+/* The network, with fragments resting on it. */
+.auth-sky {
+  position: relative;
+  flex: 0 0 auto;
+  height: 150px;
+  margin-top: auto;
+}
+
+.auth-sky ~ .auth-brand-dots {
+  display: none;
+}
+
+.auth-sky-web {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.auth-sky-links line {
+  stroke: rgba(172, 168, 255, 0.26);
+  stroke-width: 0.8;
+}
+
+.auth-sky-signals {
+  display: none;
+}
+
+.auth-sky-signals line {
+  stroke: #ffc3a6;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-dasharray: 0.16 1;
+  stroke-dashoffset: 0.16;
+  filter: drop-shadow(0 0 3px rgba(255, 125, 74, 0.95));
+}
+
+.auth-sky-nodes circle {
+  fill: #c9c6ff;
+  filter: drop-shadow(0 0 3px rgba(172, 168, 255, 0.9));
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.auth-sky-nodes circle.is-ember {
+  fill: var(--lum-ember-hot);
+  filter: drop-shadow(0 0 4px rgba(255, 125, 74, 0.95));
+}
+
+.auth-memory-chip {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-pill);
+  color: #dde3f4;
+  background: linear-gradient(180deg, rgba(30, 41, 68, 0.82), rgba(14, 21, 37, 0.82));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 16px 36px -16px rgba(0, 0, 0, 0.85);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  font-size: 12px;
+  font-weight: 540;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.auth-memory-chip i {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--lum-ember-hot);
+  box-shadow: 0 0 0 3px rgba(255, 125, 74, 0.14), 0 0 10px rgba(255, 125, 74, 0.9);
+}
+
+.auth-memory-chip--one {
+  top: 2px;
+  right: 2px;
+}
+
+.auth-memory-chip--two {
+  top: 58px;
+  left: 0;
+}
+
+.auth-memory-chip--two i {
+  background: var(--lum-violet);
+  box-shadow: 0 0 0 3px rgba(172, 168, 255, 0.16), 0 0 10px rgba(172, 168, 255, 0.95);
+}
+
+.auth-memory-chip--three {
+  right: 16px;
+  bottom: 4px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .auth-sky-signals {
+    display: inline;
+  }
+
+  .auth-sky-signals line {
+    animation: lum-signal-travel 4.2s linear infinite;
+  }
+
+  .auth-sky-signals line:nth-child(2) {
+    animation-delay: 1.4s;
+  }
+
+  .auth-sky-signals line:nth-child(3) {
+    animation-delay: 2.8s;
+  }
+
+  .auth-sky-nodes circle {
+    animation: lum-node-pulse 3.8s ease-in-out infinite;
+  }
+
+  .auth-sky-nodes circle:nth-child(3n + 1) {
+    animation-delay: -1.3s;
+  }
+
+  .auth-sky-nodes circle:nth-child(3n + 2) {
+    animation-delay: -2.6s;
+  }
+
+  .auth-memory-chip {
+    animation:
+      lum-chip-in 700ms var(--ease-settle) 240ms backwards,
+      lum-float 7s ease-in-out infinite;
+  }
+
+  .auth-memory-chip--two {
+    animation-delay: 420ms, -2.4s;
+    animation-duration: 700ms, 8.5s;
+  }
+
+  .auth-memory-chip--three {
+    animation-delay: 600ms, -4.8s;
+    animation-duration: 700ms, 9.5s;
+  }
+}
+
+/* ---------------- Form pane: glass, with fields that light up ---------------- */
+.auth-heading h1 {
+  font-size: 32px;
+  font-weight: 680;
+  letter-spacing: -0.045em;
+}
+
+.auth-heading p {
+  color: var(--tp-ink-soft);
+}
+
+.auth-form-pane input:not([type="checkbox"]) {
+  border-color: var(--lum-well-edge);
+  background-color: var(--lum-well);
+  box-shadow: var(--lum-well-inset);
+  transition: border-color var(--motion-quick) ease, box-shadow var(--motion-standard) var(--ease-quiet), background-color var(--motion-quick) ease;
+}
+
+.auth-form-pane input:not([type="checkbox"]):focus {
+  border-color: var(--lum-accent);
+  box-shadow: 0 0 0 4px var(--lum-focus-ring), 0 14px 30px -16px rgba(232, 97, 43, 0.5);
+}
+
+.password-visibility:hover:not(:disabled) {
+  color: var(--lum-accent-text);
+  background: var(--lum-accent-soft);
+}
+
+.auth-password-form .primary-button {
+  min-height: 50px;
+  border-radius: 14px;
+  font-size: 15px;
+}
+
+.auth-form-pane .oauth-button {
+  min-height: 48px;
+  border-radius: 14px;
+}
+
+.oauth-google,
+.auth-magic .oauth-button:not(.oauth-google):not(.oauth-apple) {
+  border: 1px solid var(--lum-hair-strong);
+  color: var(--tp-ink);
+  background: var(--lum-chrome);
+  box-shadow: var(--lum-lit), 0 1px 2px rgba(25, 33, 50, 0.05);
+}
+
+.oauth-google:hover:not(:disabled),
+.auth-magic .oauth-button:not(.oauth-google):not(.oauth-apple):hover:not(:disabled) {
+  border-color: var(--lum-accent-line);
+  background: var(--lum-chrome);
+  box-shadow: var(--lum-lit), 0 8px 20px -12px var(--lum-accent-glow);
+}
+
+.oauth-apple {
+  border-color: #000000;
+  background: linear-gradient(180deg, #1f1f22, #0b0b0c);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 8px 20px -12px rgba(0, 0, 0, 0.6);
+}
+
+.auth-divider::before {
+  background: linear-gradient(90deg, transparent, var(--lum-hair-strong));
+}
+
+.auth-divider::after {
+  background: linear-gradient(90deg, var(--lum-hair-strong), transparent);
+}
+
+.auth-policy-note {
+  border-top: 1px solid transparent;
+  border-image: linear-gradient(90deg, var(--lum-hair-strong), transparent) 1;
+}
+
+/* ---------------- Consent ---------------- */
+.panel.auth-consent-panel {
+  position: relative;
+  border-radius: 26px;
+  background:
+    radial-gradient(120% 50% at 50% -10%, var(--lum-accent-soft), transparent 62%),
+    var(--lum-fill);
+}
+
+.auth-consent-panel .brand-icon,
+.invite-panel .brand-icon,
+.auth-layout > .auth-panel .brand-icon {
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 10px 24px -8px rgba(232, 97, 43, 0.6);
+}
+
+.auth-consent-points li {
+  color: var(--tp-ink-soft);
+}
+
+.auth-consent-points svg {
+  color: var(--lum-ember-icon);
+  filter: drop-shadow(0 0 5px rgba(255, 125, 74, 0.45));
+}
+
+/* ---------------- Invite ---------------- */
+.invite-aurora {
+  display: none;
+}
+
+.panel.invite-panel {
+  border-radius: 26px;
+  background:
+    radial-gradient(120% 46% at 50% -8%, var(--lum-accent-soft), transparent 62%),
+    var(--lum-fill);
+  box-shadow: var(--lum-lit), var(--lum-float);
+}
+
+.invite-badge {
+  gap: 8px;
+  padding: 5px 12px 5px 10px;
+  border-color: var(--lum-accent-line);
+  color: var(--lum-accent-text);
+  background: var(--lum-accent-soft);
+  font-size: 12.5px;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+.invite-badge svg {
+  color: var(--lum-ember-icon);
+}
+
+.invite-heading h1 {
+  font-weight: 650;
+  letter-spacing: -0.04em;
+}
+
+.invite-heading h1 em {
+  color: var(--lum-accent-text);
+  font-style: normal;
+}
+
+.invite-code-input {
+  border-color: var(--lum-well-edge);
+  background: var(--lum-well);
+  box-shadow: var(--lum-well-inset);
+}
+
+.invite-code-input:focus-visible,
+.invite-request textarea:focus-visible {
+  border-color: var(--lum-accent);
+  box-shadow: 0 0 0 4px var(--lum-focus-ring), 0 14px 30px -16px rgba(232, 97, 43, 0.45);
+}
+
+.invite-error {
+  color: var(--lum-bad);
+}
+
+.invite-request {
+  border-color: var(--lum-hair);
+  background: var(--lum-quiet-soft);
+}
+
+.invite-request textarea {
+  border-color: var(--lum-well-edge);
+  background: var(--lum-well);
+}
+
+.invite-divider::before {
+  background: linear-gradient(90deg, transparent, var(--lum-hair-strong));
+}
+
+.invite-divider::after {
+  background: linear-gradient(90deg, var(--lum-hair-strong), transparent);
+}
+
+.invite-footer {
+  border-top-color: var(--lum-hair);
+}
+
+.invite-saved,
+.invite-requested-title {
+  color: var(--lum-good);
+}
+
+/* ---------------- Night ---------------- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .auth-heading h1,
+  :root:not([data-theme="light"]) .invite-heading h1 {
+    text-shadow: 0 2px 30px rgba(8, 13, 24, 0.6);
+  }
+
+  :root:not([data-theme="light"]) .invite-heading h1 em {
+    text-shadow: 0 0 30px rgba(150, 140, 255, 0.45);
+  }
+}
+
+:root[data-theme="dark"] .auth-heading h1,
+:root[data-theme="dark"] .invite-heading h1 {
+  text-shadow: 0 2px 30px rgba(8, 13, 24, 0.6);
+}
+
+:root[data-theme="dark"] .invite-heading h1 em {
+  text-shadow: 0 0 30px rgba(150, 140, 255, 0.45);
+}
+
+/* ---------------- Compact layouts ---------------- */
+@media (max-width: 1100px) {
+  .auth-memory-chip--three {
+    display: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .auth-sky {
+    display: none;
+  }
+
+  .auth-heading h1 {
+    font-size: 28px;
+  }
+}
+
+/* Landscape phones get the compact brand band the portrait phone has. */
+@media (max-height: 500px) and (max-width: 960px) {
+  .auth-layout {
+    align-items: start;
+    padding: 12px;
+  }
+
+  .auth-brand-pane {
+    gap: 8px;
+    padding: 12px 24px 16px;
+  }
+
+  .auth-brand-pane .brand {
+    margin-top: 0;
+  }
+
+  .auth-brand-pane .auth-promise,
+  .auth-brand-pane .auth-trust,
+  .auth-sky {
+    display: none;
+  }
+
+  .auth-mobile-promise {
+    display: block;
+    font-size: 13px;
+  }
+}

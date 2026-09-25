@@ -1,0 +1,791 @@
+/* ==================================================================
+   Luminous memory: Chat.
+
+   The conversation keeps its single measure (see 40-chat.css); this
+   layer only changes material and motion. The welcome state is the one
+   place in the product with ambient motion: nodes travel the orbit around
+   the mark and its halo breathes, both only when motion is allowed.
+   Messages come into focus once, in well under the entrance budget.
+   ================================================================== */
+
+@keyframes lum-orbit-travel {
+  0% {
+    offset-distance: 0%;
+    opacity: 0.8;
+    scale: 0.85;
+  }
+  25% {
+    opacity: 0.4;
+    scale: 0.68;
+  }
+  50% {
+    opacity: 0.8;
+    scale: 0.85;
+  }
+  75% {
+    opacity: 1;
+    scale: 1.22;
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 0.8;
+    scale: 0.85;
+  }
+}
+
+@keyframes lum-breathe {
+  50% {
+    opacity: 0.55;
+    transform: scale(1.12);
+  }
+}
+
+@keyframes lum-message-in {
+  from {
+    opacity: 0;
+    filter: blur(5px);
+    transform: translateY(10px);
+  }
+}
+
+@keyframes lum-bubble-in {
+  from {
+    opacity: 0;
+    filter: blur(4px);
+    transform: translateY(8px) scale(0.985);
+  }
+}
+
+/* ---------------- Status row ---------------- */
+.chat-header {
+  gap: 12px;
+}
+
+.chat-memory-status {
+  gap: 8px;
+  white-space: nowrap;
+  min-height: 34px;
+  padding: 0 14px 0 12px;
+  border: 1px solid var(--lum-glass-edge);
+  border-radius: var(--radius-pill);
+  color: var(--tp-ink-soft);
+  background: var(--lum-chrome);
+  box-shadow: var(--lum-lit), var(--lum-chrome-shadow);
+  font-size: 12.5px;
+  font-weight: 560;
+}
+
+.chat-header .chat-memory-status > span {
+  margin: 0;
+  font-size: 12.5px;
+}
+
+.chat-memory-status > svg {
+  color: var(--lum-accent);
+}
+
+.presence-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border: 0;
+  background: #3fb489;
+  box-shadow: 0 0 0 3px rgba(63, 180, 137, 0.16), 0 0 10px rgba(63, 180, 137, 0.85);
+}
+
+.private-memory-toggle {
+  padding: 0 13px;
+  border: 1px solid var(--lum-glass-edge);
+  border-radius: var(--radius-pill);
+  color: var(--tp-ink-soft);
+  background: var(--lum-chrome);
+  box-shadow: var(--lum-lit), var(--lum-chrome-shadow);
+  font-weight: 560;
+}
+
+.private-memory-toggle:has(input:checked) {
+  border-color: var(--lum-accent-line);
+  color: var(--lum-accent-text);
+  background: linear-gradient(var(--lum-accent-soft), var(--lum-accent-soft)), var(--lum-chrome);
+  box-shadow: var(--lum-lit), 0 8px 20px -12px var(--lum-accent-glow);
+}
+
+/* ---------------- Welcome: the mark inside a living orbit ---------------- */
+.chat-welcome .memory-orbit {
+  isolation: isolate;
+  margin-bottom: 24px;
+}
+
+.chat-welcome .memory-orbit::before {
+  inset: 26px;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(232, 97, 43, 0.34), rgba(232, 97, 43, 0.08) 45%, transparent 70%);
+  filter: blur(6px);
+}
+
+.chat-welcome .memory-orbit::after {
+  position: absolute;
+  inset: -30px;
+  z-index: -2;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(108, 100, 230, 0.16), transparent 62%);
+  content: "";
+}
+
+.chat-welcome .orbit-track {
+  inset: 50% auto auto 50%;
+  border: 1px solid var(--lum-orbit-line, rgba(84, 84, 184, 0.24));
+}
+
+.chat-welcome .orbit-track--outer {
+  width: 204px;
+  height: 80px;
+  margin: -40px 0 0 -102px;
+  transform: rotate(-16deg);
+}
+
+.chat-welcome .orbit-track--inner {
+  width: 138px;
+  height: 56px;
+  margin: -28px 0 0 -69px;
+  border-color: var(--lum-orbit-line-inner, rgba(84, 84, 184, 0.34));
+  transform: rotate(24deg);
+}
+
+.chat-welcome .orbit-node {
+  inset: 0 auto auto 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--lum-ember-hot);
+  box-shadow: 0 0 0 3px rgba(255, 125, 74, 0.16), 0 0 12px 2px rgba(255, 125, 74, 0.8);
+  offset-path: path("M 0 39 A 101 39 0 1 1 202 39 A 101 39 0 1 1 0 39");
+  offset-rotate: 0deg;
+  offset-anchor: 50% 50%;
+  offset-distance: 14%;
+}
+
+.chat-welcome .orbit-node--three {
+  width: 6px;
+  height: 6px;
+  background: var(--lum-apricot);
+  box-shadow: 0 0 10px 2px rgba(244, 180, 147, 0.8);
+  offset-distance: 64%;
+}
+
+.chat-welcome .orbit-node--two {
+  width: 7px;
+  height: 7px;
+  background: var(--lum-violet);
+  box-shadow: 0 0 0 3px rgba(172, 168, 255, 0.16), 0 0 12px 2px rgba(172, 168, 255, 0.85);
+  offset-path: path("M 0 27 A 68 27 0 1 1 136 27 A 68 27 0 1 1 0 27");
+  offset-distance: 38%;
+}
+
+.chat-welcome .memory-orbit .welcome-mark {
+  z-index: 1;
+  border-radius: 14px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 18px 40px -10px rgba(232, 97, 43, 0.7);
+}
+
+.welcome-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  color: var(--lum-accent-text);
+  font-size: 13px;
+  font-weight: 580;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+.welcome-eyebrow::before,
+.welcome-eyebrow::after {
+  width: 22px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--lum-ember-hot));
+  box-shadow: 0 0 8px rgba(255, 125, 74, 0.6);
+  content: "";
+}
+
+.welcome-eyebrow::after {
+  background: linear-gradient(90deg, var(--lum-violet), transparent);
+  box-shadow: 0 0 8px rgba(172, 168, 255, 0.6);
+}
+
+.chat-welcome h2 {
+  font-weight: 680;
+  letter-spacing: -0.05em;
+}
+
+.chat-welcome > p {
+  color: var(--tp-ink-soft);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .chat-welcome .orbit-node {
+    animation: lum-orbit-travel 16s linear infinite;
+    animation-delay: -2.2s;
+  }
+
+  .chat-welcome .orbit-node--three {
+    animation-delay: -10.2s;
+  }
+
+  .chat-welcome .orbit-node--two {
+    animation-duration: 11s;
+    animation-direction: reverse;
+    animation-delay: -4.2s;
+  }
+
+  .chat-welcome .memory-orbit::before {
+    animation: lum-breathe 5.5s ease-in-out infinite;
+  }
+}
+
+/* ---------------- Starters: glass cards that catch the light ---------------- */
+.starter-list button {
+  border-radius: 20px;
+  color: var(--tp-ink-soft);
+}
+
+.starter-list button > svg:first-child {
+  box-sizing: content-box;
+  padding: 8px;
+  border-radius: 12px;
+  color: var(--lum-accent);
+  background: var(--lum-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--lum-accent-line);
+}
+
+.starter-list strong {
+  color: var(--tp-ink);
+  font-size: 13.5px;
+  font-weight: 620;
+}
+
+.starter-list button > span > span {
+  color: var(--tp-ink-soft);
+  font-size: 12px;
+}
+
+.starter-list .starter-arrow {
+  color: var(--tp-ink-faint);
+  transition: color var(--motion-quick) ease, transform var(--motion-standard) var(--ease-quiet);
+}
+
+.starter-list button:hover .starter-arrow,
+.starter-list button:focus-visible .starter-arrow {
+  color: var(--lum-ember-icon);
+  transform: translate(2px, -2px);
+}
+
+/* ---------------- Messages ---------------- */
+.message-avatar {
+  border-radius: 11px;
+  color: #ffffff;
+  background: linear-gradient(180deg, #f27a45, #d8531f);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 0 1px rgba(255, 150, 105, 0.35), 0 0 0 4px var(--lum-ember-soft), 0 8px 20px -8px rgba(232, 97, 43, 0.7);
+}
+
+.chat-message-row.user .message-content {
+  padding: 12px 16px 9px;
+  border: 1px solid var(--lum-bubble-edge);
+  border-radius: 20px 20px 6px 20px;
+  background: var(--lum-bubble);
+  box-shadow: var(--lum-lit), 0 14px 30px -20px var(--lum-accent-glow);
+}
+
+.chat-message-row.user .message-body p,
+.chat-message-row.user .message-body ul {
+  color: var(--tp-ink);
+}
+
+.chat-message-row.user footer {
+  color: var(--lum-quiet);
+}
+
+.message-body code {
+  border: 1px solid var(--lum-hair);
+  background: var(--lum-quiet-soft);
+}
+
+.message-content footer {
+  gap: 8px;
+}
+
+.classification-label {
+  padding: 2px 9px;
+  border: 1px solid var(--lum-ember-line);
+  color: var(--lum-ember-text);
+  background: var(--lum-ember-soft);
+}
+
+.chat-date-divider {
+  gap: 14px;
+  color: var(--tp-ink-soft);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.chat-date-divider::before {
+  background: linear-gradient(90deg, transparent, var(--lum-hair-strong) 45%, rgba(232, 97, 43, 0.45));
+}
+
+.chat-date-divider::after {
+  background: linear-gradient(90deg, rgba(84, 84, 184, 0.45), var(--lum-hair-strong) 55%, transparent);
+}
+
+.chat-date-divider span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 10px;
+  border: 1px solid var(--lum-hair);
+  border-radius: var(--radius-pill);
+  background: var(--lum-chrome);
+  box-shadow: var(--lum-lit);
+}
+
+.chat-date-divider span::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--lum-ember-hot);
+  box-shadow: 0 0 0 2.5px rgba(255, 125, 74, 0.16), 0 0 8px rgba(255, 125, 74, 0.85);
+  content: "";
+}
+
+.thinking-indicator {
+  justify-self: start;
+  min-height: 40px;
+  padding: 8px 16px 8px 14px;
+  border: 1px solid var(--lum-glass-edge);
+  border-radius: var(--radius-pill);
+  color: var(--tp-ink-soft);
+  background: var(--lum-chrome);
+  box-shadow: var(--lum-lit), var(--lum-chrome-shadow);
+  font-weight: 560;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .chat-message-row {
+    animation: lum-message-in 320ms var(--ease-settle) both;
+  }
+
+  .chat-message-row.user {
+    animation: lum-bubble-in 300ms var(--ease-settle) both;
+    transform-origin: 100% 100%;
+  }
+}
+
+/* ---------------- Composer: glass, lit edge, an ember-to-violet focus ring ---------------- */
+.chat-view {
+  --lum-orbit-line: rgba(84, 84, 184, 0.24);
+}
+
+.chat-stream {
+  scrollbar-color: var(--lum-hair-strong) transparent;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 18px);
+  mask-image: linear-gradient(180deg, transparent 0, #000 18px);
+}
+
+.chat-stream:focus-visible {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.chat-composer {
+  position: relative;
+  border-color: var(--lum-glass-edge);
+  background: var(--lum-fill);
+  box-shadow: var(--lum-lit), var(--lum-float);
+  transition: box-shadow var(--motion-standard) var(--ease-quiet), border-color var(--motion-quick) ease;
+}
+
+.chat-composer::before {
+  position: absolute;
+  inset: -1px;
+  padding: 1.5px;
+  border-radius: inherit;
+  background: linear-gradient(100deg, rgba(255, 125, 74, 0.95), rgba(244, 180, 147, 0.75) 42%, rgba(172, 168, 255, 0.95));
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--motion-standard) var(--ease-quiet);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+
+.chat-composer:focus-within {
+  border-color: transparent;
+  box-shadow: var(--lum-lit), 0 0 0 5px var(--lum-accent-soft), 0 24px 54px -26px rgba(232, 97, 43, 0.55), var(--lum-float);
+}
+
+.chat-composer:focus-within::before {
+  opacity: 1;
+}
+
+.chat-composer .icon-button,
+.notice .icon-button {
+  box-shadow: none;
+}
+
+.chat-composer .icon-button:hover:not(:disabled) {
+  border-radius: 50%;
+  color: var(--lum-accent-text);
+  background: var(--lum-accent-soft);
+}
+
+.chat-composer .voice-recording {
+  color: var(--lum-ember-text);
+  background: var(--lum-ember-soft);
+}
+
+.composer-caption {
+  padding-top: 8px;
+  color: var(--tp-ink-soft);
+  font-size: 11px;
+}
+
+.attachment-destination {
+  color: var(--tp-ink-soft);
+  font-size: 11.5px;
+}
+
+.attachment-destination select {
+  padding: 8px 12px;
+  border-radius: 14px;
+  background-color: var(--lum-well-solid);
+  box-shadow: var(--lum-lit);
+  font-weight: 560;
+}
+
+.voice-disclosure,
+.voice-draft,
+.chat-kept-notice {
+  border-color: var(--lum-glass-edge);
+  background: var(--lum-fill);
+  box-shadow: var(--lum-lit), var(--lum-float);
+}
+
+.voice-disclosure,
+.voice-draft {
+  border-radius: 20px;
+}
+
+.chat-kept-notice {
+  border-radius: 16px;
+}
+
+.pending-action-bar {
+  border-color: var(--lum-ember-line);
+  background: linear-gradient(var(--lum-ember-soft), var(--lum-ember-soft)), var(--lum-fill);
+  box-shadow: var(--lum-lit), 0 12px 30px -20px rgba(232, 97, 43, 0.6);
+}
+
+.pending-action-bar span {
+  color: var(--lum-ember-text);
+}
+
+.voice-progress span,
+.voice-bars i {
+  background: linear-gradient(180deg, var(--lum-ember-hot), #e8612b);
+}
+
+/* ---------------- Night detail ---------------- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .chat-view {
+    --lum-orbit-line: rgba(255, 255, 255, 0.14);
+    --lum-orbit-line-inner: rgba(172, 168, 255, 0.26);
+  }
+
+  :root:not([data-theme="light"]) .chat-welcome h2 {
+    text-shadow: 0 2px 30px rgba(8, 13, 24, 0.6);
+  }
+}
+
+:root[data-theme="dark"] .chat-view {
+  --lum-orbit-line: rgba(255, 255, 255, 0.14);
+  --lum-orbit-line-inner: rgba(172, 168, 255, 0.26);
+}
+
+:root[data-theme="dark"] .chat-welcome h2 {
+  text-shadow: 0 2px 30px rgba(8, 13, 24, 0.6);
+}
+
+/* ---------------- Smaller orbits for smaller windows ---------------- */
+@media (max-width: 700px) {
+  .chat-welcome .orbit-track--outer {
+    width: 150px;
+    height: 60px;
+    margin: -30px 0 0 -75px;
+  }
+
+  .chat-welcome .orbit-track--inner {
+    width: 102px;
+    height: 42px;
+    margin: -21px 0 0 -51px;
+  }
+
+  .chat-welcome .orbit-node {
+    offset-path: path("M 0 29 A 74 29 0 1 1 148 29 A 74 29 0 1 1 0 29");
+  }
+
+  .chat-welcome .orbit-node--two {
+    offset-path: path("M 0 20 A 50 20 0 1 1 100 20 A 50 20 0 1 1 0 20");
+  }
+
+  .chat-welcome .memory-orbit .welcome-mark {
+    border-radius: 11px;
+  }
+
+  .chat-welcome .memory-orbit::before {
+    inset: 18px;
+  }
+
+  .starter-list button > svg:first-child {
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+@media (max-height: 740px) and (max-width: 700px) {
+  .chat-welcome .orbit-track--outer {
+    width: 112px;
+    height: 44px;
+    margin: -22px 0 0 -56px;
+  }
+
+  .chat-welcome .orbit-track--inner {
+    width: 78px;
+    height: 32px;
+    margin: -16px 0 0 -39px;
+  }
+
+  .chat-welcome .orbit-node {
+    width: 6px;
+    height: 6px;
+    offset-path: path("M 0 21 A 55 21 0 1 1 110 21 A 55 21 0 1 1 0 21");
+  }
+
+  .chat-welcome .orbit-node--two {
+    width: 5px;
+    height: 5px;
+    offset-path: path("M 0 15 A 38 15 0 1 1 76 15 A 38 15 0 1 1 0 15");
+  }
+
+  .chat-welcome .memory-orbit .welcome-mark {
+    border-radius: 9px;
+  }
+
+  .chat-welcome .memory-orbit::before {
+    inset: 12px;
+  }
+}
+
+@media (max-height: 620px) and (max-width: 700px) {
+  .chat-welcome .memory-orbit {
+    display: none;
+  }
+}
+
+/* The eyebrow gives way first when height is short, as it did before. */
+@media (max-height: 740px) and (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
+  .welcome-eyebrow {
+    display: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .chat-memory-status {
+    padding: 0 11px;
+  }
+
+  .chat-memory-status > svg {
+    display: none;
+  }
+}
+
+/* Short desktop windows: a smaller orbit and single-row starters keep the
+   whole welcome above the composer instead of below the fold. */
+@media (min-width: 701px) and (min-height: 501px) and (max-height: 820px) {
+  .chat-welcome .memory-orbit {
+    width: 116px;
+    height: 116px;
+    margin-bottom: 16px;
+  }
+
+  .chat-welcome .memory-orbit .welcome-mark {
+    width: 52px;
+    height: 52px;
+    border-radius: 11px;
+  }
+
+  .chat-welcome .memory-orbit::before {
+    inset: 20px;
+  }
+
+  .chat-welcome .orbit-track--outer {
+    width: 164px;
+    height: 64px;
+    margin: -32px 0 0 -82px;
+  }
+
+  .chat-welcome .orbit-track--inner {
+    width: 112px;
+    height: 46px;
+    margin: -23px 0 0 -56px;
+  }
+
+  .chat-welcome .orbit-node {
+    offset-path: path("M 0 31 A 81 31 0 1 1 162 31 A 81 31 0 1 1 0 31");
+  }
+
+  .chat-welcome .orbit-node--two {
+    offset-path: path("M 0 22 A 55 22 0 1 1 110 22 A 55 22 0 1 1 0 22");
+  }
+
+  .chat-welcome h2 {
+    font-size: 32px;
+  }
+
+  .chat-welcome > p {
+    margin-top: 10px;
+  }
+
+  .starter-list {
+    margin-top: 22px;
+  }
+
+  .starter-list button {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    min-height: 72px;
+    padding: 14px 16px;
+  }
+
+  .starter-list button > span {
+    grid-row: 1;
+    grid-column: 2;
+    gap: 2px;
+  }
+
+  .starter-list .starter-arrow {
+    grid-column: 3;
+  }
+}
+
+@media (min-width: 701px) and (min-height: 501px) and (max-height: 740px) {
+  .chat-welcome {
+    margin-block: 8px;
+  }
+
+  .chat-welcome .memory-orbit {
+    width: 96px;
+    height: 96px;
+    margin-bottom: 12px;
+  }
+
+  .chat-welcome .memory-orbit .welcome-mark {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+  }
+
+  .chat-welcome .orbit-track--outer {
+    width: 140px;
+    height: 54px;
+    margin: -27px 0 0 -70px;
+  }
+
+  .chat-welcome .orbit-track--inner {
+    width: 96px;
+    height: 40px;
+    margin: -20px 0 0 -48px;
+  }
+
+  .chat-welcome .orbit-node {
+    offset-path: path("M 0 26 A 69 26 0 1 1 138 26 A 69 26 0 1 1 0 26");
+  }
+
+  .chat-welcome .orbit-node--two {
+    offset-path: path("M 0 19 A 47 19 0 1 1 94 19 A 47 19 0 1 1 0 19");
+  }
+
+  .welcome-eyebrow {
+    margin-bottom: 8px;
+  }
+
+  .chat-welcome h2 {
+    font-size: 29px;
+  }
+}
+
+/* Landscape phones: the attachment destination sits beside the composer so
+   the transcript keeps its height. */
+@media (max-height: 500px) and (max-width: 960px) {
+  .chat-composer-wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 10px;
+  }
+
+  .chat-composer-wrap > * {
+    grid-column: 1 / -1;
+  }
+
+  .chat-composer-wrap > .chat-composer {
+    grid-column: 1;
+  }
+
+  .chat-composer-wrap > .attachment-destination {
+    grid-column: 2;
+    margin-top: 0;
+  }
+
+  .chat-welcome {
+    margin: 2px auto;
+  }
+
+  .chat-welcome h2 {
+    font-size: 22px;
+  }
+
+  .starter-list {
+    margin-top: 8px;
+  }
+
+  .starter-list button {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    height: auto;
+    min-height: 48px;
+    padding: 6px 10px;
+  }
+
+  .starter-list button > svg:first-child {
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .starter-list button > span {
+    grid-row: 1;
+    grid-column: 2;
+    gap: 1px;
+  }
+
+  .starter-list .starter-arrow {
+    display: none;
+  }
+}

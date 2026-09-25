@@ -10,6 +10,7 @@ import { toggleTheme, useResolvedTheme } from "../core/theme";
 import { PasswordField } from "../components/PasswordField";
 import { useAuthRequest } from "./useAuthRequest";
 import { createPasswordAuthentication } from "./passwordAuthentication";
+import { AuthSky } from "./AuthSky";
 
 function GoogleIcon() {
   return (
@@ -157,6 +158,7 @@ export function AuthScreen({
             <li><ShieldCheck size={16} />Your journal stays private to your account</li>
             <li><ShieldCheck size={16} />Export or delete your data whenever you choose</li>
           </ul>
+          <AuthSky />
           <span className="auth-brand-dots" aria-hidden="true"><i /><i /><i /></span>
         </aside>
         <div className="auth-form-pane">

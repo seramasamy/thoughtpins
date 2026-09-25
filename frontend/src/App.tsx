@@ -7,6 +7,7 @@ import { InviteScreen } from "./app/InviteScreen";
 import type { GlobalComposeMode, Notice, View } from "./app/types";
 import { messageFromError } from "./app/types";
 import { LoadingScreen } from "./components/ui";
+import { usePointerLight } from "./components/usePointerLight";
 import { AccountView } from "./features/account/AccountView";
 import { CaptureView } from "./features/capture/CaptureView";
 import { ChatView } from "./features/chat/ChatView";
@@ -52,6 +53,7 @@ export default function App() {
   const [aiConsentState, setAiConsentState] = useState<"loading" | "required" | "accepted">("loading");
   const [invite, setInvite] = useState<InviteStatusResponse | null>(null);
   const [inviteState, setInviteState] = useState<"loading" | "resolved">("loading");
+  usePointerLight();
 
   const token = session?.accessToken || "";
   const localMode = configLoaded && clientConfig?.auth_required === false && !session;
@@ -119,6 +121,12 @@ export default function App() {
   }, [refreshMe]);
 
   const legalVersion = clientConfig?.legal_document_version || "2026-07-13";
+  // Accepted policies link to their public pages on the site that serves the app.
+  const legalLinks = {
+    privacy: clientConfig?.privacy_policy_url || "/privacy",
+    terms: clientConfig?.terms_url || "/terms",
+    ai_disclosure: clientConfig?.ai_disclosure_url || "/ai-disclosure",
+  };
   useEffect(() => {
     let mounted = true;
     if (!configLoaded) return () => { mounted = false; };
@@ -248,7 +256,7 @@ export default function App() {
       {view === "entries" && <EntriesView token={token} run={run} />}
       {view === "jobs" && <JobsView token={token} run={run} />}
       {view === "status" && <DashboardView token={token} run={run} />}
-      {view === "account" && <AccountView token={token} me={me} run={run} logout={logout} localMode={localMode} legalVersion={legalVersion} voiceArchiveEnabled={Boolean(clientConfig?.voice_archive_enabled)} />}
+      {view === "account" && <AccountView token={token} me={me} run={run} logout={logout} localMode={localMode} legalVersion={legalVersion} legalLinks={legalLinks} voiceArchiveEnabled={Boolean(clientConfig?.voice_archive_enabled)} />}
       {view === "legal" && <LegalView clientConfig={clientConfig} token={token} run={run} localMode={localMode} />}
     </AppShell>
   );
