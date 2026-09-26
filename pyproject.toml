@@ -49,7 +49,8 @@ dependencies = [
     "defusedxml>=0.7.1",
     "json-repair>=0.61,<1",
     # All public clients accept PDFs and images; these are runtime dependencies.
-    "pypdf>=6.16.1",
+    # pypdf floor: see the note on the same floor in the optional dependencies.
+    "pypdf>=6.19.0",
     "Pillow>=12.0.0",
 ]
 
@@ -73,8 +74,11 @@ telegram = [
     # parses PDFs a person uploads, so it reads untrusted input by design and a
     # parser advisory here is not theoretical. A floor rather than a pin: the
     # lock decides the exact version, and this stops a resolve wandering back
-    # onto a vulnerable release.
-    "pypdf>=6.16.1",
+    # onto a vulnerable release. Raised again to 6.19.0: its recovery of corrupt
+    # Flate data grows its output in linear time and caps the input it scans.
+    # 6.16 grew a bytes object quadratically, so a few kilobytes of crafted data
+    # could hold an upload request for minutes.
+    "pypdf>=6.19.0",
 ]
 workers = [
     "celery>=5.3",

@@ -79,6 +79,10 @@ Keep a Changelog, and the project uses semantic versioning for public releases.
 
 ### Fixed
 
+- pypdf is upgraded to 6.19.0, and the dependency floor raised to match. Its
+  recovery of damaged compressed PDF data now grows its output in linear time
+  and caps how much input it will scan; 6.16 could hold an upload request for
+  minutes on a small, damaged file.
 - A damaged Word or PowerPoint file returned HTTP 500: a corrupt deflate or
   bzip2 stream raised from the decompressor, outside the handled errors. It
   now returns the unreadable-file result asking for pasted text.
