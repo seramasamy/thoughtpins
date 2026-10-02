@@ -20,14 +20,14 @@ jobs:
       CELERY_BROKER_URL: redis://localhost:6379/1
     steps:
       - name: Check out source
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
       - name: Install locked development dependencies
         run: |
-          python -m pip install uv==0.12.5
+          python -m pip install uv==0.12.18
           python -m uv export --frozen --extra dev --extra workers --no-emit-project --format requirements-txt --output-file /tmp/requirements-dev.txt
           python -m pip install --require-hashes -r /tmp/requirements-dev.txt
       - name: Set up Node.js
@@ -48,7 +48,7 @@ jobs:
           python scripts/release_check.py --strict-quality 2>&1 | tee -a release-check.log
       - name: Retain the release evidence
         if: always()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: strict-release-${{ github.sha }}
           path: release-check.log
