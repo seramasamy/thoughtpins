@@ -219,9 +219,9 @@ provider nor Qdrant. Vectors for storage are now embedded strictly: a provider
 failure raises, instead of the zero vector `add()` falls back to, so a failed
 embedding leaves the entry saved and its memories visibly unindexed. The retry
 is a repair sweep that asks the index which live memories have no vector and
-indexes those. The worker queues it over every memory at start-up, which is
-also the backfill for entries saved before this, and over the last 72 hours
-every 15 minutes. Deletion wins both races with indexing: the upsert holds the
+indexes those. The worker queues it over every memory at start-up and once a
+day, which is also the backfill for entries saved before this, and over the
+last 72 hours every 15 minutes. Deletion wins both races with indexing: the upsert holds the
 account row `FOR SHARE`, which account deletion's `FOR UPDATE` waits on, and
 ids are checked again after the upsert, so an entry deleted mid-write loses its
 vectors. `tests/test_entry_vector_indexing.py` saves through the API and

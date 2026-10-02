@@ -84,7 +84,8 @@ Keep a Changelog, and the project uses semantic versioning for public releases.
   from Telegram or a manual reindex (TD-008). After a save commits, the worker
   indexes its memories as a separate task, and an embedding failure leaves the
   entry saved. A repair sweep indexes any live memory the index is missing:
-  all of them when the worker starts, and the last 72 hours every 15 minutes
+  all of them when the worker starts and once a day, and the last 72 hours
+  every 15 minutes
   (`VECTOR_INDEX_ON_INGEST`, `VECTOR_REPAIR_INTERVAL_SECONDS`,
   `VECTOR_REPAIR_LOOKBACK_HOURS`). Storing a vector no longer falls back to a
   zero vector when the embedding provider fails, and deleting an entry or an

@@ -339,8 +339,9 @@ python scripts/evaluate_memory_quality.py
 Saves keep the index current without a rebuild. Once an entry's memories
 commit, `thoughtpins.memory.entry_vectors` indexes them (in production as the
 worker task `thoughtpins.index_entry_vectors`). The worker's repair sweep
-indexes any live memory the index is missing: all of them at start-up, and the
-last `VECTOR_REPAIR_LOOKBACK_HOURS` every `VECTOR_REPAIR_INTERVAL_SECONDS`. A
+indexes any live memory the index is missing: all of them at start-up and once
+a day, and the last `VECTOR_REPAIR_LOOKBACK_HOURS` every
+`VECTOR_REPAIR_INTERVAL_SECONDS`. A
 full reindex is needed only after changing the embedding provider or model.
 
 `thoughtpins.memory.reindex.reindex_vectors()` is the shared service used by the

@@ -369,7 +369,7 @@ def test_missing_ids_and_precomputed_vectors_on_local_qdrant(monkeypatch, tmp_pa
         store.close()
 
 
-def test_the_worker_queues_a_full_repair_at_start_and_recent_ones_on_an_interval(monkeypatch):
+def test_the_worker_queues_a_full_repair_at_start_and_daily_and_recent_ones_on_an_interval(monkeypatch):
     pytest.importorskip("celery")
     from thoughtpins.config import config
 
@@ -382,6 +382,7 @@ def test_the_worker_queues_a_full_repair_at_start_and_recent_ones_on_an_interval
     monkeypatch.setattr(worker.celery_app, "send_task", lambda name, args, queue: sent.append((name, args)))
     monkeypatch.setattr(worker.time, "monotonic", lambda: clock[0])
     monkeypatch.setattr(worker, "_last_vector_repair_monotonic", 0.0)
+    monkeypatch.setattr(worker, "_last_full_vector_repair_monotonic", 0.0)
     for target in (config, type(config)):
         monkeypatch.setattr(target, "VECTOR_INDEX_ON_INGEST", True)
         monkeypatch.setattr(target, "VECTOR_REPAIR_INTERVAL_SECONDS", 900)
@@ -391,7 +392,14 @@ def test_the_worker_queues_a_full_repair_at_start_and_recent_ones_on_an_interval
     assert not worker.dispatch_vector_repair_if_due()
     clock[0] += 901
     assert worker.dispatch_vector_repair_if_due()
-    assert sent == [("thoughtpins.repair_entry_vectors", [None]), ("thoughtpins.repair_entry_vectors", [72])]
+    # A day after the last full pass, the interval's pass covers every memory again,
+    # so an embedding outage longer than the lookback still heals without a restart.
+    clock[0] += 86_400
+    assert worker.dispatch_vector_repair_if_due()
+    clock[0] += 901
+    assert worker.dispatch_vector_repair_if_due()
+    assert [args for _, args in sent] == [[None], [72], [None], [72]]
+    assert {name for name, _ in sent} == {"thoughtpins.repair_entry_vectors"}
 
     for target in (config, type(config)):
         monkeypatch.setattr(target, "VECTOR_REPAIR_INTERVAL_SECONDS", 0)

@@ -27,6 +27,9 @@ _recovery_lock = threading.Lock()
 _last_recovery_monotonic = 0.0
 _vector_repair_lock = threading.Lock()
 _last_vector_repair_monotonic = 0.0
+_last_full_vector_repair_monotonic = 0.0
+# A daily pass over every memory catches an embedding outage longer than the lookback.
+_FULL_VECTOR_REPAIR_SECONDS = 86_400
 
 
 def _utc_timestamp() -> str:
@@ -95,12 +98,13 @@ def recover_jobs_if_due(*, force: bool = False) -> int:
 
 
 def dispatch_vector_repair_if_due(*, full: bool = False) -> bool:
-    """Queue the vector repair sweep: every live memory when *full*, else recent ones.
+    """Queue the vector repair sweep: every live memory when *full* or once a day,
+    else recent ones.
 
     It runs as its own task, not here, because the heartbeat must not wait on
     an embedding provider.
     """
-    global _last_vector_repair_monotonic
+    global _last_vector_repair_monotonic, _last_full_vector_repair_monotonic
 
     interval = config.VECTOR_REPAIR_INTERVAL_SECONDS
     if interval <= 0 or not config.VECTOR_INDEX_ON_INGEST:
@@ -109,7 +113,10 @@ def dispatch_vector_repair_if_due(*, full: bool = False) -> bool:
         now = time.monotonic()
         if not full and now - _last_vector_repair_monotonic < interval:
             return False
+        full = full or now - _last_full_vector_repair_monotonic >= _FULL_VECTOR_REPAIR_SECONDS
         _last_vector_repair_monotonic = now
+        if full:
+            _last_full_vector_repair_monotonic = now
     lookback_hours = None if full else config.VECTOR_REPAIR_LOOKBACK_HOURS
     try:
         celery_app.send_task("thoughtpins.repair_entry_vectors", args=[lookback_hours], queue=config.CELERY_QUEUE_NAME)

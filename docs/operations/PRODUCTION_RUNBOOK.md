@@ -36,11 +36,15 @@
    queue normally leaves no old `pending`, `retry`, or `queued` rows; the relay
    republishes stale handoffs and conditionally claims duplicate deliveries.
    The worker also queues the vector repair sweep: over every live memory when
-   it starts, then over recent ones every `VECTOR_REPAIR_INTERVAL_SECONDS`
-   (0 turns it off; otherwise 60 to 86400). Its `Vector repair:` log line counts
-   what it scanned, found missing and indexed. A `missing` count that stays
-   above zero run after run means embedding is failing, or an account is paused
-   by its usage budget (logged on its own line).
+   it starts and once a day, and over recent ones every
+   `VECTOR_REPAIR_INTERVAL_SECONDS` (0 turns it off; otherwise 60 to 86400).
+   Its `Vector repair:` log line counts what it scanned, found missing and
+   indexed. A `missing` count that stays above zero run after run means
+   embedding is failing, or an account is paused by its usage budget (logged
+   on its own line). `Vector repair skipped one account (RateLimitError)` on
+   every account usually means the embedding provider's credit is exhausted.
+   Once it is restored, the next daily pass indexes the backlog. Restarting the
+   worker runs that pass at once.
 10. Run app-flow smoke/load checks:
    - `python scripts/smoke_api.py`
    - `python scripts/run_local_load_smoke.py` for an isolated workstation proof
