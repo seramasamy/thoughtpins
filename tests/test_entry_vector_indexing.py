@@ -381,15 +381,26 @@ def test_the_worker_queues_a_full_repair_at_start_and_daily_and_recent_ones_on_a
     clock = [1_000.0]
     monkeypatch.setattr(worker.celery_app, "send_task", lambda name, args, queue: sent.append((name, args)))
     monkeypatch.setattr(worker.time, "monotonic", lambda: clock[0])
-    monkeypatch.setattr(worker, "_last_vector_repair_monotonic", 0.0)
-    monkeypatch.setattr(worker, "_last_full_vector_repair_monotonic", 0.0)
     for target in (config, type(config)):
         monkeypatch.setattr(target, "VECTOR_INDEX_ON_INGEST", True)
         monkeypatch.setattr(target, "VECTOR_REPAIR_INTERVAL_SECONDS", 900)
         monkeypatch.setattr(target, "VECTOR_REPAIR_LOOKBACK_HOURS", 72)
 
+    # worker_ready first, then the heartbeat: one full pass.
+    monkeypatch.setattr(worker, "_last_vector_repair_monotonic", None)
+    monkeypatch.setattr(worker, "_last_full_vector_repair_monotonic", None)
     assert worker.dispatch_vector_repair_if_due(full=True)
     assert not worker.dispatch_vector_repair_if_due()
+    assert [args for _, args in sent] == [[None]]
+
+    # The first heartbeat beating worker_ready: still one full pass.
+    sent.clear()
+    monkeypatch.setattr(worker, "_last_vector_repair_monotonic", None)
+    monkeypatch.setattr(worker, "_last_full_vector_repair_monotonic", None)
+    assert worker.dispatch_vector_repair_if_due()
+    assert not worker.dispatch_vector_repair_if_due(full=True)
+    assert [args for _, args in sent] == [[None]]
+
     clock[0] += 901
     assert worker.dispatch_vector_repair_if_due()
     # A day after the last full pass, the interval's pass covers every memory again,

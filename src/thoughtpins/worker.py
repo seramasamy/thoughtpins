@@ -26,8 +26,8 @@ from thoughtpins.vault.transfers import recover_vault_import_sessions, run_vault
 _recovery_lock = threading.Lock()
 _last_recovery_monotonic = 0.0
 _vector_repair_lock = threading.Lock()
-_last_vector_repair_monotonic = 0.0
-_last_full_vector_repair_monotonic = 0.0
+_last_vector_repair_monotonic: float | None = None
+_last_full_vector_repair_monotonic: float | None = None
 # A daily pass over every memory catches an embedding outage longer than the lookback.
 _FULL_VECTOR_REPAIR_SECONDS = 86_400
 
@@ -111,9 +111,14 @@ def dispatch_vector_repair_if_due(*, full: bool = False) -> bool:
         return False
     with _vector_repair_lock:
         now = time.monotonic()
-        if not full and now - _last_vector_repair_monotonic < interval:
+        last, last_full = _last_vector_repair_monotonic, _last_full_vector_repair_monotonic
+        if not full and last is not None and now - last < interval:
             return False
-        full = full or now - _last_full_vector_repair_monotonic >= _FULL_VECTOR_REPAIR_SECONDS
+        # Celery's first heartbeat can beat worker_ready, and each would queue a
+        # full pass; one per interval is enough.
+        if full and last_full is not None and now - last_full < interval:
+            return False
+        full = full or last_full is None or now - last_full >= _FULL_VECTOR_REPAIR_SECONDS
         _last_vector_repair_monotonic = now
         if full:
             _last_full_vector_repair_monotonic = now
