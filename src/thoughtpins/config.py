@@ -379,6 +379,11 @@ class Config:
     QDRANT_TIMEOUT_SECONDS: int = _env_int("QDRANT_TIMEOUT_SECONDS", 10)
     EMBEDDING_PROVIDER: str = _env("EMBEDDING_PROVIDER", "llm")
     VECTOR_HEALTHCHECK_LIVE: bool = _env_bool("VECTOR_HEALTHCHECK_LIVE", False)
+    # A saved entry's memories are indexed after the save commits; the worker's
+    # repair sweep retries what failed and backfills what predates this.
+    VECTOR_INDEX_ON_INGEST: bool = _env_bool("VECTOR_INDEX_ON_INGEST", True)
+    VECTOR_REPAIR_INTERVAL_SECONDS: int = _env_int("VECTOR_REPAIR_INTERVAL_SECONDS", 900)
+    VECTOR_REPAIR_LOOKBACK_HOURS: int = _env_int("VECTOR_REPAIR_LOOKBACK_HOURS", 72)
     PRIVATE_ALLOW_LLM: bool = _env_bool("PRIVATE_ALLOW_LLM", False)
     DATA_ENCRYPTION_KEY: str = _env("DATA_ENCRYPTION_KEY")
     REPORTS_PATH: Path = Path(_env("REPORTS_PATH", "./reports"))

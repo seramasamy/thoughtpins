@@ -79,6 +79,16 @@ Keep a Changelog, and the project uses semantic versioning for public releases.
 
 ### Fixed
 
+- Entries saved through the web and mobile apps now reach semantic search.
+  Saving stopped at the database, so the vector channel only held memories
+  from Telegram or a manual reindex (TD-008). After a save commits, the worker
+  indexes its memories as a separate task, and an embedding failure leaves the
+  entry saved. A repair sweep indexes any live memory the index is missing:
+  all of them when the worker starts, and the last 72 hours every 15 minutes
+  (`VECTOR_INDEX_ON_INGEST`, `VECTOR_REPAIR_INTERVAL_SECONDS`,
+  `VECTOR_REPAIR_LOOKBACK_HOURS`). Storing a vector no longer falls back to a
+  zero vector when the embedding provider fails, and deleting an entry or an
+  account while it is being indexed leaves no vector behind.
 - pypdf is upgraded to 6.19.0, and the dependency floor raised to match. Its
   recovery of damaged compressed PDF data now grows its output in linear time
   and caps how much input it will scan; 6.16 could hold an upload request for

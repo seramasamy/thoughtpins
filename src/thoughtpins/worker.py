@@ -5,6 +5,7 @@ from __future__ import annotations
 import threading
 import time
 from collections.abc import Callable
+from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import Any
 
@@ -19,10 +20,13 @@ from thoughtpins.jobs import (
     run_ingestion_job,
 )
 from thoughtpins.logging_config import setup_logging
+from thoughtpins.memory.entry_vectors import index_entry_vectors, repair_entry_vectors
 from thoughtpins.vault.transfers import recover_vault_import_sessions, run_vault_import_session
 
 _recovery_lock = threading.Lock()
 _last_recovery_monotonic = 0.0
+_vector_repair_lock = threading.Lock()
+_last_vector_repair_monotonic = 0.0
 
 
 def _utc_timestamp() -> str:
@@ -90,6 +94,31 @@ def recover_jobs_if_due(*, force: bool = False) -> int:
         _recovery_lock.release()
 
 
+def dispatch_vector_repair_if_due(*, full: bool = False) -> bool:
+    """Queue the vector repair sweep: every live memory when *full*, else recent ones.
+
+    It runs as its own task, not here, because the heartbeat must not wait on
+    an embedding provider.
+    """
+    global _last_vector_repair_monotonic
+
+    interval = config.VECTOR_REPAIR_INTERVAL_SECONDS
+    if interval <= 0 or not config.VECTOR_INDEX_ON_INGEST:
+        return False
+    with _vector_repair_lock:
+        now = time.monotonic()
+        if not full and now - _last_vector_repair_monotonic < interval:
+            return False
+        _last_vector_repair_monotonic = now
+    lookback_hours = None if full else config.VECTOR_REPAIR_LOOKBACK_HOURS
+    try:
+        celery_app.send_task("thoughtpins.repair_entry_vectors", args=[lookback_hours], queue=config.CELERY_QUEUE_NAME)
+    except Exception as exc:
+        logger.warning("Vector repair was not queued ({})", type(exc).__name__)
+        return False
+    return True
+
+
 def _build_celery_app():
     try:
         from celery import Celery
@@ -126,6 +155,7 @@ def _on_worker_ready(sender=None, **kwargs) -> None:
     del sender, kwargs
     record_worker_heartbeat()
     recover_jobs_if_due(force=True)
+    dispatch_vector_repair_if_due(full=True)
     logger.info(
         "Celery worker ready on queue {} at revision {}", config.CELERY_QUEUE_NAME, source_revision() or "unknown"
     )
@@ -135,6 +165,7 @@ def _on_worker_heartbeat(sender=None, **kwargs) -> None:
     del sender, kwargs
     record_worker_heartbeat()
     recover_jobs_if_due()
+    dispatch_vector_repair_if_due()
 
 
 def _on_worker_shutdown(sender=None, **kwargs) -> None:
@@ -168,6 +199,22 @@ def ingest_job_task(self, job_id: str, user_id: str | None = None) -> dict[str, 
 
 def enqueue_celery_job(job_id: str, user_id: str | None = None) -> None:
     celery_app.send_task("thoughtpins.ingest_job", args=[job_id, user_id], queue=config.CELERY_QUEUE_NAME)
+
+
+@celery_app.task(name="thoughtpins.index_entry_vectors", bind=True, max_retries=0)
+def index_entry_vectors_task(self, entry_id: str, user_id: str) -> dict[str, Any]:
+    del self
+    return {"entry_id": entry_id, "indexed": index_entry_vectors(entry_id, user_id)}
+
+
+def enqueue_entry_vector_index(entry_id: str, user_id: str) -> None:
+    celery_app.send_task("thoughtpins.index_entry_vectors", args=[entry_id, user_id], queue=config.CELERY_QUEUE_NAME)
+
+
+@celery_app.task(name="thoughtpins.repair_entry_vectors", bind=True, max_retries=0)
+def repair_entry_vectors_task(self, lookback_hours: int | None = None) -> dict[str, Any]:
+    del self
+    return asdict(repair_entry_vectors(lookback_hours=lookback_hours))
 
 
 @celery_app.task(

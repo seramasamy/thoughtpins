@@ -9,6 +9,7 @@ from loguru import logger
 from sqlalchemy.orm import Session
 
 from thoughtpins.db import Memory, RawEntry
+from thoughtpins.memory.entry_vectors import vector_metadata
 from thoughtpins.memory.vector_store import get_vector_store
 from thoughtpins.store import get_session
 
@@ -73,16 +74,7 @@ def reindex_vectors(
         for batch in _batched(memories, batch_size):
             batch_ids = [memory.id for memory in batch]
             texts = [memory.text for memory in batch]
-            metadata = [
-                {
-                    "user_id": memory.user_id,
-                    "raw_entry_id": memory.raw_entry_id,
-                    "memory_type": memory.memory_type,
-                    "local_date": memory.local_date.isoformat() if memory.local_date else None,
-                    "source_provenance": memory.source_provenance,
-                }
-                for memory in batch
-            ]
+            metadata = [vector_metadata(memory) for memory in batch]
             vector_store.add(batch_ids, texts, metadata)
             stats.indexed += len(batch)
             stats.batches += 1

@@ -107,6 +107,11 @@ def runtime_production_problems(cfg: Any) -> list[str]:
             not 10 <= cfg.WORKER_RECOVERY_INTERVAL_SECONDS <= 3_600,
             "WORKER_RECOVERY_INTERVAL_SECONDS must be between 10 and 3600.",
         ),
+        (
+            not (cfg.VECTOR_REPAIR_INTERVAL_SECONDS == 0 or 60 <= cfg.VECTOR_REPAIR_INTERVAL_SECONDS <= 86_400),
+            "VECTOR_REPAIR_INTERVAL_SECONDS must be 0 (off) or between 60 and 86400.",
+        ),
+        (cfg.VECTOR_REPAIR_LOOKBACK_HOURS < 1, "VECTOR_REPAIR_LOOKBACK_HOURS must be at least 1."),
         (not cfg.SENTRY_DSN, "SENTRY_DSN must be set outside local development."),
         (
             cfg.MAGIC_LINK_ENABLED and cfg.EMAIL_PROVIDER == "none",

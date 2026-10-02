@@ -30,6 +30,7 @@ from thoughtpins.utils import hash_text
 ClassifyMessage = Callable[[str], dict[str, Any]]
 ExtractMessage = Callable[[str, str], ExtractionResult]
 MirrorEntry = Callable[[Session, RawEntry, str], None]
+IndexEntryVectors = Callable[[str, str], None]
 
 
 @dataclass(frozen=True)
@@ -50,6 +51,8 @@ class IngestionDependencies:
     classify: ClassifyMessage
     extract: ExtractMessage
     mirror: MirrorEntry
+    # Called with (owner user id, entry id) once the save has committed.
+    index_vectors: IndexEntryVectors | None = None
 
 
 @dataclass(frozen=True)
@@ -241,12 +244,24 @@ class MessageIngestor:
             self.session.commit()
             return self._error_response(current, type(exc).__name__)
         _maybe_export_vault(self.session, self.user_id, raw_entry.id)
+        self._index_vectors(raw_entry.id)
         return {
             "type": "journal_stored",
             "entry_id": raw_entry.id,
             "user_importance": raw_entry.user_importance,
             "stats": stats,
         }
+
+    def _index_vectors(self, entry_id: str) -> None:
+        # After the commit, never inside it: the vector index is derived state,
+        # so failing to reach it must neither undo nor fail the save.
+        index = self.dependencies.index_vectors
+        if index is None:
+            return
+        try:
+            index(self.user_id, entry_id)
+        except Exception as exc:
+            logger.warning("Vector indexing for entry {} left to the repair sweep ({})", entry_id, type(exc).__name__)
 
     def _update_salience(
         self,

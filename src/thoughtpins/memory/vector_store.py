@@ -215,7 +215,7 @@ class VectorStore:
         self._inmemory_vectors: list[tuple[list[float], str, str, dict[str, Any]]] = []
         self._backend = "memory"
 
-    def _embed(self, texts: list[str]) -> list[list[float]]:
+    def _embed(self, texts: list[str], strict: bool = False) -> list[list[float]]:
         if self._embedding_model is None:
             return [[0.0] * self._dimension for _ in texts]
 
@@ -226,6 +226,8 @@ class VectorStore:
             try:
                 return get_embeddings(texts)
             except Exception as e:
+                if strict:
+                    raise
                 logger.warning("Configured LLM embedding failed ({}), using zero vectors", type(e).__name__)
                 return [[0.0] * self._dimension for _ in texts]
 
@@ -233,6 +235,8 @@ class VectorStore:
             try:
                 return _embed_openai(texts)
             except Exception as e:
+                if strict:
+                    raise
                 logger.warning("OpenAI embedding failed ({}), using zero vectors", type(e).__name__)
                 return [[0.0] * self._dimension for _ in texts]
 
@@ -240,14 +244,28 @@ class VectorStore:
         embeddings = self._embedding_model.encode(texts, show_progress_bar=False)
         return embeddings.tolist()
 
-    def add(self, ids: list[str], texts: list[str], metadata: list[dict] | None = None) -> None:
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        """Embed texts for storage. A provider failure raises: a zero vector would
+        be stored as if indexed and never retried."""
+        return self._embed(texts, strict=True)
+
+    def add(
+        self,
+        ids: list[str],
+        texts: list[str],
+        metadata: list[dict] | None = None,
+        *,
+        vectors: list[list[float]] | None = None,
+    ) -> None:
         if not texts:
             return
         if len(ids) != len(texts):
             raise ValueError("ids and texts must have the same length")
         if metadata is not None and len(metadata) != len(ids):
             raise ValueError("metadata and ids must have the same length")
-        vectors = self._embed(texts)
+        vectors = self._embed(texts) if vectors is None else vectors
+        if len(vectors) != len(ids):
+            raise ValueError("vectors and ids must have the same length")
         self._sync_dimension_from_vectors(vectors)
         metadatas = [dict(item) for item in (metadata or [{}] * len(ids))]
 
@@ -431,6 +449,24 @@ class VectorStore:
                     collection_name=collection_name,
                     points_selector=point_ids,
                 )
+
+    def missing_ids(self, ids: list[str]) -> list[str]:
+        """Return the ids that have no vector in the active index, in input order."""
+        if not ids:
+            return []
+        if hasattr(self, "_faiss_index"):
+            present = set(self._faiss_ids)
+        elif isinstance(self._backend, str) and self._backend == "memory":
+            present = {item[1] for item in self._inmemory_vectors}
+        elif hasattr(self, "_collection"):
+            present = set(self._collection.get(ids=ids, include=[])["ids"])
+        else:
+            by_point = {_qdrant_point_id(tid): tid for tid in ids}
+            records = self._require_object_backend().retrieve(
+                collection_name=self._collection_name, ids=list(by_point), with_payload=False, with_vectors=False
+            )
+            present = {by_point[str(record.id)] for record in records if str(record.id) in by_point}
+        return [tid for tid in ids if tid not in present]
 
     def reset(self) -> None:
         """Clear the derived vector index for the active backend."""

@@ -20,6 +20,7 @@ from thoughtpins.ingestion.service import (
     ingest_message,
 )
 from thoughtpins.ingestion.storage import store_extraction as _store_extraction  # noqa: F401
+from thoughtpins.memory.entry_vectors import schedule_entry_vector_index
 from thoughtpins.users import get_or_create_default_user, get_or_create_user_for_telegram, lock_active_user_for_write
 
 
@@ -80,6 +81,7 @@ def process_message(
             classify=classify_message,
             extract=extract_from_entry,
             mirror=_mirror_raw_entry_to_graph_backend,
+            index_vectors=schedule_entry_vector_index,
         ),
     )
 

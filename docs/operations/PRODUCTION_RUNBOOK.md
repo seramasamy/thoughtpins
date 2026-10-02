@@ -35,6 +35,12 @@
    `WORKER_RECOVERY_INTERVAL_SECONDS` between 10 and 3600 seconds. A healthy
    queue normally leaves no old `pending`, `retry`, or `queued` rows; the relay
    republishes stale handoffs and conditionally claims duplicate deliveries.
+   The worker also queues the vector repair sweep: over every live memory when
+   it starts, then over recent ones every `VECTOR_REPAIR_INTERVAL_SECONDS`
+   (0 turns it off; otherwise 60 to 86400). Its `Vector repair:` log line counts
+   what it scanned, found missing and indexed. A `missing` count that stays
+   above zero run after run means embedding is failing, or an account is paused
+   by its usage budget (logged on its own line).
 10. Run app-flow smoke/load checks:
    - `python scripts/smoke_api.py`
    - `python scripts/run_local_load_smoke.py` for an isolated workstation proof

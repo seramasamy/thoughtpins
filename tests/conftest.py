@@ -120,6 +120,7 @@ def isolated_db():
             "QDRANT_PATH",
             "OPENAI_API_KEY",
             "EMBEDDING_PROVIDER",
+            "VECTOR_INDEX_ON_INGEST",
             "VAULT_IMPORT_PATH",
             "VAULT_IMPORT_SESSION_HOURS",
             "VAULT_UPLOAD_CHUNK_BYTES",
@@ -173,6 +174,10 @@ def isolated_db():
         "QDRANT_PATH": str(project_root / ".tmp" / "test-qdrant" / uuid4().hex),
         "OPENAI_API_KEY": "",
         "EMBEDDING_PROVIDER": "local",
+        # Off by default: with no local embedding runtime, indexing each save
+        # would try the placeholder LLM endpoint. test_entry_vector_indexing
+        # turns it on with a deterministic embedder.
+        "VECTOR_INDEX_ON_INGEST": False,
         "VAULT_IMPORT_PATH": project_root / ".tmp" / "test-vault-imports" / uuid4().hex,
         "VAULT_IMPORT_SESSION_HOURS": 24,
         "VAULT_UPLOAD_CHUNK_BYTES": 512 * 1024,

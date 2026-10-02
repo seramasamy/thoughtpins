@@ -1,6 +1,6 @@
 # Technical Debt Register
 
-Last reviewed: 2026-09-21
+Last reviewed: 2026-09-29
 
 This register is intentionally candid. A production codebase with no technical
 debt is not a credible claim. Thought Pins uses tests and architecture fitness
@@ -211,6 +211,22 @@ collection was auto-created, so the credentials and connection were fine.
   embedding leaves the entry saved and queues a retry rather than failing the
   write. Prove it with a test that saves through the API and asserts the vector
   count rose, which is the assertion that would have caught this.
+
+**Closed 2026-09-29.** `ingestion/service.py` hands each committed save to
+`memory/entry_vectors.py`, which production runs as its own worker task
+(`thoughtpins.index_entry_vectors`), so a save waits on neither the embedding
+provider nor Qdrant. Vectors for storage are now embedded strictly: a provider
+failure raises, instead of the zero vector `add()` falls back to, so a failed
+embedding leaves the entry saved and its memories visibly unindexed. The retry
+is a repair sweep that asks the index which live memories have no vector and
+indexes those. The worker queues it over every memory at start-up, which is
+also the backfill for entries saved before this, and over the last 72 hours
+every 15 minutes. Deletion wins both races with indexing: the upsert holds the
+account row `FOR SHARE`, which account deletion's `FOR UPDATE` waits on, and
+ids are checked again after the upsert, so an entry deleted mid-write loses its
+vectors. `tests/test_entry_vector_indexing.py` saves through the API and
+asserts the vector count rose; each layer has a test that failed when that
+layer was removed.
 
 ### TD-009: The Review Seeder Cannot Write Content To Production
 
