@@ -238,6 +238,18 @@ Keep a Changelog, and the project uses semantic versioning for public releases.
 
 ### Changed
 
+- Dependencies brought current, replacing eleven Dependabot pull requests:
+  - Web: React and React DOM 19.3, lucide-react 1.49, Vite 8.3, Playwright 1.63
+    and the Vite React plugin 6.1.1.
+  - Android: OkHttp and MockWebServer 5.5, Compose BOM 2026.08.00 and
+    fragment-ktx 1.9. Gradle 9.7.1, with the wrapper and its verification
+    metadata regenerated and checked against Gradle's published checksums.
+  - CI: actions/checkout 7.0.1, upload-artifact 7.0.1 and setup-java 6.0.1,
+    pinned to commits checked against their release tags; uv 0.12.18.
+
+  Node 25 and Python 3.14 were declined. Node 25 is not a long-term-support
+  release, and Python 3.14 needs a planned runtime migration rather than a base
+  image swap.
 - Luminous Memory visual refresh across the public site, the six trust pages,
   the web app and the static fallback. The identity is unchanged (navy night,
   ember brain-pin mark, violet memory accent, native sans); it is rendered as
