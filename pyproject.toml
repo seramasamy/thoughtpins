@@ -42,7 +42,9 @@ dependencies = [
     "loguru>=0.7",
     "sentry-sdk>=2.0",
     "pytz>=2024.1",
-    "PyJWT[crypto]>=2.13.0",
+    # Floor raised past the October 2026 PyJWT advisories (fixed in 2.14-2.15);
+    # it signs and verifies every access token.
+    "PyJWT[crypto]>=2.15.1",
     "argon2-cffi>=25.1.0",
     "httpx>=0.27",
     "redis>=5.0",

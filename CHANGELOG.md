@@ -341,6 +341,9 @@ Keep a Changelog, and the project uses semantic versioning for public releases.
 
 ### Security
 
+- PyJWT is upgraded to 2.15.1, with the dependency floor raised to match, and
+  urllib3 to 2.8.0, clearing the advisories published against PyJWT 2.13.0
+  and urllib3 2.7.0 that failed the production dependency audit.
 - Portable vault projection now excludes every artifact derived solely from a
   private entry, including entity attributes, aliases, relationships, events,
   documents, counts, timestamps, Bases, and Canvas nodes.
