@@ -302,6 +302,8 @@ class Config:
     LLM_DEFAULT_OUTPUT_PRICE_PER_1M_USD: float = _env_float("LLM_DEFAULT_OUTPUT_PRICE_PER_1M_USD", 1.20)
 
     PROCESS_ENTRIES_ASYNC: bool = _env_bool("PROCESS_ENTRIES_ASYNC", ENVIRONMENT in {"staging", "production"})
+    # Scanned PDFs are read by a worker job, not inside the upload request.
+    PDF_OCR_IN_WORKER: bool = _env_bool("PDF_OCR_IN_WORKER", PROCESS_ENTRIES_ASYNC)
     INGESTION_WORKER_THREADS: int = _env_int("INGESTION_WORKER_THREADS", 2)
     INGESTION_STALE_AFTER_MINUTES: int = _env_int("INGESTION_STALE_AFTER_MINUTES", 30)
     INGESTION_QUEUE_BACKEND: str = _env("INGESTION_QUEUE_BACKEND", "thread").lower()

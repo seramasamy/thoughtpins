@@ -39,6 +39,19 @@ test("queued, failed and unknown states cannot become a ready claim", () => {
   assert.equal(uploadOutcome(ready).title, "Ready");
 });
 
+test("a scanned PDF handed to background OCR is saved, not partially read", () => {
+  const outcome = uploadOutcome({ ...ready, status: "queued", extraction_status: "ocr_queued", extracted_chars: 0,
+    job_id: "job-ocr", metadata: { extraction: { warnings: ["Scanned pages are being read with OCR."] } } });
+  assert.equal(outcome.title, "Saved, reading scanned pages");
+  assert.equal(outcome.tone, "ok");
+  assert.equal(outcome.saved, true);
+  assert.match(outcome.text, /available for recall once that finishes/);
+  const journal = uploadOutcome({ ...ready, status: "queued", extraction_status: "ocr_queued", destination: "journal",
+    document_id: null, job_id: "job-ocr" });
+  assert.equal(journal.saved, true);
+  assert.match(journal.text, /your journal/);
+});
+
 test("file validation rejects unsupported and oversized inputs before encoding", () => {
   // Legacy binary Office formats are not readable; their modern ZIP-based
   // successors are.

@@ -63,9 +63,16 @@ The production lock includes pypdf and Pillow. The image includes Tesseract and
 its English language data; OCR uses a 30-second subprocess budget and one CPU
 thread. No OCR model is downloaded on a person's first upload. Images above
 25 million pixels are rejected for extraction; the existing 25 MB upload limit
-still applies. Text PDFs are read up to the existing 100-page limit. Scanned
-PDFs without a text layer need a text transcript; image OCR currently reads
-English, not every writing system.
+still applies. Text PDFs are read up to the existing 100-page limit.
+
+Scanned PDF pages are read with OCR by a `pdf_ocr` worker job, not during the
+upload (`PDF_OCR_IN_WORKER`, required outside local development).
+- The request saves the original and a pending source, then answers at once.
+- The worker reads the original back from `stored_attachments`, which needs no
+  shared filesystem, and reads up to 100 pages within 480 seconds.
+- A PDF with no readable text ends as `needs_text` with the reason.
+
+OCR currently reads English, not every writing system.
 
 The container build runs `python scripts/check_media_runtime.py` against a
 generated PDF and image. A package merely importing is insufficient evidence

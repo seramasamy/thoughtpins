@@ -69,6 +69,28 @@ def save_media_attachment(
     return reference
 
 
+def load_media_attachment(session: Session, *, user_id: str, reference: str) -> bytes | None:
+    """Return one original's bytes, or None when it no longer exists."""
+    from thoughtpins.db_storage import StoredAttachment
+
+    row = (
+        session.query(StoredAttachment)
+        .filter(StoredAttachment.user_id == user_id, StoredAttachment.reference == reference)
+        .first()
+    )
+    if row is None:
+        return None
+    content = bytes(row.payload)
+    if content.startswith(ENCRYPTED_BYTES_PREFIX):
+        plaintext = decrypt_bytes_scoped(content, scope=f"attachments:{user_id}")
+        if plaintext is None:
+            raise RuntimeError("Attachment decryption is unavailable")
+        content = plaintext
+    if len(content) != row.byte_size:
+        raise RuntimeError("Attachment integrity verification failed")
+    return content
+
+
 def export_attachments(user_id: str, target: Path) -> int:
     """Export only this account's originals, failing closed on decryption errors."""
     from thoughtpins.db_storage import StoredAttachment

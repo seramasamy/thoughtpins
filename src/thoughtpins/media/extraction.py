@@ -44,8 +44,12 @@ def extract_image_text(content: bytes, *, suffix: str = ".jpg") -> MediaExtracti
         return MediaExtraction(kind="image", error="ocr_failed")
 
 
-def extract_document_text(content: bytes, suffix: str) -> MediaExtraction:
-    """Extract text from files the user deliberately supplied for processing."""
+def extract_document_text(content: bytes, suffix: str, *, defer_pdf_ocr: bool = False) -> MediaExtraction:
+    """Extract text from files the user deliberately supplied for processing.
+
+    With ``defer_pdf_ocr``, a PDF that needs OCR comes back marked
+    ``ocr_deferred`` instead of being read here; a worker job reads it.
+    """
 
     normalized_suffix = (suffix or "").lower()
     if not content:
@@ -62,7 +66,12 @@ def extract_document_text(content: bytes, suffix: str) -> MediaExtraction:
         return extract_office_text(content, normalized_suffix)
     if normalized_suffix == ".pdf":
         # Resolved at call time so tests and callers can swap the OCR engine.
-        return extract_pdf_text(content, normalized_suffix, ocr_reader=lambda: _get_ocr_reader(require_timeout=True))
+        return extract_pdf_text(
+            content,
+            normalized_suffix,
+            ocr_reader=lambda: _get_ocr_reader(require_timeout=True),
+            defer_ocr=defer_pdf_ocr,
+        )
     if _looks_textish(content):
         return MediaExtraction(
             text=content.decode("utf-8", errors="replace").strip(),

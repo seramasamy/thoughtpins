@@ -238,6 +238,20 @@ Keep a Changelog, and the project uses semantic versioning for public releases.
 
 ### Changed
 
+- Scanned PDFs are read with OCR by a background worker job, not during the
+  upload (`PDF_OCR_IN_WORKER`, required outside local development).
+  - The upload request reads embedded text only, and stops at the first page
+    that needs OCR. A library upload is saved as a pending source with its
+    document id, so the web, iOS and Android apps all show it as saved. The
+    web app says its scanned pages are being read.
+  - The worker reads the encrypted original back from the database, reads up to
+    100 pages within 8 minutes under Celery's hard time limit, then finishes
+    the source or saves the journal entry.
+  - A PDF with no readable text, or one that outlives the limit twice, ends as
+    "needs text" with the reason, never stuck in processing. Uploading the same
+    scan again finds the same source.
+  - OCR no longer holds an API request thread for up to 40 seconds, and a
+    third concurrent scan is no longer told OCR is busy.
 - Dependencies brought current, replacing eleven Dependabot pull requests:
   - Web: React and React DOM 19.3, lucide-react 1.49, Vite 8.3, Playwright 1.63
     and the Vite React plugin 6.1.1.

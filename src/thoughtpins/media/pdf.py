@@ -5,13 +5,22 @@ almost no embedded text that draws a page-sized image -- a scan -- is read with
 the local OCR engine. OCR only fills pages that had no usable text; it never
 replaces embedded text, which is always better.
 
-Extraction runs inside the upload request, and a proxied request has about 100
-seconds, so text extraction, image decoding and OCR share one time budget, and
-OCR is also capped by page count and by how many uploads may run it at once, so
-scanned PDFs cannot occupy every API worker. ``media/pdf_images.py`` finds the
-images a page draws, decodes each within a hard bound, and reassembles pages
-stored as strips; this module decides what to read and reports every page that
-was not read, with the reason, rather than dropping it silently.
+Text extraction, image decoding and OCR share one time budget, and OCR is also
+capped by page count. Where extraction runs decides the size of both:
+
+- In an upload request, a proxied request has about 100 seconds, so the budget
+  is short, and OCR is also capped by how many uploads may run it at once, so
+  scanned PDFs cannot occupy every API worker. With asynchronous processing on,
+  the request does not OCR at all: ``defer_ocr`` stops at the first page that
+  needs it, and the upload hands the whole PDF to a worker job.
+- In that worker job (``pdf_ocr_jobs.py``), Celery's hard time limit stands
+  behind a much longer budget and the full page limit, and the worker's own
+  concurrency bounds how many run at once.
+
+``media/pdf_images.py`` finds the images a page draws, decodes each within a
+hard bound, and reassembles pages stored as strips; this module decides what to
+read and reports every page that was not read, with the reason, rather than
+dropping it silently.
 """
 
 from __future__ import annotations
@@ -37,6 +46,9 @@ OCR_PAGE_LIMIT = 20
 # Shared by text extraction, image decoding and OCR, well inside the ~100 s a
 # proxied request may take.
 OCR_TIME_BUDGET_SECONDS = 40.0
+# A worker job runs under Celery's 840 s soft and 900 s hard limits; this leaves
+# room to load the original and save the result inside them.
+WORKER_OCR_TIME_BUDGET_SECONDS = 480.0
 OCR_PAGE_TIMEOUT_SECONDS = 30.0
 _OCR_MIN_REMAINING_SECONDS = 3.0
 # Uploads that may run PDF OCR at once in one process. Others are told OCR is
@@ -51,6 +63,35 @@ MIN_SCAN_PIXELS = 200_000
 # Drawn images this size or more count as pieces of the page's scan.
 MIN_PIECE_PIXELS = 50_000
 _WORD = re.compile(r"[^\W\d_]{3,}")
+
+
+@dataclass(frozen=True)
+class PdfLimits:
+    """How much one extraction may spend on reading a PDF."""
+
+    time_budget_seconds: float
+    ocr_page_limit: int
+    # Take one of the process's OCR slots, or report OCR busy without one.
+    limit_concurrency: bool
+
+
+def request_limits() -> PdfLimits:
+    # Built at call time from the module constants, so they stay patchable.
+    return PdfLimits(OCR_TIME_BUDGET_SECONDS, OCR_PAGE_LIMIT, limit_concurrency=True)
+
+
+def worker_limits() -> PdfLimits:
+    return PdfLimits(WORKER_OCR_TIME_BUDGET_SECONDS, PDF_PAGE_LIMIT, limit_concurrency=False)
+
+
+@dataclass(frozen=True)
+class _Budget:
+    started: float
+    seconds: float
+    clock: Callable[[], float]
+
+    def remaining(self) -> float:
+        return self.seconds - (self.clock() - self.started)
 
 
 @dataclass(frozen=True)
@@ -77,6 +118,8 @@ class _OcrOutcome:
     pieced: int = 0
     unavailable: bool = False
     busy: bool = False
+    # A page needs OCR, and the caller asked to leave OCR to a worker job.
+    deferred: bool = False
     engine: str | None = None
 
 
@@ -90,8 +133,11 @@ def extract_pdf_text(
     *,
     ocr_reader: Callable[[], Any],
     clock: Callable[[], float] = time.monotonic,
+    limits: PdfLimits | None = None,
+    defer_ocr: bool = False,
 ) -> MediaExtraction:
-    started = clock()
+    limits = limits or request_limits()
+    budget = _Budget(clock(), limits.time_budget_seconds, clock)
     try:
         from pypdf import PdfReader
     except ImportError:
@@ -104,7 +150,7 @@ def extract_pdf_text(
         texts: list[str] = []
         unreadable = 0
         for page in pages:
-            if _remaining(started, clock) <= 0:
+            if budget.remaining() <= 0:
                 break
             try:
                 texts.append(page.extract_text() or "")
@@ -122,7 +168,9 @@ def extract_pdf_text(
     timed_out = len(pages) - len(texts)
     pages = pages[: len(texts)]
 
-    ocr = _ocr_scanned_pages(pages, texts, ocr_reader, started=started, clock=clock)
+    ocr = _ocr_scanned_pages(pages, texts, ocr_reader, budget=budget, limits=limits, defer=defer_ocr)
+    # Pages the text pass never reached get the worker's longer budget too.
+    ocr.deferred = ocr.deferred or (defer_ocr and timed_out > 0)
     missing = sum(not text.strip() for text in texts)
     truncated = total > PDF_PAGE_LIMIT
     return MediaExtraction(
@@ -143,18 +191,24 @@ def extract_pdf_text(
             "ocr_unchecked_pages": ocr.unchecked,
             "ocr_unavailable": ocr.unavailable,
             "ocr_busy": ocr.busy,
+            "ocr_deferred": ocr.deferred,
             "ocr_pieced_pages": ocr.pieced,
             "partial": bool(missing or truncated or timed_out or ocr.pieced),
-            "warnings": _warnings(total=total, read=len(texts), timed_out=timed_out, missing=missing, ocr=ocr),
+            "warnings": _warnings(
+                total=total, read=len(texts), timed_out=timed_out, missing=missing, ocr=ocr, limits=limits
+            ),
         },
         error="pdf_needs_ocr" if not any(text.strip() for text in texts) else None,
     )
 
 
-def _warnings(*, total: int, read: int, timed_out: int, missing: int, ocr: _OcrOutcome) -> list[str]:
+def _warnings(*, total: int, read: int, timed_out: int, missing: int, ocr: _OcrOutcome, limits: PdfLimits) -> list[str]:
     warnings = []
     if total > PDF_PAGE_LIMIT:
         warnings.append(f"Only the first {PDF_PAGE_LIMIT} of {total} pages were read.")
+    if ocr.deferred:
+        warnings.append("Scanned pages are being read with OCR; the source is ready for recall when that finishes.")
+        return warnings
     if timed_out:
         warnings.append(f"Reading stopped after {read} pages to stay within the upload time limit.")
     if ocr.pages:
@@ -167,19 +221,19 @@ def _warnings(*, total: int, read: int, timed_out: int, missing: int, ocr: _OcrO
             "text on them may be missing."
         )
     if missing:
-        warnings.append(f"{missing} pages had no readable text.{_missing_reason(ocr)}")
+        warnings.append(f"{missing} pages had no readable text.{_missing_reason(ocr, limits)}")
     return warnings
 
 
-def _missing_reason(ocr: _OcrOutcome) -> str:
+def _missing_reason(ocr: _OcrOutcome, limits: PdfLimits) -> str:
     if ocr.unavailable:
         return " OCR for PDFs is not set up on this server."
     if ocr.busy:
         return " OCR was busy with other uploads; try again in a minute."
     if ocr.skipped or ocr.unchecked:
         return (
-            f" OCR reads up to {OCR_PAGE_LIMIT} scanned pages within {int(OCR_TIME_BUDGET_SECONDS)} seconds"
-            f" per upload; {ocr.skipped + ocr.unchecked} pages were not reached."
+            f" OCR reads up to {limits.ocr_page_limit} scanned pages within {int(limits.time_budget_seconds)}"
+            f" seconds per upload; {ocr.skipped + ocr.unchecked} pages were not reached."
         )
     if ocr.failed:
         return f" OCR could not read {ocr.failed} scanned pages."
@@ -191,8 +245,9 @@ def _ocr_scanned_pages(
     texts: list[str],
     reader_factory: Callable[[], Any],
     *,
-    started: float,
-    clock: Callable[[], float],
+    budget: _Budget,
+    limits: PdfLimits,
+    defer: bool = False,
 ) -> _OcrOutcome:
     """OCR pages without usable text in place, within the page, time and concurrency limits."""
 
@@ -203,8 +258,10 @@ def _ocr_scanned_pages(
         for index, text in enumerate(texts):
             if len("".join(text.split())) >= MIN_EMBEDDED_CHARS:
                 continue
-            stopped = outcome.unavailable or outcome.busy or len(outcome.pages) + outcome.failed >= OCR_PAGE_LIMIT
-            if stopped or _remaining(started, clock) < _OCR_MIN_REMAINING_SECONDS:
+            stopped = (
+                outcome.unavailable or outcome.busy or len(outcome.pages) + outcome.failed >= limits.ocr_page_limit
+            )
+            if stopped or budget.remaining() < _OCR_MIN_REMAINING_SECONDS:
                 # Finding a scan walks the page; once OCR cannot run, or the
                 # budget is spent, that walk buys nothing.
                 outcome.unchecked += 1
@@ -221,7 +278,11 @@ def _ocr_scanned_pages(
             if not plan.images:
                 outcome.pieced += plan.pieced
                 continue
-            if not holding_slot:
+            if defer:
+                # One scan is enough to know: the worker reads the whole PDF again.
+                outcome.deferred = True
+                break
+            if limits.limit_concurrency and not holding_slot:
                 holding_slot = _OCR_SLOTS.acquire(blocking=False)
                 if not holding_slot:
                     outcome.busy = True
@@ -232,7 +293,7 @@ def _ocr_scanned_pages(
                 if reader is None:
                     outcome.skipped += 1
                     continue
-            _read_page(index, text, plan, reader, texts, outcome, started=started, clock=clock)
+            _read_page(index, text, plan, reader, texts, outcome, budget=budget)
     finally:
         if holding_slot:
             _OCR_SLOTS.release()
@@ -250,11 +311,10 @@ def _read_page(
     texts: list[str],
     outcome: _OcrOutcome,
     *,
-    started: float,
-    clock: Callable[[], float],
+    budget: _Budget,
 ) -> None:
     try:
-        recognized = _read_plan(plan, reader, started=started, clock=clock)
+        recognized = _read_plan(plan, reader, budget=budget)
     except _BudgetSpent:
         outcome.skipped += 1
         return
@@ -317,9 +377,9 @@ def _rotation(page: Any, drawn: int) -> int:
     return (drawn - turned) % 360
 
 
-def _read_plan(plan: _PagePlan, reader: Any, *, started: float, clock: Callable[[], float]) -> str:
+def _read_plan(plan: _PagePlan, reader: Any, *, budget: _Budget) -> str:
     def decode_piece(image: DrawnImage) -> Any:
-        timeout = _step_timeout(started, clock)
+        timeout = _step_timeout(budget)
         try:
             return decode(image, timeout=timeout)
         except DecodeTimeout as exc:
@@ -334,7 +394,7 @@ def _read_plan(plan: _PagePlan, reader: Any, *, started: float, clock: Callable[
         picture = fix_polarity(picture)
     if plan.rotation:
         picture = picture.rotate(plan.rotation, expand=True)
-    timeout = _step_timeout(started, clock)
+    timeout = _step_timeout(budget)
     try:
         return read_image_text(reader, picture, timeout=timeout)
     except subprocess.TimeoutExpired as exc:
@@ -343,8 +403,8 @@ def _read_plan(plan: _PagePlan, reader: Any, *, started: float, clock: Callable[
         raise
 
 
-def _step_timeout(started: float, clock: Callable[[], float]) -> float:
-    timeout = min(OCR_PAGE_TIMEOUT_SECONDS, _remaining(started, clock))
+def _step_timeout(budget: _Budget) -> float:
+    timeout = min(OCR_PAGE_TIMEOUT_SECONDS, budget.remaining())
     if timeout < _OCR_MIN_REMAINING_SECONDS:
         raise _BudgetSpent
     return timeout
@@ -366,8 +426,24 @@ def _start_reader(reader_factory: Callable[[], Any], outcome: _OcrOutcome) -> An
     return reader
 
 
-def _remaining(started: float, clock: Callable[[], float]) -> float:
-    return OCR_TIME_BUDGET_SECONDS - (clock() - started)
+def unreadable_pdf_message(metadata: dict[str, Any]) -> str:
+    """Why no text came out of a PDF, in words a person can act on."""
+    # Say what actually happened. Advising clearer scans when OCR never ran, or
+    # "try again later" for a server that will never have it, both mislead.
+    if metadata.get("ocr_unavailable"):
+        return (
+            "This PDF has no selectable text, and OCR for PDFs is not set up on this server. "
+            "Paste the text, or upload images of its pages."
+        )
+    if metadata.get("ocr_busy"):
+        return "OCR is busy with other uploads. Try this PDF again in a minute, or paste the text."
+    if metadata.get("ocr_skipped_pages") or metadata.get("ocr_unchecked_pages") or metadata.get("pages_timed_out"):
+        return "This PDF needs more OCR time than one upload allows. Split it into smaller files, or paste the text."
+    if metadata.get("ocr_failed_pages"):
+        return (
+            "OCR could not read the scanned pages of this PDF. Upload clearer images of its pages, or paste the text."
+        )
+    return "No readable text was found in this PDF. Upload clear images of its pages, or paste the text."
 
 
 def _looks_like_text(recognized: str) -> bool:

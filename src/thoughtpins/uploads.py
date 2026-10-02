@@ -12,7 +12,9 @@ from loguru import logger
 from sqlalchemy.orm import Session
 
 import thoughtpins.library as library
+from thoughtpins import pdf_ocr_jobs
 from thoughtpins.chat.engine import ChatEngineResult, execute_chat_message
+from thoughtpins.config import config
 from thoughtpins.media import (
     MediaExtraction,
     extract_document_text,
@@ -20,6 +22,7 @@ from thoughtpins.media import (
     save_media_attachment,
     transcribe_audio,
 )
+from thoughtpins.media.pdf import unreadable_pdf_message
 from thoughtpins.users import lock_active_user_for_write
 from thoughtpins.voice_archive import VoiceRetentionOutcome, retain_voice_note_if_consented
 
@@ -88,8 +91,15 @@ def ingest_upload(
     media_kind = detect_media_kind(clean_filename, media_type)
     # Extract before touching the database. OCR and transcription can take tens
     # of seconds, and neither a pooled connection nor this account's row lock --
-    # which account deletion waits on -- should be held while they run.
-    extraction = _extract(content, filename=clean_filename, media_type=media_type, media_kind=media_kind)
+    # which account deletion waits on -- should be held while they run. A PDF
+    # that needs OCR is not read here at all when a worker can do it.
+    extraction = _extract(
+        content,
+        filename=clean_filename,
+        media_type=media_type,
+        media_kind=media_kind,
+        defer_pdf_ocr=config.PDF_OCR_IN_WORKER,
+    )
     lock_active_user_for_write(session, user_id)
     # Voice is ephemeral unless the user has separately enabled the encrypted
     # personal archive. Other user-supplied files retain their existing vault flow.
@@ -107,6 +117,26 @@ def ingest_upload(
     text = _combine_caption_and_text(caption, extraction.text)
     resolved_destination = resolve_destination(destination, media_kind)
     attachment_ref = _attachment_ref(attachment) if attachment is not None else None
+
+    if extraction.metadata.get("ocr_deferred") and attachment is not None:
+        return _stage_pdf_ocr(
+            session,
+            user_id=user_id,
+            content=content,
+            filename=clean_filename,
+            media_type=media_type,
+            media_kind=media_kind,
+            destination=resolved_destination,
+            caption=caption,
+            title=title,
+            source_type=source_type,
+            surface=surface,
+            conversation_id=conversation_id,
+            message_id=message_id,
+            author_user_id=author_user_id,
+            attachment=attachment,
+            extraction=extraction,
+        )
 
     if not text.strip():
         return UploadIngestOutcome(
@@ -247,13 +277,83 @@ def resolve_destination(destination: Destination, media_kind: str) -> str:
     return "journal" if media_kind in {"audio", "image"} else "library"
 
 
-def _extract(content: bytes, *, filename: str, media_type: str, media_kind: str) -> MediaExtraction:
+def _extract(
+    content: bytes, *, filename: str, media_type: str, media_kind: str, defer_pdf_ocr: bool = False
+) -> MediaExtraction:
     suffix = Path(filename or "").suffix.lower()
     if media_kind == "audio":
         return transcribe_audio(content, suffix=suffix or ".audio")
     if media_kind == "image":
         return extract_image_text(content, suffix=suffix or ".jpg")
-    return extract_document_text(content, suffix)
+    return extract_document_text(content, suffix, defer_pdf_ocr=defer_pdf_ocr)
+
+
+def _stage_pdf_ocr(
+    session: Session,
+    *,
+    user_id: str,
+    content: bytes,
+    filename: str,
+    media_type: str,
+    media_kind: str,
+    destination: str,
+    caption: str,
+    title: str,
+    source_type: str,
+    surface: str,
+    conversation_id: str,
+    message_id: str,
+    author_user_id: str,
+    attachment: Path,
+    extraction: MediaExtraction,
+) -> UploadIngestOutcome:
+    """Hand a PDF that needs OCR to a worker job and answer the upload at once."""
+    reference = attachment.as_posix()
+    if destination == "journal":
+        staged = pdf_ocr_jobs.stage_journal_ocr(
+            session,
+            user_id=user_id,
+            attachment=reference,
+            caption=caption,
+            surface=surface or "upload",
+            conversation_id=conversation_id or "uploads",
+            message_id=message_id,
+            author_user_id=author_user_id,
+        )
+    else:
+        staged = pdf_ocr_jobs.stage_library_ocr(
+            session,
+            user_id=user_id,
+            content=content,
+            attachment=reference,
+            caption=caption,
+            title=title or Path(filename).stem or filename,
+            source_type=source_type or _source_type_for_upload(media_kind, filename),
+            upload_metadata={
+                "filename": filename,
+                "media_type": media_type,
+                "media_kind": media_kind,
+                "attachment_ref": _attachment_ref(attachment),
+                "extraction": extraction.metadata,
+            },
+        )
+    pending = staged.status == "queued"
+    return UploadIngestOutcome(
+        status=staged.status,
+        route_type="journal_upload" if destination == "journal" else "library_upload",
+        filename=filename,
+        media_kind=media_kind,
+        destination=destination,
+        # A repeat of a finished upload reports how that one ended.
+        extraction_status="ocr_queued" if pending else staged.status,
+        attachment_saved=True,
+        attachment_ref=_attachment_ref(attachment),
+        title=staged.title or title or filename,
+        entry_id=staged.raw_entry_id,
+        document_id=staged.document_id,
+        job_id=staged.job_id,
+        metadata={"media_type": media_type, "duplicate": staged.duplicate, "extraction": extraction.metadata},
+    )
 
 
 def _combine_caption_and_text(caption: str, text: str) -> str:
@@ -284,7 +384,7 @@ def _attachment_ref(path: Path) -> str:
 
 def _human_extraction_error(extraction: MediaExtraction, media_kind: str) -> str:
     if extraction.error == "pdf_needs_ocr":
-        return _pdf_without_text_message(extraction.metadata)
+        return unreadable_pdf_message(extraction.metadata)
     if extraction.error == "office_protected":
         return (
             "This file is password-protected or uses the older .doc or .ppt format. "
@@ -299,25 +399,6 @@ def _human_extraction_error(extraction: MediaExtraction, media_kind: str) -> str
     if media_kind == "image":
         return "I could not read text from this image yet. Type or paste the text to save it."
     return "I could not extract readable text from this file. Paste the text you want remembered."
-
-
-def _pdf_without_text_message(metadata: dict[str, Any]) -> str:
-    # Say what actually happened. Advising clearer scans when OCR never ran, or
-    # "try again later" for a server that will never have it, both mislead.
-    if metadata.get("ocr_unavailable"):
-        return (
-            "This PDF has no selectable text, and OCR for PDFs is not set up on this server. "
-            "Paste the text, or upload images of its pages."
-        )
-    if metadata.get("ocr_busy"):
-        return "OCR is busy with other uploads. Try this PDF again in a minute, or paste the text."
-    if metadata.get("ocr_skipped_pages") or metadata.get("ocr_unchecked_pages") or metadata.get("pages_timed_out"):
-        return "This PDF needs more OCR time than one upload allows. Split it into smaller files, or paste the text."
-    if metadata.get("ocr_failed_pages"):
-        return (
-            "OCR could not read the scanned pages of this PDF. Upload clearer images of its pages, or paste the text."
-        )
-    return "No readable text was found in this PDF. Upload clear images of its pages, or paste the text."
 
 
 def _chat_metadata(result: ChatEngineResult) -> dict[str, Any]:

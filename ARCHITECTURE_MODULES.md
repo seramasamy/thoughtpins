@@ -144,11 +144,23 @@ as thin adapters.
   followed, and every read is capped by entry count, part size, total bytes and
   compression ratio.
 - `media/pdf.py`: PDF text extraction plus bounded OCR of scanned pages. OCR
-  fills only pages without usable embedded text, within a shared time budget,
-  a page limit and a process-wide concurrency limit sized for the upload
-  request; `media/ocr.py` owns the shared OCR call. `uploads.py` extracts
-  before it touches the database, so no connection or row lock is held
-  during OCR or transcription.
+  fills only pages without usable embedded text, within a shared time budget
+  and a page limit (`PdfLimits`). With `PDF_OCR_IN_WORKER` on (required
+  outside local development), the upload request reads embedded text only and
+  stops at the first page that needs OCR. Otherwise it reads up to 20 pages in
+  40 s, under a process-wide limit of two concurrent OCR uploads.
+  `media/ocr.py` owns the shared OCR call. `uploads.py` extracts before it
+  touches the database, so no connection or row lock is held during OCR or
+  transcription.
+- `pdf_ocr_jobs.py`: scanned-PDF OCR as a durable `pdf_ocr` ingestion job.
+  - A library upload commits a pending (`processing`) source with its job, so
+    clients still get the document id at once. A journal upload commits the
+    job alone.
+  - The worker reads the encrypted original back from `stored_attachments` and
+    extracts with the worker limits: 480 s and 100 pages, under Celery's hard
+    time limit. It then finishes the source, or saves the journal entry.
+  - A PDF with no readable text, or one that outlives the time limit twice,
+    ends as `needs_text` and never stays `processing`.
 - `media/pdf_images.py`: the images a PDF page draws -- a bounded, cycle-safe
   content-stream walk that tracks the drawing matrix -- decoded within hard
   bounds (JBIG2 and JPEG 2000 in a timed subprocess), and pages stored as

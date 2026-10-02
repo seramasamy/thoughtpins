@@ -391,6 +391,10 @@ def run_ingestion_job(job_id: str, tenant_user_id: str | None = None) -> None:
                     user_id=job.user_id,
                     document_id=str(metadata.get("document_id") or ""),
                 )
+            elif job.source == "pdf_ocr" and metadata.get("operation") == "pdf_ocr":
+                from thoughtpins.pdf_ocr_jobs import run_pdf_ocr
+
+                result = run_pdf_ocr(session, job=job, attempts=attempts)
             else:
                 result = process_message(
                     session,

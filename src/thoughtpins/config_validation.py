@@ -95,6 +95,7 @@ def runtime_production_problems(cfg: Any) -> list[str]:
         (not cfg.RATE_LIMIT_ENABLED, "RATE_LIMIT_ENABLED must be true outside local development."),
         usage_enforcement_problem(cfg.USAGE_ENFORCEMENT_ENABLED, cfg.USAGE_TRACKING_ENABLED),
         (not cfg.PROCESS_ENTRIES_ASYNC, "PROCESS_ENTRIES_ASYNC must be true outside local development."),
+        (not cfg.PDF_OCR_IN_WORKER, "PDF_OCR_IN_WORKER must be true outside local development."),
         (
             cfg.INGESTION_QUEUE_BACKEND != "celery",
             "INGESTION_QUEUE_BACKEND must be celery outside local development.",

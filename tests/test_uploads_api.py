@@ -71,7 +71,7 @@ def test_upload_pdf_uses_shared_extraction_contract(isolated_db, monkeypatch, tm
     monkeypatch.setattr(
         uploads,
         "extract_document_text",
-        lambda content, suffix: MediaExtraction(
+        lambda content, suffix, defer_pdf_ocr=False: MediaExtraction(
             text="PDF upload text mentions the blue margin ritual and document recall.",
             kind="document",
             metadata={"suffix": suffix, "engine": "pypdf", "partial": partial},

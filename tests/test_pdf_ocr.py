@@ -515,7 +515,7 @@ def test_uploads_extract_before_taking_the_account_lock(monkeypatch):
 
     order: list[str] = []
 
-    def extract(content, *, filename, media_type, media_kind):
+    def extract(content, *, filename, media_type, media_kind, defer_pdf_ocr=False):
         order.append("extract")
         return MediaExtraction(kind="document", error="pdf_needs_ocr")
 

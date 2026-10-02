@@ -26,6 +26,10 @@ export function uploadOutcome(result: UploadIngestResponse): UploadOutcome {
       text: result.error || "No readable text was extracted. Add the text or choose a clearer file. This file is not available for recall." };
   }
   const destination = result.destination === "journal" ? "journal" : "source library";
+  if (result.extraction_status === "ocr_queued") {
+    return { tone: "ok", title: "Saved, reading scanned pages", saved: true,
+      text: `Saved to your ${destination}. Its scanned pages are being read, and it will be available for recall once that finishes.` };
+  }
   const metadata = result.metadata?.extraction;
   const warnings = metadata && typeof metadata === "object" && "warnings" in metadata && Array.isArray(metadata.warnings)
     ? metadata.warnings.filter((value): value is string => typeof value === "string") : [];

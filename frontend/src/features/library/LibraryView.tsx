@@ -206,7 +206,7 @@ export function LibraryView({ token, run }: ScreenProps) {
           </dl>
           {(selected.topics || []).length > 0 && <div className="pin-taxonomy"><strong>Topics</strong><div>{selected.topics.map((topic) => <span key={topic}>{humanizeIdentifier(topic)}</span>)}</div></div>}
           {(selected.key_concepts || []).length > 0 && <div className="pin-concepts"><strong>Key ideas</strong><p>{selected.key_concepts.slice(0, 10).map(cleanDisplayText).join(" / ")}</p></div>}
-          {selected.status !== "processed" && <p className="source-availability">The link and public details are saved. Thought Pins will use an authorized open copy when one is available.</p>}
+          {selected.status !== "processed" && selected.source_url && <p className="source-availability">The link and public details are saved. Thought Pins will use an authorized open copy when one is available.</p>}
           {originalSourceUrl(selected) && <a className="source-link" href={originalSourceUrl(selected)} target="_blank" rel="noreferrer">Open original on {sourceLabel(selected)} <ArrowUpRight size={15} /></a>}
         </Panel>
       )}
