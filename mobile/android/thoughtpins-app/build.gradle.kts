@@ -87,7 +87,7 @@ android {
 
 dependencies {
     implementation(project(":thoughtpins-core"))
-    implementation(platform("androidx.compose:compose-bom:2026.08.00"))
+    implementation(platform("androidx.compose:compose-bom:2026.09.00"))
     implementation("androidx.activity:activity-compose:1.13.0")
     implementation("androidx.fragment:fragment-ktx:1.9.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.11.0")
