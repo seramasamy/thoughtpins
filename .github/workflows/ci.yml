@@ -281,7 +281,7 @@ jobs:
 
       - name: Keep browser results and review screenshots
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: browser-release-review
           path: |
@@ -505,7 +505,7 @@ jobs:
       # and the dSYMs inside it are what symbolicates a crash report.
       - name: Keep the archive and its dSYMs
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ThoughtPins-${{ env.THOUGHTPINS_BUILD_NUMBER }}-xcarchive
           path: ${{ runner.temp }}/ThoughtPins.xcarchive
