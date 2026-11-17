@@ -16,6 +16,7 @@ export async function installMockApi(
     aiConsentAccepted?: boolean;
     magicLinkEnabled?: boolean;
     appleClientId?: string;
+    googleClientId?: string;
   } = {},
 ) {
   if (mode === "offline") {
@@ -62,6 +63,7 @@ export async function installMockApi(
         invite_request_email: "invite@thoughtpins.com",
         magic_link_enabled: Boolean(options.magicLinkEnabled),
         oauth_apple_client_id: options.appleClientId ?? "com.thoughtpins.web.fixture",
+        oauth_google_client_id: options.googleClientId ?? "fixture-web-client.apps.googleusercontent.com",
       });
     }
     if (path === "/v1/invites/request" && method === "POST") {

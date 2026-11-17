@@ -10,6 +10,13 @@
 // one at runtime means rotating it does not require rebuilding the bundle — a
 // build-only value silently yields an enabled-looking button that cannot work.
 
+import {
+  googleAuthorizationUrl,
+  readGoogleReturn,
+  rememberGoogleSignIn,
+  withoutGoogleFragment,
+  type GoogleReturn,
+} from "./googleRedirect";
 import { loadProviderScript as loadScript } from "./providerScript";
 
 export type OAuthProvider = "google" | "apple";
@@ -56,28 +63,53 @@ export type OAuthResult = {
   displayName?: string;
 };
 
-async function signInWithGoogle(): Promise<OAuthResult> {
+/** Leave for Google's sign-in page; Google sends the tab back to the app's own address. */
+function startGoogleSignIn(): Promise<OAuthResult> {
   const clientId = clientIdFor("google");
-  if (!clientId) throw new OAuthNotConfiguredError("google");
-  await loadScript("https://accounts.google.com/gsi/client", "tp-gsi");
-  const google = (window as unknown as { google?: any }).google;
-  if (!google?.accounts?.id) throw new Error("Google sign-in is temporarily unavailable.");
-  const nonce = randomOAuthValue();
-  return await new Promise<OAuthResult>((resolve, reject) => {
-    google.accounts.id.initialize({
-      client_id: clientId,
-      nonce,
-      callback: (response: { credential?: string }) => {
-        if (response?.credential) resolve({ idToken: response.credential, nonce });
-        else reject(new Error("Google sign-in was cancelled."));
-      },
-    });
-    google.accounts.id.prompt((notification: any) => {
-      if (notification?.isNotDisplayed?.() || notification?.isSkippedMoment?.()) {
-        reject(new Error("Google sign-in could not open. Please try email or phone instead."));
-      }
-    });
-  });
+  if (!clientId) return Promise.reject(new OAuthNotConfiguredError("google"));
+  const pending = { state: randomOAuthValue(), nonce: randomOAuthValue(), startedAt: Date.now() };
+  try {
+    rememberGoogleSignIn(sessionStore(), pending);
+  } catch {
+    return Promise.reject(new Error("Google sign-in needs this site's storage. Allow it, or use email or phone instead."));
+  }
+  window.location.assign(googleAuthorizationUrl(clientId, appRedirectUri(), pending));
+  // The page is leaving for Google; the form stays busy until it has gone.
+  return new Promise<OAuthResult>(() => {});
+}
+
+let googleReturn: GoogleReturn | undefined;
+
+/** What Google sent back to this page load: read once, then removed from the address bar. */
+export function takeGoogleReturn(): GoogleReturn {
+  if (googleReturn) return googleReturn;
+  googleReturn = readGoogleReturn(window.location.hash, sessionStore(), Date.now());
+  if (googleReturn.kind !== "none") {
+    window.history.replaceState(window.history.state, "", withoutGoogleFragment(window.location.href));
+  }
+  return googleReturn;
+}
+
+type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
+
+const unavailableStorage: StorageLike = {
+  getItem: () => null,
+  setItem: () => {
+    throw new Error("Session storage is unavailable");
+  },
+  removeItem: () => {},
+};
+
+function sessionStore(): StorageLike {
+  try {
+    return window.sessionStorage;
+  } catch {
+    return unavailableStorage;
+  }
+}
+
+function appRedirectUri(): string {
+  return window.location.origin + import.meta.env.BASE_URL;
 }
 
 async function signInWithApple(): Promise<OAuthResult> {
@@ -86,7 +118,7 @@ async function signInWithApple(): Promise<OAuthResult> {
   await loadScript(APPLE_SCRIPT, "tp-appleid");
   const AppleID = (window as unknown as { AppleID?: any }).AppleID;
   if (!AppleID?.auth) throw new Error("Apple sign-in is temporarily unavailable.");
-  const redirectUri = window.location.origin + import.meta.env.BASE_URL;
+  const redirectUri = appRedirectUri();
   const state = randomOAuthValue();
   const nonce = randomOAuthValue();
   AppleID.auth.init({
@@ -109,7 +141,7 @@ async function signInWithApple(): Promise<OAuthResult> {
 }
 
 export function signInWithProvider(provider: OAuthProvider): Promise<OAuthResult> {
-  return provider === "google" ? signInWithGoogle() : signInWithApple();
+  return provider === "google" ? startGoogleSignIn() : signInWithApple();
 }
 
 function randomOAuthValue(): string {

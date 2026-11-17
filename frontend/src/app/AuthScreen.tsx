@@ -5,7 +5,7 @@ import { api, type ApiSession } from "../api";
 import type { Notice } from "./types";
 import type { ClientConfigResponse } from "../types";
 import { BrandMark, IconButton, NoticeBanner, PrimaryButton } from "../components/ui";
-import { prepareAppleSignIn, setOAuthClientIds, signInWithProvider, type OAuthProvider } from "./oauth";
+import { prepareAppleSignIn, setOAuthClientIds, signInWithProvider, takeGoogleReturn, type OAuthProvider } from "./oauth";
 import { toggleTheme, useResolvedTheme } from "../core/theme";
 import { PasswordField } from "../components/PasswordField";
 import { useAuthRequest } from "./useAuthRequest";
@@ -56,6 +56,10 @@ export function AuthScreen({
   const [magicSentTo, setMagicSentTo] = useState<string | null>(null);
   const [magicCode, setMagicCode] = useState("");
   const consumingMagicLink = pending === "link";
+  // Google sends the tab back here with its answer in the URL fragment. It is
+  // read once per page load, so Strict Mode's double render sees the same one.
+  const [googleReturn] = useState(() => takeGoogleReturn());
+  const [finishingGoogle, setFinishingGoogle] = useState(googleReturn.kind === "token");
   const theme = useResolvedTheme();
   const registrationLocked = clientConfig?.registration_locked ?? true;
   const showGoogle = clientConfig?.oauth_google_enabled ?? false;
@@ -95,6 +99,20 @@ export function AuthScreen({
     setSession({ accessToken: tokens.access_token, refreshToken: tokens.refresh_token });
   };
 
+  useEffect(() => {
+    if (googleReturn.kind === "error") setNotice({ tone: "error", text: googleReturn.message });
+    if (googleReturn.kind !== "token") return;
+    // A second run while the first is in flight is refused by the request lock.
+    void runAuth(
+      "google",
+      () => api.oauthLogin("google", googleReturn.idToken, undefined, undefined, undefined, googleReturn.nonce),
+      complete,
+      () => setFinishingGoogle(false),
+    );
+    // Once per page load, by design: the ID token is single-use.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const oauthSubmit = (provider: OAuthProvider) => runAuth(provider, async () => {
     const { idToken, displayName, authorizationCode, redirectUri, nonce } = await signInWithProvider(provider);
     return api.oauthLogin(provider, idToken, displayName, authorizationCode, redirectUri, nonce);
@@ -126,7 +144,7 @@ export function AuthScreen({
     }), complete);
   };
 
-  if (consumingMagicLink) {
+  if (consumingMagicLink || finishingGoogle) {
     return (
       <main className="auth-layout">
         <section className="auth-panel">
@@ -134,7 +152,7 @@ export function AuthScreen({
             <BrandMark />
             <Loader2 className="spin" size={24} aria-hidden="true" />
             <h1>Signing you in</h1>
-            <p className="inline-help">Confirming your sign-in link.</p>
+            <p className="inline-help">{finishingGoogle ? "Finishing Google sign-in." : "Confirming your sign-in link."}</p>
           </div>
         </section>
       </main>

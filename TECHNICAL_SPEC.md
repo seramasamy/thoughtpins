@@ -119,7 +119,11 @@ Important variables:
 - `SECURITY_HEADERS_ENABLED` and `MAX_REQUEST_BODY_BYTES`: HTTP hardening.
 - `DATA_ENCRYPTION_KEY`: Fernet key required in production for private entries.
 - `GOOGLE_OAUTH_CLIENT_IDS` and `APPLE_OAUTH_CLIENT_IDS`: comma-separated OIDC
-  audiences for OAuth login.
+  audiences for OAuth login. The first Google ID is the web client. The web app
+  signs in with Google by a full-page OpenID Connect redirect that returns an ID
+  token, so that client needs the app's address (for example
+  `https://thoughtpins.com/app/`) under **Authorized redirect URIs**. Its consent
+  screen must be published, not in Testing, or only listed test users can sign in.
 - `REQUIRE_EMAIL_VERIFICATION`: optional email verification gate.
 - `SENTRY_DSN`: optional crash reporting.
 - `ENABLE_TELEGRAM_BOT`: opt-in legacy adapter.

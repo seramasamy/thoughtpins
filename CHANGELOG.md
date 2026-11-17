@@ -79,6 +79,16 @@ Keep a Changelog, and the project uses semantic versioning for public releases.
 
 ### Fixed
 
+- "Continue with Google" works for everyone. The button opened Google One Tap,
+  which Google and browsers skip when the visitor is not already signed in to
+  Google in that browser, dismissed it recently, or blocks third-party cookies.
+  For most people the button then said sign-in "could not open".
+  - It now redirects to Google's own sign-in page (OpenID Connect with a
+    single-use state and nonce) and returns to the app. The server is unchanged:
+    it still verifies the same ID token and nonce.
+  - The token is removed from the address bar at once.
+  - Google's sign-in script is no longer loaded.
+  - The web client needs the app's address under Authorized redirect URIs.
 - Entries saved through the web and mobile apps now reach semantic search.
   Saving stopped at the database, so the vector channel only held memories
   from Telegram or a manual reindex (TD-008). After a save commits, the worker
