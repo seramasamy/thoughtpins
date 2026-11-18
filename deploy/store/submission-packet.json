@@ -5,7 +5,7 @@
                           "github_or_social":  "thoughtpins",
                           "display_name":  "Thought Pins"
                       },
-    "last_reviewed":  "2026-07-13",
+    "last_reviewed":  "2026-11-17",
     "official_references":  {
                                 "apple_app_review_guidelines":  "https://developer.apple.com/app-store/review/guidelines/",
                                 "apple_app_privacy_details":  "https://developer.apple.com/app-store/app-privacy-details/",
@@ -14,7 +14,8 @@
                                 "google_user_data_policy":  "https://support.google.com/googleplay/android-developer/answer/10144311",
                                 "google_account_deletion":  "https://support.google.com/googleplay/android-developer/answer/13327111",
                                 "google_data_safety_form":  "https://support.google.com/googleplay/android-developer/answer/10787469",
-                                "google_ai_generated_content_policy":  "https://support.google.com/googleplay/android-developer/answer/14094294"
+                                "google_ai_generated_content_policy":  "https://support.google.com/googleplay/android-developer/answer/14094294",
+                                "google_ai_generated_content_reporting":  "https://support.google.com/googleplay/android-developer/answer/13985936"
                             },
     "public_urls":  {
                         "marketing_site":  "https://thoughtpins.com",
@@ -284,7 +285,11 @@
                                                       "Enter final privacy labels, data safety form, review credentials, and AI disclosure notes in store consoles.",
                                                       "Rotate all local/test credentials before public beta.",
                                                       "Compile, sign, capture screenshots, and device-test native iOS/Android app shells before native App Store or Play Store submission.",
-                                                      "Keep the private mini-PC adapter outside submitted store builds and public GitHub exports; rotate its local credentials before any public beta."
+                                                      "Keep the private mini-PC adapter outside submitted store builds and public GitHub exports; rotate its local credentials before any public beta.",
+                                                      "Apple: complete the age-rating questionnaire, including the social-media capability questions required since September 2026 (a private journal with no social feed answers no).",
+                                                      "Apple guideline 2.3.14 (October 2026): store screenshots and other creative assets must reflect the app's content and be appropriate for all audiences.",
+                                                      "Google Play: declare trader status in Play Console (required from November 2026) and complete the content rating questionnaire; unrated apps are not allowed.",
+                                                      "Google Play: the User Data policy now explicitly covers third-party AI integrations (July 2026); the Data safety form and in-app disclosure must cover sharing with the configured AI processors, limited use and consent."
                                                   ],
     "review_notes_template":  "deploy/store/review-notes-template.md",
     "deployment_packet":  "deploy/closed-beta-deployment-packet.json",

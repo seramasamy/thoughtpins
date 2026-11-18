@@ -58,7 +58,7 @@ jobs:
 
       - name: Install locked development dependencies
         run: |
-          python -m pip install uv==0.12.18
+          python -m pip install uv==0.13.9
           python -m uv export --frozen --extra dev --extra workers --no-emit-project --format requirements-txt --output-file /tmp/requirements-dev.txt
           python -m pip install --require-hashes -r /tmp/requirements-dev.txt
 
@@ -187,7 +187,7 @@ jobs:
 
       - name: Install locked development dependencies
         run: |
-          python -m pip install uv==0.12.18
+          python -m pip install uv==0.13.9
           python -m uv export --frozen --extra dev --extra workers --no-emit-project --format requirements-txt --output-file /tmp/requirements-dev.txt
           python -m pip install --require-hashes -r /tmp/requirements-dev.txt
 
@@ -255,7 +255,9 @@ jobs:
 
       - name: Audit and build
         run: |
-          npm audit --audit-level=high
+          # npm audit --audit-level=high, except advisories under a reviewed,
+          # unexpired entry in deploy/security/npm-audit-exceptions.json.
+          python3 ../scripts/check_npm_audit.py
           npm run test:unit
           npm run build
 

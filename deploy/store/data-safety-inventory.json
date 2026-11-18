@@ -1,6 +1,6 @@
 {
     "app_name":  "Thought Pins",
-    "last_reviewed":  "2026-07-13",
+    "last_reviewed":  "2026-11-17",
     "official_references":  {
                                 "apple_app_review_guidelines":  "https://developer.apple.com/app-store/review/guidelines/",
                                 "apple_app_privacy_details":  "https://developer.apple.com/app-store/app-privacy-details/",
@@ -9,7 +9,8 @@
                                 "google_user_data_policy":  "https://support.google.com/googleplay/android-developer/answer/10144311",
                                 "google_account_deletion":  "https://support.google.com/googleplay/android-developer/answer/13327111",
                                 "google_data_safety_form":  "https://support.google.com/googleplay/android-developer/answer/10787469",
-                                "google_ai_generated_content_policy":  "https://support.google.com/googleplay/android-developer/answer/14094294"
+                                "google_ai_generated_content_policy":  "https://support.google.com/googleplay/android-developer/answer/14094294",
+                                "google_ai_generated_content_reporting":  "https://support.google.com/googleplay/android-developer/answer/13985936"
                             },
     "tracking":  {
                      "used_for_tracking":  false,
@@ -153,7 +154,7 @@
                                           },
                         "location":  {
                                          "status":  "not_used_in_v1",
-                                         "reason":  "Places are extracted from user text, not device location."
+                                         "reason":  "Places are extracted from user text, not device location. Approximate location is not inferred from IP addresses, and request IPs are redacted from access logs."
                                      },
                         "contacts":  {
                                          "status":  "not_used_in_v1",

@@ -305,7 +305,8 @@ def _quality_checks(step, skip, py: str, *, strict: bool) -> bool:
     if npm and package_lock.exists():
         ok &= step(
             "frontend dependency audit",
-            [npm, "audit", "--audit-level=high"],
+            # npm audit --audit-level=high, honouring only reviewed, unexpired exceptions.
+            [sys.executable, str(ROOT / "scripts" / "check_npm_audit.py")],
             cwd=FRONTEND_DIR,
             env=_npm_env("npm-audit"),
             timeout=180,

@@ -1,0 +1,13 @@
+{
+  "policy": "Each entry excuses one named advisory that has been reviewed, for at most 31 days. CI fails on an expired entry and on every other high or critical advisory. Remove an entry as soon as a fixed release can be installed. Checked by scripts/check_npm_audit.py.",
+  "exceptions": [
+    {
+      "advisory": "GHSA-fc5q-39xc-vjpf",
+      "package": "picomatch",
+      "reviewed_on": "2026-11-17",
+      "expires_on": "2026-12-17",
+      "reason": "No fixed picomatch exists yet: every release up to 4.0.7, the latest, is affected. picomatch runs only at build time inside Vite (through tinyglobby and fdir), on glob patterns written in this repository, and is not part of the web bundle users load, so the ReDoS input is never attacker-controlled. npm's only suggestion is downgrading Vite to 6.2.7, an older major version.",
+      "remove_when": "picomatch publishes a fixed release and the frontend lockfile resolves to it."
+    }
+  ]
+}

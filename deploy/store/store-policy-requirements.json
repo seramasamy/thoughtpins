@@ -1,6 +1,6 @@
 {
     "app_name":  "Thought Pins",
-    "sources_checked_on":  "2026-07-13",
+    "sources_checked_on":  "2026-11-17",
     "scope":  "closed-beta and future App Store / Play Store submission readiness",
     "official_references":  {
                                 "apple_app_review_guidelines":  "https://developer.apple.com/app-store/review/guidelines/",
@@ -10,7 +10,8 @@
                                 "google_user_data_policy":  "https://support.google.com/googleplay/android-developer/answer/10144311",
                                 "google_account_deletion":  "https://support.google.com/googleplay/android-developer/answer/13327111",
                                 "google_data_safety_form":  "https://support.google.com/googleplay/android-developer/answer/10787469",
-                                "google_ai_generated_content_policy":  "https://support.google.com/googleplay/android-developer/answer/14094294"
+                                "google_ai_generated_content_policy":  "https://support.google.com/googleplay/android-developer/answer/14094294",
+                                "google_ai_generated_content_reporting":  "https://support.google.com/googleplay/android-developer/answer/13985936"
                             },
     "requirements":  [
                          {
@@ -44,9 +45,9 @@
                          {
                              "id":  "apple_privacy_policy_and_retention",
                              "platform":  "apple",
-                             "official_reference":  "apple_app_privacy_details",
+                             "official_reference":  "apple_app_review_guidelines",
                              "required":  true,
-                             "policy_summary":  "The app and metadata need an accessible privacy policy that explains collected data, use, sharing, retention, and deletion paths.",
+                             "policy_summary":  "Guideline 5.1.1(i), with the privacy policy URL field in App Store Connect: an accessible privacy policy that explains collected data, use, sharing, and data retention and deletion, including how a user can revoke consent or request deletion.",
                              "local_gate":  "privacy_details_match_runtime",
                              "implementation_status":  "draft_ready_needs_store_console_entry",
                              "evidence":  [
@@ -144,7 +145,7 @@
                              "platform":  "google",
                              "official_reference":  "google_user_data_policy",
                              "required":  true,
-                             "policy_summary":  "The app must disclose personal/sensitive data practices and use secure handling for collected user data.",
+                             "policy_summary":  "User Data policy: disclose personal and sensitive data practices, handle that data securely (for example over HTTPS), and never sell it. Since July 2026 this explicitly includes third-party AI integrations (limited use, disclosure and consent).",
                              "local_gate":  "secure_handling_and_no_sale",
                              "implementation_status":  "code_ready_needs_final_policy_review",
                              "evidence":  [
@@ -158,7 +159,7 @@
                              "platform":  "apple_google",
                              "official_reference":  "apple_app_review_guidelines",
                              "required":  true,
-                             "policy_summary":  "Public store builds should not expose hidden test, founder, or review-bypass controls to normal users.",
+                             "policy_summary":  "Guideline 2.5.19 (October 2026, formerly 2.3.1): no hidden, dormant, or undocumented features. Public store builds must not expose test, founder, or review-bypass controls to normal users.",
                              "local_gate":  "no_hidden_founder_features",
                              "implementation_status":  "code_ready",
                              "evidence":  [
@@ -186,9 +187,9 @@
                          {
                              "id":  "google_ai_generated_content_safety",
                              "platform":  "google",
-                             "official_reference":  "google_ai_generated_content_policy",
+                             "official_reference":  "google_ai_generated_content_reporting",
                              "required":  true,
-                             "policy_summary":  "Generative AI chat features need safeguards against prohibited content and a way for users to report unsafe AI-generated output.",
+                             "policy_summary":  "AI-Generated Content policy: generative AI chat apps must prevent prohibited content and include in-app reporting or flagging of offensive AI output, without the user having to leave the app.",
                              "local_gate":  "ai_generated_content_safety",
                              "implementation_status":  "code_ready_needs_play_console_entry",
                              "evidence":  [
@@ -202,7 +203,7 @@
                              "platform":  "apple",
                              "official_reference":  "apple_app_review_guidelines",
                              "required":  true,
-                             "policy_summary":  "Apps with user content or AI/chat surfaces need in-app controls to report objectionable, unsafe, abusive, privacy-sensitive, or rights-sensitive content and a documented response path.",
+                             "policy_summary":  "Guideline 1.2 (October 2026 update covers AI content creation apps): user content and AI/chat surfaces need in-app controls to report objectionable, unsafe, abusive, privacy-sensitive, or rights-sensitive content and a timely, documented response path.",
                              "local_gate":  "user_generated_content_safety_controls",
                              "implementation_status":  "code_ready_needs_store_console_entry",
                              "evidence":  [

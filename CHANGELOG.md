@@ -248,6 +248,18 @@ Keep a Changelog, and the project uses semantic versioning for public releases.
 
 ### Changed
 
+- The Apple and Google store-policy review was redone on 2026-11-17 from the
+  official pages; the July review had passed its 120-day limit.
+  - Requirements now cite where the rules live today: Apple 5.1.1(i) for
+    retention and deletion, 2.5.19 for hidden features (formerly 2.3.1), and
+    1.2 as updated in October to cover AI content creation apps. Google's in-app
+    reporting rule for AI output is at answer 13985936, now a tracked source.
+  - Google's user-data policy now explicitly covers third-party AI
+    integrations; the data-safety inventory records that location is never
+    inferred from IP addresses.
+  - New store-console steps for submission are listed: Apple's social-media
+    age-rating questions, Apple 2.3.14 creative assets, and Google Play's
+    trader status and content rating.
 - Scanned PDFs are read with OCR by a background worker job, not during the
   upload (`PDF_OCR_IN_WORKER`, required outside local development).
   - The upload request reads embedded text only, and stops at the first page
@@ -378,6 +390,20 @@ Keep a Changelog, and the project uses semantic versioning for public releases.
 
 ### Security
 
+- Upgraded to clear 62 advisories published against the production lock:
+  - pypdf 6.19.0 to 7.1.0, which reads every uploaded PDF;
+  - Pillow 12.3.0 to 13.0.0, which handles image decoding for OCR and photos;
+  - certifi to 2026.10.23.
+  The floors are raised to match. The 117 PDF, OCR, image and upload tests and
+  the full suite pass on the new versions.
+- Vite is upgraded to 8.3.8. The frontend audit gate is now
+  `scripts/check_npm_audit.py`, which still fails on every high or critical
+  advisory but accepts a named advisory under a reviewed exception lasting at
+  most 31 days (`deploy/security/npm-audit-exceptions.json`).
+  - The first exception is GHSA-fc5q-39xc-vjpf in picomatch. No fixed version
+    exists, and picomatch runs only at build time on this repository's own
+    glob patterns.
+  - It expires on 2026-12-17.
 - PyJWT is upgraded to 2.15.1, with the dependency floor raised to match, and
   urllib3 to 2.8.0, clearing the advisories published against PyJWT 2.13.0
   and urllib3 2.7.0 that failed the production dependency audit.

@@ -36,7 +36,7 @@ Bootstrap a fresh local machine:
 - `python scripts/check_native_review_handoff.py`
 - `python scripts/validate_production.py` with production environment values
 - `npm run build` inside `frontend/` for type checking and the production Vite bundle
-- `npm audit --audit-level=high` inside `frontend/`
+- `python scripts/check_npm_audit.py`: `npm audit --audit-level=high` for `frontend/`, excusing only an advisory under a reviewed, unexpired entry (at most 31 days) in `deploy/security/npm-audit-exceptions.json`
 
 ## CI
 

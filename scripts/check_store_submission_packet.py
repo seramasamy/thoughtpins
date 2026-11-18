@@ -36,6 +36,7 @@ REQUIRED_OFFICIAL_REFERENCES = {
     "google_account_deletion",
     "google_data_safety_form",
     "google_ai_generated_content_policy",
+    "google_ai_generated_content_reporting",
 }
 
 REQUIRED_PUBLIC_URLS = {
