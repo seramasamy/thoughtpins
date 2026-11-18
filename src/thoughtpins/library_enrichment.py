@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from loguru import logger
 from sqlalchemy.orm import Session
 
 from thoughtpins.db import DocumentSource, IngestionJob, Memory, RawEntry
@@ -84,11 +85,18 @@ def run_document_enrichment(session: Session, *, user_id: str, document_id: str)
         library._mirror_document_to_graph_backend(session, document, raw, text, status=document.status)
     memories = session.query(Memory).filter(Memory.user_id == user_id, Memory.raw_entry_id == raw.id).all()
     if memories:
-        get_vector_store().add(
-            [row.id for row in memories],
-            [row.text for row in memories],
-            [{"user_id": user_id} for _row in memories],
-        )
+        try:
+            get_vector_store().add(
+                [row.id for row in memories],
+                [row.text for row in memories],
+                [{"user_id": user_id} for _row in memories],
+            )
+        except Exception as exc:
+            # Vectors are derived state: the repair sweep indexes what is missing,
+            # and retrying the job would only repeat the graph extraction.
+            logger.warning(
+                "Vector indexing for source {} left to the repair sweep ({})", document_id, type(exc).__name__
+            )
     metadata["enrichment_status"] = "completed"
     document.metadata_json = metadata
     lock_active_user_for_write(session, user_id)

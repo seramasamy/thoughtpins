@@ -89,6 +89,17 @@ Keep a Changelog, and the project uses semantic versioning for public releases.
   - The token is removed from the address bar at once.
   - Google's sign-in script is no longer loaded.
   - The web client needs the app's address under Authorized redirect URIs.
+- An embedding-provider failure (an invalid key, or credit running out) no
+  longer writes blank vectors or makes up search results.
+  - Library sources, corrections and restored memories embedded through the
+    vector store stored an all-zero vector when the provider failed. The repair
+    sweep counted it as indexed, so it was never retried. Now nothing is
+    written, and the sweep indexes those memories once the provider is back.
+  - Source enrichment completes even when the provider fails, so its job is
+    not retried and the graph extraction is not repeated.
+  - A search whose query cannot be embedded skips the semantic channel. A
+    zero query vector ranked arbitrary memories as semantic hits.
+  - Production held no zero vectors when this shipped.
 - Entries saved through the web and mobile apps now reach semantic search.
   Saving stopped at the database, so the vector channel only held memories
   from Telegram or a manual reindex (TD-008). After a save commits, the worker

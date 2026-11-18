@@ -59,6 +59,46 @@ def test_source_is_saved_before_derived_processing_and_survives_queue_failure(
     assert indexed and len(indexed) == len(set(indexed))
 
 
+def test_an_embedding_failure_completes_enrichment_and_leaves_vectors_to_the_repair_sweep(isolated_db, monkeypatch):
+    from thoughtpins import library
+    from thoughtpins.db import DocumentSource, Memory, RawEntry
+    from thoughtpins.library_enrichment import run_document_enrichment
+    from thoughtpins.store import get_session
+    from thoughtpins.users import register_user
+    from thoughtpins.utils import local_today
+
+    monkeypatch.setattr(library, "_extract_document_graph", lambda *a, **k: {"entities_created": 0})
+    monkeypatch.setattr(library, "_mirror_document_to_graph_backend", lambda *a, **k: None)
+
+    class VectorStore:
+        def add(self, ids, texts, metadata):
+            raise ConnectionError("fixture embedding provider out of credit")
+
+    monkeypatch.setattr("thoughtpins.memory.vector_store.get_vector_store", lambda: VectorStore())
+    with get_session() as session:
+        owner = register_user(email="source-credit@example.invalid", session=session, bypass_system_lock=True)
+        raw = RawEntry(user_id=owner.id, raw_text="fixture", content_hash="fixture", local_date=local_today())
+        session.add(raw)
+        session.flush()
+        session.add(Memory(user_id=owner.id, raw_entry_id=raw.id, memory_type="fact", text="A violet compass."))
+        source = DocumentSource(
+            user_id=owner.id,
+            raw_entry_id=raw.id,
+            title="Fixture",
+            source_type="text",
+            raw_text="fixture",
+            content_hash="fixture",
+            status="processed",
+        )
+        session.add(source)
+        session.commit()
+
+        result = run_document_enrichment(session, user_id=owner.id, document_id=source.id)
+
+        assert result == {"type": "library_enrichment", "entry_id": raw.id}
+        assert source.metadata_json["enrichment_status"] == "completed"
+
+
 def test_enrichment_cannot_read_another_owners_source(isolated_db, monkeypatch):
     from thoughtpins.db import DocumentSource, RawEntry
     from thoughtpins.library_enrichment import run_document_enrichment

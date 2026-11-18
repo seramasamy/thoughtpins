@@ -332,19 +332,26 @@ def test_the_celery_backend_queues_indexing_instead_of_running_it(embedder, monk
     assert embedder["calls"] == 0, "the save itself must not wait on the embedding provider"
 
 
-def test_storing_embeddings_raises_where_search_falls_back(embedder):
+def test_a_provider_failure_stores_no_zero_vector_and_search_returns_no_hits(embedder):
     from thoughtpins.memory.vector_store import VectorStore
 
     store = VectorStore()
     store._embedding_model = "llm_api"
     store._dimension = DIMENSION
     store._init_memory()
+    store.add(["kept"], [ENTRY], [{"user_id": "owner"}])
     embedder["fail"] = True
 
     with pytest.raises(ConnectionError):
         store.embed_documents(["a memory"])
-    # Search degrades to a zero vector instead of failing the request.
-    assert store._embed(["a query"]) == [[0.0] * DIMENSION]
+    # A zero vector would count as indexed, so the repair sweep would never retry it.
+    with pytest.raises(ConnectionError):
+        store.add(["unembedded"], ["a memory"], [{"user_id": "owner"}])
+    assert store.missing_ids(["kept", "unembedded"]) == ["unembedded"]
+    # A zero query vector would rank arbitrary memories as semantic matches.
+    assert store.search("Harbour Market", user_id="owner") == []
+    embedder["fail"] = False
+    assert [hit["id"] for hit in store.search("Harbour Market", user_id="owner")] == ["kept"]
 
 
 def test_missing_ids_and_precomputed_vectors_on_local_qdrant(monkeypatch, tmp_path):

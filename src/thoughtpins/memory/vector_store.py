@@ -215,7 +215,9 @@ class VectorStore:
         self._inmemory_vectors: list[tuple[list[float], str, str, dict[str, Any]]] = []
         self._backend = "memory"
 
-    def _embed(self, texts: list[str], strict: bool = False) -> list[list[float]]:
+    def _embed(self, texts: list[str]) -> list[list[float]]:
+        """A provider failure raises. Substituting zero vectors would store memories
+        as if indexed, so they are never retried, and turn a search into arbitrary hits."""
         if self._embedding_model is None:
             return [[0.0] * self._dimension for _ in texts]
 
@@ -223,31 +225,18 @@ class VectorStore:
             # Use the configured OpenAI-compatible API for embeddings.
             from thoughtpins.llm.client import get_embeddings
 
-            try:
-                return get_embeddings(texts)
-            except Exception as e:
-                if strict:
-                    raise
-                logger.warning("Configured LLM embedding failed ({}), using zero vectors", type(e).__name__)
-                return [[0.0] * self._dimension for _ in texts]
+            return get_embeddings(texts)
 
         if self._embedding_model == "openai_api":
-            try:
-                return _embed_openai(texts)
-            except Exception as e:
-                if strict:
-                    raise
-                logger.warning("OpenAI embedding failed ({}), using zero vectors", type(e).__name__)
-                return [[0.0] * self._dimension for _ in texts]
+            return _embed_openai(texts)
 
         # Local sentence-transformers model
         embeddings = self._embedding_model.encode(texts, show_progress_bar=False)
         return embeddings.tolist()
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
-        """Embed texts for storage. A provider failure raises: a zero vector would
-        be stored as if indexed and never retried."""
-        return self._embed(texts, strict=True)
+        """Embed texts for storage. A provider failure raises."""
+        return self._embed(texts)
 
     def add(
         self,
@@ -263,7 +252,9 @@ class VectorStore:
             raise ValueError("ids and texts must have the same length")
         if metadata is not None and len(metadata) != len(ids):
             raise ValueError("metadata and ids must have the same length")
-        vectors = self._embed(texts) if vectors is None else vectors
+        # A provider failure raises and writes nothing, so the repair sweep
+        # still sees these ids as missing and retries them.
+        vectors = self.embed_documents(texts) if vectors is None else vectors
         if len(vectors) != len(ids):
             raise ValueError("vectors and ids must have the same length")
         self._sync_dimension_from_vectors(vectors)
@@ -326,7 +317,11 @@ class VectorStore:
         """
         if not query:
             return []
-        query_vec = self._embed([query])[0]
+        try:
+            query_vec = self._embed([query])[0]
+        except Exception as e:
+            logger.warning("Query embedding failed ({}), skipping vector search", type(e).__name__)
+            return []
         self._sync_dimension_from_vectors([query_vec])
 
         if hasattr(self, "_faiss_index"):
